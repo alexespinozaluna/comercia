@@ -16,15 +16,20 @@ import Link from "next/link";
 import type { Caja } from "@/types/database";
 
 /* ── Caja status badge ─────────────────────────────────────── */
-function CajaStatusBadge() {
+function CajaStatusBadge({ authUserId }: { authUserId: number | null }) {
   const [caja, setCaja] = useState<Caja | null | undefined>(undefined);
 
   useEffect(() => {
+    if (authUserId == null) {
+      setCaja(null);
+      return;
+    }
+    setCaja(undefined);
     fetch("/api/caja")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setCaja(d ?? null))
       .catch(() => setCaja(null));
-  }, []);
+  }, [authUserId]);
 
   if (caja === undefined) {
     return <div className="h-6 w-32 rounded-md animate-pulse bg-muted" />;
@@ -142,8 +147,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { authUser, setAuthUser } = useAppStore();
 
   useEffect(() => {
-    getCurrentUser().then((u) => setAuthUser(u));
-  }, [setAuthUser]);
+    // If store has no user yet, fetch it (covers initial mount and post-login navigation
+    // when login page didn't set the user directly).
+    if (!authUser) {
+      getCurrentUser().then((u) => setAuthUser(u));
+    }
+  }, [pathname, authUser, setAuthUser]);
 
   const handleLogout = async () => {
     await logout();
@@ -191,14 +200,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Sheet>
 
           {/* Page title */}
-          <h1 className="text-[15px] font-bold tracking-tight truncate">
+          <h1 className="text-[15px] font-bold tracking-tight truncate text-foreground">
             {getPageTitle(pathname)}
           </h1>
 
           <div className="flex-1" />
 
           {/* Caja status */}
-          <CajaStatusBadge />
+          <CajaStatusBadge authUserId={authUser?.id ?? null} />
         </header>
 
         {/* Content */}

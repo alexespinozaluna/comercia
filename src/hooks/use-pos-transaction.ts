@@ -158,15 +158,13 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
 
   const canSave = cajaAbierta === true && basket.length > 0;
 
-  // Basket handlers
+  // Basket handlers — silent feedback (cart counter is the visual indicator)
   const addToBasket = (product: Producto) => {
     setBasket((prev) => {
       const existing = prev.find((b) => b.IdProducto === product.id);
       if (existing) {
-        toast.success(`${product.Nombre} × ${existing.Cantidad + 1}`);
         return prev.map((b) => (b._tempId === existing._tempId ? { ...b, Cantidad: b.Cantidad + 1 } : b));
       }
-      toast.success(`${product.Nombre} agregado`);
       return [
         ...prev,
         {

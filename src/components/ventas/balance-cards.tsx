@@ -91,7 +91,9 @@ export function BalanceCards({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-      {CARDS.map(({ key, title, icon: Icon, iconBg, iconColor, valueColor, highlight }) => {
+      {CARDS.map((card) => {
+        const { key, title, icon: Icon, iconBg, iconColor, valueColor } = card;
+        const highlight = "highlight" in card && card.highlight;
         const value = values[key] ?? 0;
         const isHighlighted = highlight && value > 0;
         return (

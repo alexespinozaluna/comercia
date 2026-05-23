@@ -53,34 +53,38 @@ export function ProductSearch({
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {products.map((product) => {
             const inBasket = basket.find((b) => b.IdProducto === product.id);
-            const outOfStock = product.Cantidad != null && product.Cantidad === 0;
-            const lowStock = product.Cantidad != null && product.Cantidad > 0 && product.Cantidad <= 5;
+            const stock = product.Cantidad;
+            // Stock display rules: rojo si <= 0, amarillo si <= 5, verde si > 5.
+            // Negative stock is allowed; the add button is never disabled.
+            const stockClass =
+              stock == null
+                ? "bg-muted text-muted-foreground"
+                : stock <= 0
+                ? "bg-destructive/10 text-destructive"
+                : stock <= 5
+                ? "bg-warning/10 text-warning"
+                : "bg-success/10 text-success";
 
             return (
               <div
                 key={product.id}
-                onClick={() => !outOfStock && onAddProduct(product)}
-                className={cn(
-                  "bg-white dark:bg-card rounded-md ring-1 ring-border/50 p-3 cursor-pointer transition-all hover:shadow-sm hover:ring-brand/30 flex flex-col gap-2",
-                  outOfStock && "opacity-60 cursor-not-allowed"
-                )}
+                onClick={() => onAddProduct(product)}
+                className="bg-white dark:bg-card rounded-md ring-1 ring-border/50 p-3 cursor-pointer transition-all hover:shadow-sm hover:ring-brand/30 flex flex-col gap-2"
               >
                 {/* Name row */}
                 <div className="flex items-start justify-between gap-1">
-                  <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1">
+                  <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1 text-foreground">
                     {product.Nombre}
                   </p>
-                  {/* Stock badge (only if low or zero) */}
-                  {(outOfStock || lowStock) && (
+                  {stock != null && (
                     <span
                       className={cn(
-                        "text-[10px] font-semibold px-1.5 py-0.5 rounded-sm shrink-0",
-                        outOfStock
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-warning/10 text-warning"
+                        "text-[10px] font-semibold px-1.5 py-0.5 rounded-sm shrink-0 tabular-nums",
+                        stockClass
                       )}
+                      title="Stock disponible"
                     >
-                      {outOfStock ? "Sin stock" : `Quedan ${product.Cantidad}`}
+                      {stock}
                     </span>
                   )}
                 </div>
@@ -102,17 +106,11 @@ export function ProductSearch({
                     )}
                     <button
                       type="button"
-                      disabled={outOfStock}
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (!outOfStock) onAddProduct(product);
+                        onAddProduct(product);
                       }}
-                      className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center transition-colors shadow-sm",
-                        outOfStock
-                          ? "bg-muted cursor-not-allowed"
-                          : "bg-brand hover:bg-brand-dark active:scale-95"
-                      )}
+                      className="h-8 w-8 rounded-full flex items-center justify-center transition-colors shadow-sm bg-brand hover:bg-brand-dark active:scale-95"
                     >
                       <Plus className="h-4 w-4 text-white" />
                     </button>

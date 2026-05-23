@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Lock, User, LogIn } from "lucide-react";
+import { useAppStore } from "@/stores/app-store";
 
 export default function LoginPage() {
   const router = useRouter();
+  const setAuthUser = useAppStore((s) => s.setAuthUser);
   const [codigo, setCodigo] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,6 +35,7 @@ export default function LoginPage() {
         setError(data.error || "Credenciales inválidas");
         return;
       }
+      setAuthUser(data.user);
       toast.success(`Bienvenido, ${data.user.nombre}`);
       router.push("/");
       router.refresh();
