@@ -88,7 +88,7 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
     <div className="space-y-4 max-w-lg">
       <PageHeader
         title={isEdit ? nombre || "Editar producto" : "Nuevo producto"}
-        backHref="/producto"
+        onBack={() => router.back()}
       />
 
       {/* Card — Datos del producto */}

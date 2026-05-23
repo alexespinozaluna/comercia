@@ -117,15 +117,18 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
           </div>
 
           {/* Grupos por dirección */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {grupos.map((g) => (
-              <div key={g.Direccion}>
+              <div
+                key={g.Direccion}
+                className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden"
+              >
                 {/* Group header */}
-                <div className="flex items-center justify-between border-t border-b border-border py-2">
-                  <span className="font-bold text-sm text-foreground truncate flex-1">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                  <span className="text-sm font-semibold truncate flex-1">
                     {g.Direccion}
                   </span>
-                  <span className="font-bold text-sm text-foreground tabular-nums shrink-0 ml-3">
+                  <span className="text-sm font-semibold tabular-nums shrink-0 ml-3">
                     {numToString(g.SubTotal)}
                   </span>
                 </div>
@@ -144,10 +147,10 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
                         key={d.id}
                         type="button"
                         onClick={() => router.push(`/venta-detalle/${d.id}`)}
-                        className="w-full flex items-start justify-between gap-3 py-2.5 hover:bg-accent/30 transition-colors text-left"
+                        className="w-full flex items-start justify-between gap-3 px-3 py-2.5 hover:bg-accent/30 transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-foreground truncate">
+                          <div className="text-sm font-semibold truncate">
                             {d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -155,11 +158,11 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
                           </div>
                         </div>
                         <div className="flex flex-col items-end shrink-0">
-                          <span className="font-semibold text-success tabular-nums">
+                          <span className="text-sm font-semibold text-success tabular-nums">
                             {numToString(d.Saldo)}
                           </span>
                           {hasAbonoParcial && (
-                            <span className="text-sm text-destructive line-through tabular-nums">
+                            <span className="text-xs text-destructive line-through tabular-nums">
                               {numToString(d.Total)}
                             </span>
                           )}

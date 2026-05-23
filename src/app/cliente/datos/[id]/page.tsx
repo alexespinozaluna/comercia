@@ -144,7 +144,7 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
     <div className="space-y-4 max-w-lg">
       <PageHeader
         title={isEdit ? nombre || "Editar cliente" : "Nuevo cliente"}
-        backHref="/cliente"
+        onBack={() => router.back()}
       />
 
       {/* Card — Datos personales */}

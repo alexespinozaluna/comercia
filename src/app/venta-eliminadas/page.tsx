@@ -54,7 +54,7 @@ export default function VentaEliminadasPage() {
   if (loading) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Papelera" backHref="/venta" breadcrumbs={[{ label: "Ventas", href: "/venta" }, { label: "Eliminadas" }]} />
+        <PageHeader title="Papelera" onBack={() => router.back()} breadcrumbs={[{ label: "Ventas", href: "/venta" }, { label: "Eliminadas" }]} />
         <LoadingState variant="skeleton-list" count={4} />
       </div>
     );
@@ -64,7 +64,7 @@ export default function VentaEliminadasPage() {
     <div className="space-y-5">
       <PageHeader
         title="Papelera"
-        backHref="/venta"
+        onBack={() => router.back()}
         breadcrumbs={[
           { label: "Ventas", href: "/venta" },
           { label: "Eliminadas" },

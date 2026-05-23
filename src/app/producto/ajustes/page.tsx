@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ProductoMovimiento, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
@@ -32,6 +33,7 @@ function getMovInfo(tipo: number, tipos: TipoMovimiento[]) {
 }
 
 export default function AjustesPage() {
+  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [movimientos, setMovimientos] = useState<ProductoMovimiento[]>([]);
   const [tiposMovimiento, setTiposMovimiento] = useState<TipoMovimiento[]>([]);
@@ -77,7 +79,7 @@ export default function AjustesPage() {
   if (user && !ALLOWED_ROLES.includes(user.rol)) {
     return (
       <div className="space-y-4">
-        <PageHeader title="Ajustes de Inventario" backHref="/producto" breadcrumbs={[{ label: "Stock", href: "/producto" }, { label: "Ajustes" }]} />
+        <PageHeader title="Ajustes de Inventario" onBack={() => router.back()} breadcrumbs={[{ label: "Stock", href: "/producto" }, { label: "Ajustes" }]} />
         <EmptyState title="Acceso restringido" description="Solo administradores y supervisores pueden acceder a este modulo." />
       </div>
     );
@@ -87,7 +89,7 @@ export default function AjustesPage() {
     <div className="space-y-4">
       <PageHeader
         title="Ajustes de Inventario"
-        backHref="/producto"
+        onBack={() => router.back()}
         breadcrumbs={[{ label: "Stock", href: "/producto" }, { label: "Ajustes" }]}
         actions={
           <div className="flex gap-2">

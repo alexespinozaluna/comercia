@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Cliente } from "@/types/database";
+import { apiGet } from "@/lib/api-client";
 import {
   Select,
   SelectContent,
@@ -13,7 +14,6 @@ import { X } from "lucide-react";
 import { SearchInput } from "@/components/shared/search-input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { extraerIniciales } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 interface DireccionOption {
   id: number;
@@ -44,15 +44,23 @@ export function ClientSelector({
   const [clientes, setClientes] = useState<Cliente[]>([]);
 
   useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setClientes)
-      .catch(() => {});
+    apiGet<Cliente[]>("/api/clientes")
+      .then((data) => {
+        // Defensive: endpoint normally returns an array, but guard against a paginated wrapper.
+        const arr = Array.isArray(data)
+          ? data
+          : Array.isArray((data as unknown as { data?: Cliente[] })?.data)
+            ? (data as unknown as { data: Cliente[] }).data
+            : [];
+        setClientes(arr);
+      })
+      .catch(() => setClientes([]));
   }, []);
 
+  const list = Array.isArray(clientes) ? clientes : [];
   const filtered = search
-    ? clientes.filter((c) => c.Nombre.toLowerCase().includes(search.toLowerCase()))
-    : clientes.slice(0, 10);
+    ? list.filter((c) => c.Nombre.toLowerCase().includes(search.toLowerCase()))
+    : list.slice(0, 10);
 
   /* ── Client selected ──────────────────────────────────────── */
   if (selectedClientId != null) {

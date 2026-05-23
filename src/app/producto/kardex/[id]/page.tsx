@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Producto, ProductoMovimiento, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { format } from "date-fns";
@@ -47,6 +48,7 @@ function getMovInfo(tipo: number, tipos: TipoMovimiento[]): MovimientoInfo {
 }
 
 export default function KardexPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
   const [producto, setProducto] = useState<Producto | null>(null);
   const [movimientos, setMovimientos] = useState<ProductoMovimiento[]>([]);
   const [tiposMovimiento, setTiposMovimiento] = useState<TipoMovimiento[]>([]);
@@ -104,7 +106,7 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
     <div className="space-y-4">
       <PageHeader
         title={productName}
-        backHref="/producto"
+        onBack={() => router.back()}
         breadcrumbs={[
           { label: "Stock", href: "/producto" },
           { label: "Kardex" },

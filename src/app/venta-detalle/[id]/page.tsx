@@ -106,7 +106,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
     <div className="space-y-4 max-w-lg mx-auto">
       <PageHeader
         title={`Venta #${doc.NroVenta}`}
-        backHref="/venta"
+        onBack={() => router.back()}
       />
 
       {/* Resumen card */}

@@ -120,7 +120,7 @@ function VentaAbonoContent() {
 
   return (
     <div className="space-y-4 max-w-lg">
-      <PageHeader title="Registrar abono" backHref="/deuda" />
+      <PageHeader title="Registrar abono" onBack={() => router.back()} />
 
       {/* Cliente card */}
       {clienteName && (

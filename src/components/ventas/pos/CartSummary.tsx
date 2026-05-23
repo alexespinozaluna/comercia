@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Receipt, Lock, Package, StickyNote, Pencil } from "lucide-react";
+import { Receipt, Lock, Package, StickyNote, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BasketItemLocal } from "@/hooks/use-pos-transaction";
 import { CartItemDetailSheet } from "./CartItemDetailSheet";
@@ -194,6 +194,14 @@ export function CartSummary({
                         {numToString(subtotal)}
                       </span>
                       <Pencil className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onRemoveItem(item._tempId); }}
+                        aria-label={`Eliminar ${item.Descripcion}`}
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 );

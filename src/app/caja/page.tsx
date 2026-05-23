@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useLayoutEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Caja } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -23,6 +24,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function CajaPage() {
+  const router = useRouter();
   const [caja, setCaja] = useState<Caja | null>(null);
   const [loading, setLoading] = useState(true);
   const [montoInicial, setMontoInicial] = useState("");
@@ -87,7 +89,7 @@ export default function CajaPage() {
 
   return (
     <div className="max-w-lg space-y-4">
-      <PageHeader title="Control de caja" backHref="/" />
+      <PageHeader title="Control de caja" onBack={() => router.back()} />
 
       {/* Estado actual */}
       <div

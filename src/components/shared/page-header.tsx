@@ -14,20 +14,27 @@ interface PageHeaderProps {
   title: string;
   subtitle?: string;
   backHref?: string;
+  /** If provided, takes precedence over backHref. Use for router.back() flows. */
+  onBack?: () => void;
   breadcrumbs?: Breadcrumb[];
   actions?: React.ReactNode;
   className?: string;
 }
 
-export function PageHeader({ title, subtitle, backHref, breadcrumbs, actions, className }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, backHref, onBack, breadcrumbs, actions, className }: PageHeaderProps) {
   const router = useRouter();
+  const showBack = !!onBack || !!backHref;
+  const handleBack = () => {
+    if (onBack) onBack();
+    else if (backHref) router.push(backHref);
+  };
   return (
     <div className={cn("flex items-start gap-2 mb-5", className)}>
-      {backHref && (
+      {showBack && (
         <button
           type="button"
           className="flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md px-2 py-1.5 hover:bg-muted/60 shrink-0 mt-1"
-          onClick={() => router.push(backHref)}
+          onClick={handleBack}
           aria-label="Volver"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -51,7 +58,7 @@ export function PageHeader({ title, subtitle, backHref, breadcrumbs, actions, cl
             ))}
           </nav>
         )}
-        <h1 className="text-[20px] font-bold truncate leading-tight text-foreground">{title}</h1>
+        <h1 className="text-[20px] font-bold truncate  text-foreground">{title}</h1>
         {subtitle && (
           <p className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</p>
         )}

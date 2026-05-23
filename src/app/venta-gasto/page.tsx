@@ -98,7 +98,7 @@ function VentaGastoContent() {
     <div className="space-y-4 max-w-lg">
       <PageHeader
         title={isEdit ? "Editar gasto" : "Registrar gasto"}
-        backHref="/"
+        onBack={() => router.back()}
       />
 
       <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-4">
