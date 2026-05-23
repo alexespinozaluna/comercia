@@ -1,0 +1,198 @@
+// TypeScript types matching the Supabase database schema
+// Column names are PascalCase to match the C# entities / Supabase table columns
+
+export interface BaseEnty {
+  id: number;
+  FechaCreacion: string;
+}
+
+export interface Producto extends BaseEnty {
+  Nombre: string;
+  PrecioCosto: number | null;
+  PrecioVenta: number;
+  Cantidad: number | null;
+  FechaVencimiento: string | null;
+}
+
+export interface ClienteDireccion {
+  id: number;
+  Direccion: string;
+  Telefono: string | null;
+  Contacto: string;
+  IdCliente: number;
+  bPrincipal: boolean;
+}
+
+export interface Cliente extends BaseEnty {
+  Nombre: string;
+  NroTelefono: string | null;
+  TipoDocumento: string | null;
+  NroDocumento: string | null;
+  Comentario: string | null;
+  ClienteDireccion?: ClienteDireccion[];
+}
+
+export interface MetodoPago extends BaseEnty {
+  Nombre: string;
+  Simbolo: string;
+}
+
+export interface DocumentoItem {
+  id: number;
+  IdProducto: number;
+  Descripcion: string;
+  Cantidad: number;
+  PrecioVenta: number;
+  MontoAbono: number;
+  Total: number;
+  IdDocumento: number;
+  IdDocumentoRef: number | null;
+}
+
+export interface Documento extends BaseEnty {
+  Estado: number;
+  IdTenant: number;
+  FechaEmision: string;
+  Descripcion: string | null;
+  Concepto: string | null;
+  Total: number;
+  bCredito: boolean;
+  IdCliente: number | null;
+  IdClienteDireccion: number | null;
+  DireccionEntrega: string | null;
+  DocumentoItem?: DocumentoItem[];
+  Cliente?: Cliente;
+  TotalAbono: number;
+  IdTipoDocumento: number;
+  Saldo: number;
+  IdMetodoPago: number | null;
+}
+
+// Computed properties (not in DB, derived on client)
+export interface DocumentoDisplay extends Documento {
+  FormaVenta: string; // "CREDITO" | "EFECTIVO"
+  NroVenta: string; // zero-padded id
+}
+
+// Helper to add display properties
+export function toDisplayDocumento(doc: Documento): DocumentoDisplay {
+  return {
+    ...doc,
+    FormaVenta: doc.bCredito ? "CREDITO" : "EFECTIVO",
+    NroVenta: doc.id.toString().padStart(5, "0"),
+  };
+}
+
+// Resumen for debt grouping (client-side computed)
+export interface ResumenAbono {
+  IdCliente: number | null;
+  NomCliente: string;
+  Cantidad: number;
+  SumTotal: number;
+  FechaUltima: string;
+}
+
+export interface Negocio extends BaseEnty {
+  Nombre: string | null;
+  Telefono: string | null;
+  Direccion: string | null;
+  Logo: string | null;
+}
+
+export interface DocumentoAudit {
+  id: number;
+  IdDocumento: number;
+  Operacion: string;
+  FechaAudit: string;
+  UsuarioAudit: string | null;
+  DataOld: Record<string, unknown> | null;
+  DataNew: Record<string, unknown> | null;
+}
+
+export interface DocumentoItemAudit {
+  id: number;
+  IdDocumentoItem: number;
+  Operacion: string;
+  FechaAudit: string;
+  UsuarioAudit: string | null;
+  DataOld: Record<string, unknown> | null;
+  DataNew: Record<string, unknown> | null;
+}
+
+export interface SistemaTenant {
+  id: number;
+  Codigo: string;
+  Nombre: string;
+  Estado: number;
+  FechaCreacion: string;
+}
+
+export interface SistemaUsuario {
+  id: number;
+  IdTenant: number;
+  Codigo: string;
+  Nombre: string;
+  PasswordHash: string;
+  Rol: string;
+  Estado: number;
+  FechaCreacion: string;
+}
+
+export interface Caja {
+  id: number;
+  IdTenant: number;
+  IdUsuarioApertura: number;
+  FechaApertura: string;
+  FechaCierre: string | null;
+  MontoInicial: number;
+  MontoFinal: number | null;
+  Estado: number;
+  IdUsuarioCierre: number | null;
+}
+
+export interface ProductoMovimiento {
+  id: number;
+  IdTenant: number;
+  IdProducto: number;
+  TipoMovimiento: number;
+  Cantidad: number;
+  StockAnterior: number;
+  StockNuevo: number;
+  IdDocumento: number | null;
+  IdUsuario: number | null;
+  Observacion: string | null;
+  Fecha: string;
+}
+
+// TipoMovimiento — reference table (Supabase: "TipoMovimiento")
+// Operacion: Ingreso (adds stock), Salida (removes stock), Ajuste (calculated difference)
+// Efecto:   Suma (add), Resta (subtract), Suma o Resta (depends on sign)
+export const TIPO_MOVIMIENTO = {
+  VENTA: 1,
+  COMPRA: 2,
+  FABRICACION: 3,
+  MERMA_DANO: 4,
+  VENCIMIENTO: 5,
+  INVENTARIO_FISICO: 6,
+} as const;
+
+export type TipoMovimientoKey = keyof typeof TIPO_MOVIMIENTO;
+export type TipoMovimientoValue = (typeof TIPO_MOVIMIENTO)[TipoMovimientoKey];
+
+export type OperacionTipo = "INGRESO" | "SALIDA" | "AJUSTE";
+export type EfectoTipo = "Suma" | "Resta" | "Suma o Resta";
+
+export interface TipoMovimiento {
+  Id: number;
+  Descripcion: string;
+  Operacion: OperacionTipo;
+  Efecto: EfectoTipo;
+}
+
+// History state for filter persistence (matches original sessionStorage pattern)
+export interface HistoryState {
+  Tipo: string;
+  FechaInicio: string;
+  FechaFin: string;
+  Index: number;
+}
