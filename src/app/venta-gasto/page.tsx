@@ -95,13 +95,13 @@ function VentaGastoContent() {
   if (loading) return <LoadingState variant="skeleton-form" count={3} />;
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-2 max-w-lg">
       <PageHeader
         title={isEdit ? "Editar gasto" : "Registrar gasto"}
         onBack={() => router.back()}
       />
 
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-4">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-2">
         {/* Concepto */}
         <div>
           <FieldLabel>Descripción del gasto *</FieldLabel>

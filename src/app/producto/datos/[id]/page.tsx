@@ -85,14 +85,14 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
   if (loading) return <LoadingState variant="skeleton-form" count={4} />;
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-2 max-w-lg">
       <PageHeader
         title={isEdit ? nombre || "Editar producto" : "Nuevo producto"}
         onBack={() => router.back()}
       />
 
       {/* Card — Datos del producto */}
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-3">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Datos del producto
         </h2>

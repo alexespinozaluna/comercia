@@ -59,7 +59,7 @@ export function DateFilterBar({ tipo, index, fechaInicio, fechaFin, onFilterChan
             key={f.key}
             onClick={() => handleSelectTipo(f.key)}
             className={cn(
-              "text-xs px-3 py-1.5 rounded-full font-medium transition-colors",
+              "text-xs px-2.5 py-1 h-7 rounded-full font-medium transition-colors",
               tipo === f.key
                 ? "bg-brand-surface text-brand-dark"
                 : "bg-muted/60 text-muted-foreground hover:bg-muted"
@@ -72,7 +72,7 @@ export function DateFilterBar({ tipo, index, fechaInicio, fechaFin, onFilterChan
 
       {/* Range dropdown — pill trigger */}
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-medium bg-muted/60 text-muted-foreground hover:bg-muted transition-colors outline-none">
+        <DropdownMenuTrigger className="flex items-center gap-1 text-xs px-2.5 py-1 h-7 rounded-full font-medium bg-muted/60 text-muted-foreground hover:bg-muted transition-colors outline-none">
           <span className="capitalize">{rangoLabel}</span>
           <ChevronDown className="h-3 w-3 shrink-0" />
         </DropdownMenuTrigger>

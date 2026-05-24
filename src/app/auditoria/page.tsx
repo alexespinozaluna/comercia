@@ -118,7 +118,7 @@ export default function AuditoriaPage() {
   }
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-2 max-w-3xl mx-auto">
       <div className="flex items-center gap-2">
         <FileText className="h-5 w-5 text-primary" />
         <h2 className="text-base font-semibold tracking-tight">Auditoria</h2>
@@ -126,7 +126,7 @@ export default function AuditoriaPage() {
 
       {/* Filters */}
       <Card className="border-none ring-1 ring-border/60 shadow-sm">
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-3 space-y-3">
           <div className="flex flex-wrap gap-2">
             <div className="flex gap-2">
               <Input type="date" className="h-8 text-xs w-36" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />

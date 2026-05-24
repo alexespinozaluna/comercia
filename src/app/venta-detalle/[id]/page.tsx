@@ -103,16 +103,16 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const canAbono = doc.bCredito && doc.Saldo > 0;
 
   return (
-    <div className="space-y-4 max-w-lg mx-auto">
+    <div className="space-y-2 max-w-lg mx-auto">
       <PageHeader
         title={`Venta #${doc.NroVenta}`}
         onBack={() => router.back()}
       />
 
       {/* Resumen card */}
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-3">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-3">
         {/* Header */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2">
           <div className={cn(
             "h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold",
             isGasto ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
@@ -177,7 +177,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       {doc.DocumentoItem && doc.DocumentoItem.length > 0 && (
         <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-2 border-b border-border bg-muted/40">
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-4 py-2 border-b border-border bg-muted/40">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Producto</span>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground text-center w-10">Cant.</span>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground text-right w-20">Precio</span>
@@ -186,7 +186,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           {/* Rows */}
           <div className="divide-y divide-border">
             {doc.DocumentoItem.map((item) => (
-              <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-2.5 text-sm items-center">
+              <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-4 py-2.5 text-sm items-center">
                 <span className="font-medium truncate">{item.Descripcion}</span>
                 <span className="text-center text-muted-foreground w-10">{item.Cantidad}</span>
                 <span className="text-right text-muted-foreground w-20">{numToString(item.PrecioVenta)}</span>

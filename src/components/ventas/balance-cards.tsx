@@ -90,7 +90,7 @@ export function BalanceCards({
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
       {CARDS.map((card) => {
         const { key, title, icon: Icon, iconBg, iconColor, valueColor } = card;
         const highlight = "highlight" in card && card.highlight;
@@ -100,23 +100,23 @@ export function BalanceCards({
           <div
             key={key}
             className={cn(
-              "bg-white dark:bg-card rounded-md p-3 ring-1 shadow-sm",
+              "bg-white dark:bg-card rounded-md p-2.5 ring-1 shadow-sm",
               isHighlighted ? "ring-warning/40 bg-warning/5" : "ring-border/50"
             )}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <div className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0", iconBg)}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className={cn("h-6 w-6 rounded-full flex items-center justify-center shrink-0", iconBg)}>
                 <Icon className={cn("h-3.5 w-3.5", iconColor)} />
               </div>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground leading-tight">
+              <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground leading-tight">
                 {title}
               </span>
             </div>
-            <div className={cn("text-[22px] font-extrabold leading-none tracking-tight", valueColor)}>
+            <div className={cn("text-[15px] font-extrabold leading-tight tracking-tight", valueColor)}>
               {numToString(value)}
             </div>
             {key === "ventas" && (
-              <div className="text-[11px] text-muted-foreground mt-1">
+              <div className="text-[10px] text-muted-foreground mt-0.5">
                 {ventasCount} venta{ventasCount !== 1 ? "s" : ""}
               </div>
             )}

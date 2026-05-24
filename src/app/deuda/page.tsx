@@ -48,12 +48,12 @@ export default function DeudaPage() {
   const totalPorCobrar = filtered.reduce((sum, r) => sum + Number(r.SumSaldo), 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <PageHeader title="Deudas" />
 
       {/* Cards de resumen */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 flex items-center gap-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 flex items-center gap-2">
           <div className="h-10 w-10 rounded-md bg-info/10 flex items-center justify-center shrink-0">
             <Users className="h-5 w-5 text-info" />
           </div>
@@ -66,7 +66,7 @@ export default function DeudaPage() {
             </p>
           </div>
         </div>
-        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 flex items-center gap-3">
+        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 flex items-center gap-2">
           <div className="h-10 w-10 rounded-md bg-destructive/10 flex items-center justify-center shrink-0">
             <Wallet className="h-5 w-5 text-destructive" />
           </div>
@@ -105,11 +105,11 @@ export default function DeudaPage() {
                 key={r.IdCliente}
                 className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden hover:ring-brand/30 transition-all"
               >
-                <div className="flex items-center gap-3 p-3">
+                <div className="flex items-center gap-2 p-3">
                   <button
                     type="button"
                     onClick={() => router.push(`/deuda-detalle/${r.IdCliente}`)}
-                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
                   >
                     <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0">
                       <span className="text-sm font-bold text-red-600 dark:text-red-400">

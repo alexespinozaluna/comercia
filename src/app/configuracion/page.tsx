@@ -73,7 +73,7 @@ export default function ConfiguracionPage() {
   if (!negocio) return <EmptyState title="Sin configuración" description="No se encontró información del negocio." />;
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-2 max-w-lg">
       <PageHeader title="Configuración del negocio" />
 
       {/* Logo preview */}
@@ -89,7 +89,7 @@ export default function ConfiguracionPage() {
       )}
 
       {/* Card — datos del negocio */}
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-4">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-2">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Datos del negocio
         </h2>

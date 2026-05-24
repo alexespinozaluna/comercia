@@ -61,7 +61,7 @@ function ClientePageInner() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <PageHeader
         title={selectMode ? "Seleccionar cliente" : "Clientes"}
         backHref={selectMode ? returnTo : undefined}
@@ -99,7 +99,7 @@ function ClientePageInner() {
                 key={c.id}
                 type="button"
                 onClick={() => handleSelect(c)}
-                className="w-full flex items-center gap-3 p-3 hover:bg-accent/40 transition-colors text-left"
+                className="w-full flex items-center gap-2 p-3 hover:bg-accent/40 transition-colors text-left"
               >
                 {/* Avatar */}
                 <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center shrink-0">

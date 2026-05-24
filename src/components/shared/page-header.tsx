@@ -29,7 +29,7 @@ export function PageHeader({ title, subtitle, backHref, onBack, breadcrumbs, act
     else if (backHref) router.push(backHref);
   };
   return (
-    <div className={cn("flex items-start gap-2 mb-5", className)}>
+    <div className={cn("flex items-start gap-2 mb-3", className)}>
       {showBack && (
         <button
           type="button"
@@ -58,7 +58,7 @@ export function PageHeader({ title, subtitle, backHref, onBack, breadcrumbs, act
             ))}
           </nav>
         )}
-        <h1 className="text-[20px] font-bold truncate  text-foreground">{title}</h1>
+        <h1 className="text-[17px] font-bold truncate text-foreground">{title}</h1>
         {subtitle && (
           <p className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</p>
         )}

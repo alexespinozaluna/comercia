@@ -141,14 +141,14 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
   if (loading) return <LoadingState variant="skeleton-form" count={4} />;
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-2 max-w-lg">
       <PageHeader
         title={isEdit ? nombre || "Editar cliente" : "Nuevo cliente"}
         onBack={() => router.back()}
       />
 
       {/* Card — Datos personales */}
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-3">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Datos personales
         </h2>
@@ -173,7 +173,7 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <FieldLabel>Tipo documento</FieldLabel>
             <Select value={tipoDocumento} onValueChange={(v) => setTipoDocumento(v ?? "")}>
@@ -212,7 +212,7 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Card — Direcciones */}
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-3">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Direcciones

@@ -78,7 +78,7 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
   if (loading) return <LoadingState variant="skeleton-detail" count={5} />;
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-2 pb-24">
       {/* Header simple */}
       <div className="flex items-center gap-2">
         <button
@@ -103,14 +103,14 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
       ) : (
         <>
           {/* Cards Deuda + Abono */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3">
               <p className="text-xs text-destructive font-semibold">Deuda</p>
               <p className="font-bold text-2xl text-destructive tabular-nums truncate">
                 {numToString(totalSaldo)}
               </p>
             </div>
-            <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4">
+            <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3">
               <p className="text-xs text-success font-semibold">Abono</p>
               <p className="font-bold text-2xl text-success tabular-nums truncate">
                 {numToString(totalAbonado)}
@@ -149,7 +149,7 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
                         key={d.id}
                         type="button"
                         onClick={() => router.push(`/venta-detalle/${d.id}`)}
-                        className="w-full flex items-start justify-between gap-3 px-3 py-2.5 hover:bg-accent/30 transition-colors text-left"
+                        className="w-full flex items-start justify-between gap-2 px-3 py-2.5 hover:bg-accent/30 transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold truncate">

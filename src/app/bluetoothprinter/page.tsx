@@ -39,7 +39,7 @@ export default function BluetoothPrinterPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <h2 className="text-lg font-semibold">Prueba de Impresora Bluetooth</h2>
 
       {!isSupported && (

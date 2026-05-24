@@ -103,7 +103,7 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
   const productName = producto?.Nombre ?? "Producto";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <PageHeader
         title={productName}
         onBack={() => router.back()}
@@ -115,7 +115,7 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
 
       {/* Product info card */}
       {producto && (
-        <div className="flex items-center gap-3 p-3 rounded-xl border ring-1 ring-border/60 bg-card">
+        <div className="flex items-center gap-2 p-3 rounded-xl border ring-1 ring-border/60 bg-card">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Package className="h-5 w-5 text-primary" />
           </div>
@@ -189,7 +189,7 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
               <div
                 key={m.id}
                 className={cn(
-                  "flex items-start gap-3 p-3 rounded-xl border ring-1 transition-all",
+                  "flex items-start gap-2 p-3 rounded-xl border ring-1 transition-all",
                   "hover:shadow-sm",
                   info.ringColor
                 )}
@@ -209,7 +209,7 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
                   {m.Observacion && (
                     <div className="text-xs text-muted-foreground mt-0.5 truncate">{m.Observacion}</div>
                   )}
-                  <div className="flex items-center gap-3 mt-1.5 text-xs">
+                  <div className="flex items-center gap-2 mt-1.5 text-xs">
                     <span className={cn("font-bold", info.textColor)}>
                       {info.sign}{m.Cantidad}
                     </span>

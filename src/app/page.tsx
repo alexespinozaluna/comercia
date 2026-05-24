@@ -46,7 +46,7 @@ function CajaBanner() {
 
   if (caja) {
     return (
-      <div className="flex items-center gap-3 rounded-lg bg-brand-surface border border-brand/20 px-4 py-3">
+      <div className="flex items-center gap-2 rounded-lg bg-brand-surface border border-brand/20 px-4 py-3">
         <div className="h-9 w-9 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
           <Store className="h-4 w-4 text-brand" />
         </div>
@@ -56,7 +56,7 @@ function CajaBanner() {
             <div className="text-[11px] text-brand/70">Cajero: {authUser.nombre}</div>
           )}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-base font-extrabold text-brand-dark">{numToString(caja.MontoInicial)}</span>
           <Button
             size="sm"
@@ -72,7 +72,7 @@ function CajaBanner() {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border px-4 py-3">
+    <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border px-4 py-3">
       <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
         <Store className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -220,26 +220,24 @@ export default function HomePage() {
   const periodoLabel = rangos[filterIndex]?.FechaTexto ?? filterFechaInicio;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Topbar */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-extrabold leading-tight">{fechaHeader}</h1>
+          <h1 className="text-lg font-bold leading-tight">{fechaHeader}</h1>
           <p className="text-xs text-muted-foreground capitalize mt-0.5">{periodoLabel}</p>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button
-            size="sm"
-            className="bg-brand hover:bg-brand-dark text-white shadow-sm gap-1.5"
+            className="h-8 text-xs px-3 bg-brand hover:bg-brand-dark text-white shadow-sm gap-1.5"
             onClick={() => router.push("/venta/nueva")}
           >
             <Receipt className="h-4 w-4" />
             <span className="hidden sm:inline">Nueva venta</span>
           </Button>
           <Button
-            size="sm"
             variant="outline"
-            className="gap-1.5 text-destructive border-destructive/20 hover:bg-destructive/5 hover:text-destructive"
+            className="h-8 text-xs px-3 gap-1.5 text-destructive border-destructive/20 hover:bg-destructive/5 hover:text-destructive"
             onClick={() => router.push("/venta-gasto?id=0")}
           >
             <TrendingDown className="h-4 w-4" />

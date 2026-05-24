@@ -88,19 +88,19 @@ export default function CajaPage() {
   if (loading) return <LoadingState variant="skeleton-detail" count={4} />;
 
   return (
-    <div className="max-w-lg space-y-4">
+    <div className="max-w-lg space-y-2">
       <PageHeader title="Control de caja" onBack={() => router.back()} />
 
       {/* Estado actual */}
       <div
         className={cn(
-          "rounded-lg p-4 ring-1",
+          "rounded-lg p-3 ring-1",
           caja
             ? "bg-brand-surface ring-brand/30"
             : "bg-muted/50 ring-border"
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div
             className={cn(
               "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
@@ -133,7 +133,7 @@ export default function CajaPage() {
       </div>
 
       {/* Formulario */}
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-4">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-2">
         {caja ? (
           <>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">

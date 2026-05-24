@@ -78,7 +78,7 @@ export default function AjustesPage() {
   // Access check
   if (user && !ALLOWED_ROLES.includes(user.rol)) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         <PageHeader title="Ajustes de Inventario" onBack={() => router.back()} breadcrumbs={[{ label: "Stock", href: "/producto" }, { label: "Ajustes" }]} />
         <EmptyState title="Acceso restringido" description="Solo administradores y supervisores pueden acceder a este modulo." />
       </div>
@@ -86,7 +86,7 @@ export default function AjustesPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <PageHeader
         title="Ajustes de Inventario"
         onBack={() => router.back()}
@@ -119,7 +119,7 @@ export default function AjustesPage() {
               <div
                 key={m.id}
                 className={cn(
-                  "flex items-start gap-3 p-3 rounded-xl border ring-1 transition-all",
+                  "flex items-start gap-2 p-3 rounded-xl border ring-1 transition-all",
                   "hover:shadow-sm",
                   m.TipoMovimiento === 4 ? "ring-amber-500/25" : m.TipoMovimiento === 3 ? "ring-sky-500/25" : "ring-purple-500/25"
                 )}
@@ -139,7 +139,7 @@ export default function AjustesPage() {
                   {m.Observacion && (
                     <div className="text-xs text-muted-foreground mt-0.5 truncate">{m.Observacion}</div>
                   )}
-                  <div className="flex items-center gap-3 mt-1.5 text-xs">
+                  <div className="flex items-center gap-2 mt-1.5 text-xs">
                     <span className={cn("font-bold", info.text)}>
                       {info.sign}{m.Cantidad}
                     </span>

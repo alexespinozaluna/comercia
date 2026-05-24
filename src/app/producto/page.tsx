@@ -52,7 +52,7 @@ export default function ProductoPage() {
     : products;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <PageHeader
         title="Inventario"
         actions={
@@ -79,7 +79,7 @@ export default function ProductoPage() {
       ) : filtered.length === 0 ? (
         <EmptyState icon={Package} title="Sin productos" description="No se encontraron productos." />
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {filtered.map((product) => {
             const stock = stockVariant(product.Cantidad);
             return (

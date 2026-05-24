@@ -119,12 +119,12 @@ function VentaAbonoContent() {
   if (loading) return <LoadingState variant="skeleton-form" count={3} />;
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-2 max-w-lg">
       <PageHeader title="Registrar abono" onBack={() => router.back()} />
 
       {/* Cliente card */}
       {clienteName && (
-        <div className="flex items-center gap-3 bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3">
+        <div className="flex items-center gap-2 bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3">
           <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center shrink-0">
             <span className="text-sm font-bold text-brand-dark">{extraerIniciales(clienteName)}</span>
           </div>
@@ -163,7 +163,7 @@ function VentaAbonoContent() {
       )}
 
       {/* Form card */}
-      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 space-y-4">
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-2">
         {/* Monto */}
         <div>
           <FieldLabel>Monto a abonar *</FieldLabel>

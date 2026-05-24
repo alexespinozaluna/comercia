@@ -47,7 +47,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-page-bg">
+    <div className="min-h-screen flex items-center justify-center p-3 bg-page-bg">
       <div className="w-full max-w-[380px] bg-white rounded-lg ring-1 ring-border/50 shadow-sm p-8 space-y-6">
         {/* Brand */}
         <div className="text-center space-y-1">
@@ -58,7 +58,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-2">
           <div className="space-y-1.5">
             <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Usuario
