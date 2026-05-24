@@ -1,4 +1,4 @@
-import { Documento, DocumentoItem, MetodoPago, ClienteDireccion } from "@/types/database";
+import { Documento, DocumentoItem, MetodoPago, ClienteDireccion, DeudaDetalle, DeudaResumen } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { deleteItem } from "./supabase-service";
 
@@ -239,6 +239,38 @@ export const documentoService = {
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching MetodoPago: ${error.message}`);
     return (data ?? []) as MetodoPago[];
+  },
+
+  /**
+   * Detalle de deudas activas (vista `v_deuda_detalle`).
+   * Filtra por tenant siempre; si se pasa idCliente, filtra solo ese cliente.
+   */
+  async getDeudaDetalle(tenantId: number, idCliente?: number): Promise<DeudaDetalle[]> {
+    let query = getSupabaseServer()
+      .from("v_deuda_detalle")
+      .select("*")
+      .eq("IdTenant", tenantId)
+      .order("FechaEmision", { ascending: false });
+
+    if (idCliente != null) {
+      query = query.eq("IdCliente", idCliente);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Error fetching v_deuda_detalle: ${error.message}`);
+    return (data ?? []) as DeudaDetalle[];
+  },
+
+  /**
+   * Resumen de deudas agrupado por cliente (función `fn_deuda_resumen`).
+   * Ya viene ordenado por monto pendiente DESC desde la BD.
+   */
+  async getDeudaResumen(tenantId: number): Promise<DeudaResumen[]> {
+    const { data, error } = await getSupabaseServer().rpc("fn_deuda_resumen", {
+      p_id_tenant: tenantId,
+    });
+    if (error) throw new Error(`Error calling fn_deuda_resumen: ${error.message}`);
+    return (data ?? []) as DeudaResumen[];
   },
 
   delete: (id: number) => deleteItem(TABLE, id),

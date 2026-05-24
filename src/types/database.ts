@@ -92,6 +92,36 @@ export interface ResumenAbono {
   FechaUltima: string;
 }
 
+// Fila de la vista v_deuda_detalle (documento con deuda activa + join cliente)
+export interface DeudaDetalle {
+  id: number;
+  IdTenant: number;
+  Estado: number;
+  IdCliente: number | null;
+  Concepto: string | null;
+  Descripcion: string | null;
+  FechaEmision: string;
+  FechaCreacion: string;
+  DireccionEntrega: string | null;
+  Total: number;
+  Saldo: number;
+  TotalAbono: number;
+  bCredito: boolean;
+  IdTipoDocumento: number;
+  NomCliente: string | null;
+  NroTelefono: string | null;
+}
+
+// Resultado de fn_deuda_resumen(p_id_tenant) — agrupado por cliente
+export interface DeudaResumen {
+  IdCliente: number;
+  NomCliente: string | null;
+  NroTelefono: string | null;
+  Cantidad: number;
+  SumSaldo: number;
+  MaxFechaEmision: Date;
+}
+
 export interface Negocio extends BaseEnty {
   Nombre: string | null;
   Telefono: string | null;

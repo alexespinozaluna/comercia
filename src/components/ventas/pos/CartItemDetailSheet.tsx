@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { numToString } from "@/lib/format";
+import { numToString, formatN2, parseFormatted } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,20 +13,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { BasketItemLocal } from "@/hooks/use-pos-transaction";
-
-function formatN2(value: number): string {
-  return value.toLocaleString("es-ES", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function parseFormatted(raw: string): number {
-  const cleaned = raw.replace(/\./g, "").replace(",", ".");
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
-}
+import { BasketItemLocal } from "@/hooks/pos/use-basket";
 
 const spinButtonClass =
   "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";

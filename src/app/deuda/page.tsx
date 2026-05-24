@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Documento } from "@/types/database";
+import { DeudaResumen } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { numToString, extraerIniciales } from "@/lib/format";
+import { numToString, extraerIniciales, fechaString } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchInput } from "@/components/shared/search-input";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -12,44 +12,25 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { BookOpenText, Users, Wallet, ChevronRight } from "lucide-react";
 
-interface ResumenDeuda {
-  IdCliente: number;
-  NomCliente: string;
-  Cantidad: number;
-  SumTotal: number;
-  FechaUltima: string;
-}
-
 export default function DeudaPage() {
   const router = useRouter();
-  const [resumen, setResumen] = useState<ResumenDeuda[]>([]);
+  const [resumen, setResumen] = useState<DeudaResumen[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Carga inicial: el resumen agregado ya viene calculado desde Supabase
+  // (función fn_deuda_resumen). Sin pasadas de JavaScript ni Map<>.
   useEffect(() => {
     async function load() {
       try {
-        const data = await apiGet<Documento[]>("/api/deudas");
-        const grouped = new Map<number, ResumenDeuda>();
-        for (const d of data) {
-          if (d.IdCliente == null) continue;
-          const existing = grouped.get(d.IdCliente);
-          if (existing) {
-            existing.Cantidad++;
-            existing.SumTotal += d.Saldo;
-            if (d.FechaEmision > existing.FechaUltima) existing.FechaUltima = d.FechaEmision;
-          } else {
-            grouped.set(d.IdCliente, {
-              IdCliente: d.IdCliente,
-              NomCliente: d.Cliente?.Nombre ?? "Sin nombre",
-              Cantidad: 1,
-              SumTotal: d.Saldo,
-              FechaUltima: d.FechaEmision,
-            });
-          }
-        }
-        const list = Array.from(grouped.values()).sort((a, b) => b.SumTotal - a.SumTotal);
-        setResumen(list);
+        const data = await apiGet<DeudaResumen[]>("/api/deudas/resumen");
+        setResumen(
+  data.sort((a, b) => {
+    const dateA = a.MaxFechaEmision ? new Date(a.MaxFechaEmision).getTime() : 0;
+    const dateB = b.MaxFechaEmision ? new Date(b.MaxFechaEmision).getTime() : 0;
+    return dateB - dateA; // más reciente primero
+  })
+);
       } catch (err) {
         console.error(err);
       } finally {
@@ -60,17 +41,17 @@ export default function DeudaPage() {
   }, []);
 
   const filtered = search
-    ? resumen.filter((r) => r.NomCliente.toLowerCase().includes(search.toLowerCase()))
+    ? resumen.filter((r) => (r.NomCliente ?? "").toLowerCase().includes(search.toLowerCase()))
     : resumen;
 
-  const totalClientes = resumen.length;
-  const totalPorCobrar = resumen.reduce((sum, r) => sum + r.SumTotal, 0);
+  const totalClientes = filtered.length;
+  const totalPorCobrar = filtered.reduce((sum, r) => sum + Number(r.SumSaldo), 0);
 
   return (
     <div className="space-y-4">
       <PageHeader title="Deudas" />
 
-      {/* Summary cards */}
+      {/* Cards de resumen */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-info/10 flex items-center justify-center shrink-0">
@@ -117,49 +98,55 @@ export default function DeudaPage() {
         />
       ) : (
         <div className="space-y-2">
-          {filtered.map((r) => (
-            <div
-              key={r.IdCliente}
-              className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden hover:ring-brand/30 transition-all"
-            >
-              <div className="flex items-center gap-3 p-3">
-                <button
-                  type="button"
-                  onClick={() => router.push(`/deuda-detalle/${r.IdCliente}`)}
-                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                >
-                  <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                      {extraerIniciales(r.NomCliente)}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold truncate text-foreground hover:text-brand transition-colors">
-                      {r.NomCliente}
+          {filtered.map((r) => {
+            const nombre = r.NomCliente ?? "Sin nombre";
+            return (
+              <div
+                key={r.IdCliente}
+                className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden hover:ring-brand/30 transition-all"
+              >
+                <div className="flex items-center gap-3 p-3">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/deuda-detalle/${r.IdCliente}`)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                        {extraerIniciales(nombre)}
+                      </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {r.Cantidad} deuda{r.Cantidad !== 1 ? "s" : ""}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold truncate text-foreground hover:text-brand transition-colors">
+                        {nombre}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.Cantidad} deuda{r.Cantidad !== 1 ? "s" : ""}
+                      </div>
+                       <div className="text-xs text-muted-foreground">
+                        {fechaString(new Date(r.MaxFechaEmision))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[16px] font-extrabold text-destructive leading-none tabular-nums">
-                      {numToString(r.SumTotal)}
+                    <div className="text-right shrink-0">
+                      <div className="text-[16px] font-extrabold text-destructive leading-none tabular-nums">
+                        {numToString(Number(r.SumSaldo))}
+                      </div>
                     </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-                </button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs bg-brand hover:bg-brand-dark text-white px-2.5 shrink-0"
-                  onClick={() =>
-                    router.push(`/venta-abono?id=${r.IdCliente}&tipo=2&pagina=deuda`)
-                  }
-                >
-                  Abonar
-                </Button>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+                  </button>
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs bg-brand hover:bg-brand-dark text-white px-2.5 shrink-0"
+                    onClick={() =>
+                      router.push(`/venta-abono?id=${r.IdCliente}&tipo=2&pagina=deuda`)
+                    }
+                  >
+                    Abonar
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

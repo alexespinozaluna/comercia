@@ -1,23 +1,34 @@
-/** Formato de moneda es-ES: $ 37.500 */
-export function numToString(value: number | null | undefined, format: "N0" | "N2" = "N0"): string {
+const localInfo = process.env.NEXT_PUBLIC_LOCALE ?? "es-CL";
+
+/** Formato de moneda chilena: $ 37.500 */
+export function numToString(
+  value: number | null | undefined,
+  format: "N0" | "N2" = "N0",
+): string {
   const safe = value ?? 0;
   const decimals = format === "N2" ? 2 : 0;
-  return `$ ${safe.toLocaleString("es-ES", {
+  return `$ ${safe.toLocaleString(localInfo, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })}`;
 }
 
+const formatDatePart = (date: Date) =>
+  date.toLocaleDateString(localInfo, { day: "2-digit", month: "short" });
+
+const formatTimePart = (date: Date) =>
+  date.toLocaleTimeString(localInfo, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
 /** Formato fecha corta con hora: dd/MMM | h:mm tt */
 export function fechaCortaHora(fecha: Date, fechaHora: Date): string {
   if (fecha.toDateString() === fechaHora.toDateString()) {
-    const d = fechaHora.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
-    const t = fechaHora.toLocaleTimeString("es-ES", { hour: "numeric", minute: "2-digit", hour12: true });
-    return `${d} | ${t}`;
+    return `${formatDatePart(fechaHora)} | ${formatTimePart(fechaHora)}`;
   }
-  const d = fecha.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
-  const t = fechaHora.toLocaleTimeString("es-ES", { hour: "numeric", minute: "2-digit", hour12: true });
-  return `${d} | ${t}`;
+  return `${formatDatePart(fecha)} | ${formatTimePart(fecha)}`;
 }
 
 /** Formato fecha corta: dd/MM/yy */
@@ -38,4 +49,19 @@ export function extraerIniciales(nombre: string): string {
 /** Trunca string con ... si excede la cantidad */
 export function sbsLeft(value: string, cant: number): string {
   return value.length > cant ? `${value.substring(0, cant)}...` : value;
+}
+
+/** Format a number for an editable text input (es-CL: "1.234,56"). No currency prefix. */
+export function formatN2(value: number): string {
+  return value.toLocaleString(localInfo, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/** Parse a user-typed es-CL formatted string back to a number ("1.234,56" → 1234.56). */
+export function parseFormatted(raw: string): number {
+  const cleaned = raw.replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
 }

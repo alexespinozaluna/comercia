@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Documento } from "@/types/database";
+import { DeudaDetalle } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { numToString, fechaString } from "@/lib/format";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -14,7 +14,7 @@ import { es } from "date-fns/locale";
 
 interface DeudaGrupo {
   Direccion: string;
-  Items: Documento[];
+  Items: DeudaDetalle[];
   SubTotal: number;
 }
 
@@ -31,17 +31,18 @@ function formatHora(fechaIso: string): string {
 export default function DeudaDetallePage({ params }: { params: Promise<{ idCliente: string }> }) {
   const router = useRouter();
   const [idCliente, setIdCliente] = useState<number>(0);
-  const [deudas, setDeudas] = useState<Documento[]>([]);
+  const [deudas, setDeudas] = useState<DeudaDetalle[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Carga: pide al backend solo las deudas de este cliente (filtrado en la BD).
+  // Antes traíamos todas las deudas del tenant y filtrabamos en JavaScript.
   useEffect(() => {
     params.then(async (p) => {
       const cid = parseInt(p.idCliente);
       setIdCliente(cid);
       try {
-        const all = await apiGet<Documento[]>("/api/deudas");
-        const mine = all.filter((d) => d.IdCliente === cid);
-        setDeudas(mine);
+        const data = await apiGet<DeudaDetalle[]>(`/api/deudas/detalle?idCliente=${cid}`);
+        setDeudas(data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -50,10 +51,10 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
     });
   }, [params]);
 
-  const nomCliente = deudas[0]?.Cliente?.Nombre ?? "Cliente";
-  const totalSaldo = useMemo(() => deudas.reduce((sum, d) => sum + d.Saldo, 0), [deudas]);
+  const nomCliente = deudas[0]?.NomCliente ?? "Cliente";
+  const totalSaldo = useMemo(() => deudas.reduce((sum, d) => sum + Number(d.Saldo), 0), [deudas]);
   const totalAbonado = useMemo(
-    () => deudas.reduce((sum, d) => sum + (d.TotalAbono ?? 0), 0),
+    () => deudas.reduce((sum, d) => sum + Number(d.TotalAbono ?? 0), 0),
     [deudas]
   );
 
@@ -62,12 +63,13 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
     const map = new Map<string, DeudaGrupo>();
     for (const d of sorted) {
       const dir = d.DireccionEntrega?.trim() || SIN_DIRECCION;
+      const saldoNumerico = Number(d.Saldo);
       const g = map.get(dir);
       if (g) {
         g.Items.push(d);
-        g.SubTotal += d.Saldo;
+        g.SubTotal += saldoNumerico;
       } else {
-        map.set(dir, { Direccion: dir, Items: [d], SubTotal: d.Saldo });
+        map.set(dir, { Direccion: dir, Items: [d], SubTotal: saldoNumerico });
       }
     }
     return Array.from(map.values());
