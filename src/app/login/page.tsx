@@ -70,7 +70,7 @@ export default function LoginPage() {
                 value={codigo}
                 onChange={(e) => setCodigo(e.target.value)}
                 placeholder="admin"
-                className="h-11 pl-9 rounded-md"
+                className="h-11 pl-9 rounded-md text-foreground bg-white dark:bg-white dark:text-gray-900"
                 disabled={loading}
                 autoComplete="username"
               />
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••"
-                className="h-11 pl-9 rounded-md"
+                className="h-11 pl-9 rounded-md text-foreground bg-white dark:bg-white dark:text-gray-900"
                 disabled={loading}
                 autoComplete="current-password"
               />

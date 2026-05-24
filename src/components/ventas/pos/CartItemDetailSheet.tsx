@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { numToString, formatN2, parseFormatted } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,59 +32,42 @@ export function CartItemDetailSheet({
   item,
   open,
   onOpenChange,
-  onUpdateQuantity,
   onSetQuantity,
   onUpdatePrice,
   onRemoveItem,
 }: CartItemDetailSheetProps) {
+  // Estado local desacoplado del padre: el usuario edita libremente sin que
+  // cada tecla dispare un re-render del padre que sobreescriba lo escrito.
+  const [qtyDisplay, setQtyDisplay] = useState("1");
   const [priceDisplay, setPriceDisplay] = useState("");
-  const [priceFocused, setPriceFocused] = useState(false);
-  const [qtyDisplay, setQtyDisplay] = useState("");
 
+  // Inicializar SOLO al cambiar de ítem (su _tempId), nunca en cada render —
+  // de lo contrario los campos se resetearían al valor original al editar.
   useEffect(() => {
     if (item) {
-      if (!priceFocused) setPriceDisplay(formatN2(item.PrecioVenta));
       setQtyDisplay(String(item.Cantidad));
+      setPriceDisplay(formatN2(item.PrecioVenta));
     }
-  }, [item?.PrecioVenta, item?.Cantidad, item?._tempId, priceFocused]);
-
-  const handlePriceFocus = useCallback(() => {
-    if (!item) return;
-    setPriceFocused(true);
-    setPriceDisplay(String(item.PrecioVenta));
-  }, [item]);
-
-  const handlePriceBlur = useCallback(() => {
-    setPriceFocused(false);
-    if (!item) return;
-    const parsed = parseFormatted(priceDisplay);
-    const finalPrice = parsed > 0 ? parsed : item.PrecioVenta;
-    onUpdatePrice(item._tempId, finalPrice);
-    setPriceDisplay(formatN2(finalPrice));
-  }, [priceDisplay, item, onUpdatePrice]);
-
-  const handlePriceChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!item) return;
-      setPriceDisplay(e.target.value);
-      const parsed = parseFormatted(e.target.value);
-      if (parsed > 0) onUpdatePrice(item._tempId, parsed);
-    },
-    [item, onUpdatePrice]
-  );
-
-  const handleQtyBlur = useCallback(() => {
-    if (!item) return;
-    const v = parseInt(qtyDisplay);
-    if (isNaN(v) || v < 1) {
-      onSetQuantity(item._tempId, 1);
-      setQtyDisplay("1");
-    }
-  }, [qtyDisplay, item, onSetQuantity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?._tempId]);
 
   if (!item) return null;
 
-  const subtotal = item.Cantidad * item.PrecioVenta;
+  // Valores reactivos derivados de lo que el usuario está escribiendo.
+  const cantidad = Math.max(1, parseFloat(qtyDisplay) || 1);
+  const precio = parseFormatted(priceDisplay);
+  const subtotal = cantidad * precio;
+
+  const stepQty = (delta: number) => {
+    setQtyDisplay(String(Math.max(1, cantidad + delta)));
+  };
+
+  // Único punto de confirmación: vuelca el estado local al padre y cierra.
+  const handleSubmit = () => {
+    onSetQuantity(item._tempId, cantidad);
+    onUpdatePrice(item._tempId, precio > 0 ? precio : item.PrecioVenta);
+    onOpenChange(false);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -96,7 +79,15 @@ export function CartItemDetailSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-5 pt-2 pb-4">
+        <div
+          className="flex flex-col gap-5 pt-2 pb-4"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+        >
           {/* Cantidad */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Cantidad</Label>
@@ -105,11 +96,8 @@ export function CartItemDetailSheet({
                 variant="outline"
                 size="icon"
                 className="h-11 w-11 rounded-full shrink-0"
-                onClick={() => {
-                  onUpdateQuantity(item._tempId, -1);
-                  setQtyDisplay(String(Math.max(1, item.Cantidad - 1)));
-                }}
-                disabled={item.Cantidad <= 1}
+                onClick={() => stepQty(-1)}
+                disabled={cantidad <= 1}
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -118,23 +106,15 @@ export function CartItemDetailSheet({
                 inputMode="numeric"
                 min={1}
                 value={qtyDisplay}
-                onChange={(e) => {
-                  setQtyDisplay(e.target.value);
-                  const v = parseInt(e.target.value);
-                  if (!isNaN(v) && v >= 1) onSetQuantity(item._tempId, v);
-                }}
+                onChange={(e) => setQtyDisplay(e.target.value)}
                 onFocus={(e) => e.target.select()}
-                onBlur={handleQtyBlur}
-                className={`h-11 flex-1 text-center text-[18px] font-bold tabular-nums ${spinButtonClass}`}
+                className={`h-11 flex-1 text-center text-[18px] font-bold tabular-nums text-foreground ${spinButtonClass}`}
               />
               <Button
                 variant="outline"
                 size="icon"
                 className="h-11 w-11 rounded-full shrink-0"
-                onClick={() => {
-                  onUpdateQuantity(item._tempId, 1);
-                  setQtyDisplay(String(item.Cantidad + 1));
-                }}
+                onClick={() => stepQty(1)}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -151,16 +131,15 @@ export function CartItemDetailSheet({
               <Input
                 type="text"
                 inputMode="decimal"
-                value={priceFocused ? priceDisplay : formatN2(item.PrecioVenta)}
-                onChange={handlePriceChange}
-                onFocus={handlePriceFocus}
-                onBlur={handlePriceBlur}
-                className="h-11 text-lg font-semibold tabular-nums pl-7"
+                value={priceDisplay}
+                onChange={(e) => setPriceDisplay(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                className="h-11 text-lg font-semibold tabular-nums pl-7 text-foreground"
               />
             </div>
           </div>
 
-          {/* Subtotal */}
+          {/* Subtotal — reactivo en tiempo real, sin necesitar confirmación */}
           <div className="flex justify-between items-center rounded-md bg-brand-surface px-4 py-3">
             <span className="text-sm font-medium text-brand-dark">Subtotal</span>
             <span className="text-lg font-extrabold text-brand-dark tabular-nums">
@@ -168,10 +147,10 @@ export function CartItemDetailSheet({
             </span>
           </div>
 
-          {/* Actualizar */}
+          {/* Actualizar — confirma cantidad y precio */}
           <Button
             className="w-full h-11 bg-brand hover:bg-brand-dark text-white font-semibold"
-            onClick={() => onOpenChange(false)}
+            onClick={handleSubmit}
           >
             Actualizar
           </Button>

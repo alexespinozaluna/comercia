@@ -266,6 +266,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
 
+  // Login es una página standalone — sin sidebar/header/nav.
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex h-full">
       {/* Desktop sidebar */}
