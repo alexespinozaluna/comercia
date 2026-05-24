@@ -7,7 +7,6 @@ import {
   CreditCard,
   Package,
   Users,
-  Receipt,
   Landmark,
   Settings,
 } from "lucide-react";
@@ -16,8 +15,7 @@ import { AuthUser } from "@/lib/auth-client";
 import { motion } from "framer-motion";
 
 const ALL_MOBILE = [
-  { href: "/", label: "Inicio", icon: LayoutDashboard, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"] },
-  { href: "/venta", label: "Ventas", icon: Receipt, roles: ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"] },
+  { href: "/", label: "Ventas", icon: LayoutDashboard, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"] },
   { href: "/deuda", label: "Deudas", icon: CreditCard, roles: ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"] },
   { href: "/producto", label: "Stock", icon: Package, roles: ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"] },
   { href: "/cliente", label: "Clientes", icon: Users, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"] },

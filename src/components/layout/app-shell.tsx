@@ -2,12 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, LogOut } from "lucide-react";
+import { Menu, LogOut, ChevronDown, Landmark, Settings, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { NavMenu } from "./nav-menu";
 import { MobileNav } from "./mobile-nav";
-import { getCurrentUser, logout } from "@/lib/auth-client";
+import { getCurrentUser, logout, type AuthUser } from "@/lib/auth-client";
 import { useAppStore } from "@/stores/app-store";
 import { extraerIniciales, numToString } from "@/lib/format";
 import { toast } from "sonner";
@@ -15,8 +22,10 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Caja } from "@/types/database";
 
-/* ── Caja status badge ─────────────────────────────────────── */
-function CajaStatusBadge({ authUserId }: { authUserId: number | null }) {
+/* ── Hook compartido: estado de caja ───────────────────────── */
+// Lo levantamos al AppShell para que el header (badge + user menu) lean
+// el mismo state y solo se haga un fetch a /api/caja.
+function useCajaAbierta(authUserId: number | null) {
   const [caja, setCaja] = useState<Caja | null | undefined>(undefined);
 
   useEffect(() => {
@@ -31,6 +40,11 @@ function CajaStatusBadge({ authUserId }: { authUserId: number | null }) {
       .catch(() => setCaja(null));
   }, [authUserId]);
 
+  return caja;
+}
+
+/* ── Caja status badge (recibe caja como prop) ─────────────── */
+function CajaStatusBadge({ caja }: { caja: Caja | null | undefined }) {
   if (caja === undefined) {
     return <div className="h-6 w-32 rounded-md animate-pulse bg-muted" />;
   }
@@ -56,6 +70,95 @@ function CajaStatusBadge({ authUserId }: { authUserId: number | null }) {
       <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
       <span className="font-medium text-destructive">Sin caja</span>
     </Link>
+  );
+}
+
+/* ── User dropdown menu ────────────────────────────────────── */
+function UserMenu({
+  authUser,
+  caja,
+  onLogout,
+}: {
+  authUser: AuthUser;
+  caja: Caja | null | undefined;
+  onLogout: () => void;
+}) {
+  const router = useRouter();
+  const isAdmin = authUser.rol === "ADMIN";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent transition-colors cursor-pointer outline-none">
+        <div className="h-7 w-7 rounded-full bg-brand flex items-center justify-center shrink-0">
+          <span className="text-white text-[11px] font-semibold">
+            {extraerIniciales(authUser.nombre)}
+          </span>
+        </div>
+        <span className="text-[13px] font-semibold hidden sm:block text-foreground">
+          {authUser.nombre}
+        </span>
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="min-w-56">
+        {/* Header: nombre + rol (informativo, no clickeable) */}
+        <div className="px-2 py-2">
+          <p className="text-sm font-semibold truncate text-foreground">{authUser.nombre}</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider mt-0.5">
+            {authUser.rol}
+          </p>
+        </div>
+
+        <DropdownMenuSeparator />
+
+        {/* Info de caja (informativo) */}
+        {caja === undefined ? (
+          <div className="px-2 py-1.5 text-xs text-muted-foreground">Cargando caja…</div>
+        ) : caja ? (
+          <div className="px-2 py-1.5 text-xs flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+            <span className="text-success font-medium">Caja abierta</span>
+            <span className="text-success font-bold ml-auto">
+              {numToString(caja.MontoInicial)}
+            </span>
+          </div>
+        ) : (
+          <div className="px-2 py-1.5 text-xs flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
+            <span className="text-destructive font-medium">Sin caja abierta</span>
+          </div>
+        )}
+
+        <DropdownMenuSeparator />
+
+        {/* Acciones */}
+        <DropdownMenuItem onClick={() => router.push("/caja")}>
+          <Landmark className="h-4 w-4" />
+          Ir a Caja
+        </DropdownMenuItem>
+
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => router.push("/configuracion")}>
+            <Settings className="h-4 w-4" />
+            Configuración
+          </DropdownMenuItem>
+        )}
+
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => router.push("/auditoria")}>
+            <ClipboardList className="h-4 w-4" />
+            Auditoría
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem variant="destructive" onClick={onLogout}>
+          <LogOut className="h-4 w-4" />
+          Cerrar sesión
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -118,7 +221,7 @@ function SidebarUserFooter({ onLogout }: { onLogout: () => void }) {
 
 /* ── Page title helper ─────────────────────────────────────── */
 function getPageTitle(pathname: string): string {
-  if (pathname === "/") return "Dashboard";
+  if (pathname === "/") return "Ventas";
   if (pathname.startsWith("/venta/nueva")) return "Nueva Venta";
   if (pathname.startsWith("/venta-form")) return "Editar Venta";
   if (pathname.startsWith("/venta-detalle")) return "Detalle";
@@ -145,6 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { authUser, setAuthUser } = useAppStore();
+  const caja = useCajaAbierta(authUser?.id ?? null);
 
   useEffect(() => {
     // If store has no user yet, fetch it (covers initial mount and post-login navigation
@@ -207,7 +311,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1" />
 
           {/* Caja status */}
-          <CajaStatusBadge authUserId={authUser?.id ?? null} />
+          <CajaStatusBadge caja={caja} />
+
+          {/* User dropdown */}
+          {authUser && <UserMenu authUser={authUser} caja={caja} onLogout={handleLogout} />}
         </header>
 
         {/* Content */}

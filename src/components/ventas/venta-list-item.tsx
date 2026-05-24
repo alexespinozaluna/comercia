@@ -59,7 +59,7 @@ export function VentaListItem({ venta }: VentaListItemProps) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold truncate leading-tight">
-          {sbsLeft(nombre, 28)}
+          {sbsLeft(nombre, 50)}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-muted-foreground">
@@ -67,7 +67,7 @@ export function VentaListItem({ venta }: VentaListItemProps) {
           </span>
           {concepto && concepto !== nombre && (
             <span className="text-[11px] text-muted-foreground/60 truncate">
-              {sbsLeft(concepto, 24)}
+              {sbsLeft(concepto, 80)}
             </span>
           )}
         </div>

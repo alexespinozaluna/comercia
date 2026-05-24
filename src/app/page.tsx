@@ -11,8 +11,10 @@ import { obtenerRangosDeFechas } from "@/lib/date-utils";
 import { DateFilterBar } from "@/components/ventas/date-filter-bar";
 import { BalanceCards } from "@/components/ventas/balance-cards";
 import { VentaListItem } from "@/components/ventas/venta-list-item";
+import { LossSection } from "@/components/ventas/loss-section";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SearchInput } from "@/components/shared/search-input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -125,6 +127,7 @@ export default function HomePage() {
   const router = useRouter();
   const [ventas, setVentas] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   const { filterTipo, filterIndex, filterFechaInicio, filterFechaFin, setFilter, refreshCounter } =
     useAppStore();
@@ -176,14 +179,32 @@ export default function HomePage() {
   // Computed values — identical to original
   const ingresos = ventas.filter((v) => v.IdTipoDocumento !== 3);
   const gastos = ventas.filter((v) => v.IdTipoDocumento === 3);
-  const totalEfectivo = ingresos.filter((v) => !v.bCredito).reduce((sum, v) => sum + v.Total, 0);
-  const totalAbono = ingresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.TotalAbono, 0);
-  const totalGastos = gastos.reduce((sum, v) => sum + v.Total, 0);
+   // Búsqueda sobre los movimientos del rango (no afecta totales del Balance)
+  const term = search.toLowerCase();
+  const filteredIngresos = search
+    ? ingresos.filter(
+        (v) =>
+          v.Concepto?.toLowerCase().includes(term) ||
+          v.Descripcion?.toLowerCase().includes(term) ||
+          v.Cliente?.Nombre?.toLowerCase().includes(term)
+      )
+    : ingresos;
+  const filteredGastos = search
+    ? gastos.filter(
+        (v) =>
+          v.Concepto?.toLowerCase().includes(term) ||
+          v.Descripcion?.toLowerCase().includes(term)
+      )
+    : gastos;
+  
+  const totalEfectivo = filteredIngresos.filter((v) => !v.bCredito).reduce((sum, v) => sum + v.Total, 0);
+  const totalAbono = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.TotalAbono, 0);
+  const totalGastos = filteredGastos.reduce((sum, v) => sum + v.Total, 0);
   const balance = totalEfectivo + totalAbono - totalGastos;
-  const totalCredito = ingresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.Saldo, 0);
-  const ventasOnly = ingresos.filter((v) => v.IdTipoDocumento === 1);
+  const totalCredito = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.Saldo, 0);
+  const ventasOnly = filteredIngresos.filter((v) => v.IdTipoDocumento === 1);
   const ventasCount = ventasOnly.length;
-  const ventasTotal = ventasOnly.reduce((sum, v) => sum + v.Total, 0);
+  const ventasTotal = ventasOnly.reduce((sum, v) => sum + v.Total, 0); 
 
   // Header date
   const hoy = new Date();
@@ -227,9 +248,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Caja banner */}
-      <CajaBanner />
-
       {/* Date filter */}
       <DateFilterBar
         tipo={filterTipo}
@@ -250,8 +268,13 @@ export default function HomePage() {
         ventasTotal={ventasTotal}
       />
 
-      {/* Acciones rápidas — solo mobile */}
-      <AccionesRapidas />
+      {/* Búsqueda — filtra los items de cada tab, sin afectar los totales del Balance */}
+      <SearchInput
+        placeholder="Buscar ventas, clientes o conceptos..."
+        value={search}
+        onChange={setSearch}
+        debounceMs={300}
+      />
 
       {/* Tabs: Ingresos / Gastos */}
       {loading && ventas.length === 0 ? (
@@ -282,11 +305,19 @@ export default function HomePage() {
           </TabsList>
 
           <TabsContent value="ingreso" className="mt-3">
-            {ingresos.length === 0 ? (
-              <EmptyState icon={Receipt} title="Sin ingresos" description="No hay ingresos en este periodo." />
+            {filteredIngresos.length === 0 ? (
+              <EmptyState
+                icon={Receipt}
+                title={search ? "Sin resultados" : "Sin ingresos"}
+                description={
+                  search
+                    ? `No se encontraron ingresos para "${search}".`
+                    : "No hay ingresos en este periodo."
+                }
+              />
             ) : (
               <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 divide-y divide-border overflow-hidden">
-                {ingresos.map((v) => (
+                {filteredIngresos.map((v) => (
                   <div key={v.id} className="px-3">
                     <VentaListItem venta={v} />
                   </div>
@@ -296,11 +327,19 @@ export default function HomePage() {
           </TabsContent>
 
           <TabsContent value="gasto" className="mt-3">
-            {gastos.length === 0 ? (
-              <EmptyState icon={TrendingDown} title="Sin gastos" description="No hay gastos en este periodo." />
+            {filteredGastos.length === 0 ? (
+              <EmptyState
+                icon={TrendingDown}
+                title={search ? "Sin resultados" : "Sin gastos"}
+                description={
+                  search
+                    ? `No se encontraron gastos para "${search}".`
+                    : "No hay gastos en este periodo."
+                }
+              />
             ) : (
               <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 divide-y divide-border overflow-hidden">
-                {gastos.map((v) => (
+                {filteredGastos.map((v) => (
                   <div key={v.id} className="px-3">
                     <VentaListItem venta={v} />
                   </div>

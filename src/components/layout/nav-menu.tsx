@@ -7,7 +7,6 @@ import {
   CreditCard,
   Package,
   Users,
-  Receipt,
   Settings,
   ClipboardList,
   Landmark,
@@ -26,8 +25,7 @@ interface NavItem {
 }
 
 const ALL_NAV: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"], group: "principal" },
-  { href: "/venta", label: "Ventas", icon: Receipt, roles: ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"], group: "principal" },
+  { href: "/", label: "Ventas", icon: LayoutDashboard, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"], group: "principal" },
   { href: "/deuda", label: "Deudas", icon: CreditCard, roles: ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"], group: "principal" },
   { href: "/cliente", label: "Clientes", icon: Users, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"], group: "gestion" },
   { href: "/producto", label: "Inventario", icon: Package, roles: ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"], group: "gestion" },
