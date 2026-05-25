@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
@@ -23,6 +23,18 @@ const jakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Comercia - POS",
   description: "Sistema de punto de venta moderno. Ventas, crédito, contado, pagos, egresos e ingresos.",
+  // PWA: emite mobile-web-app-capable + apple-mobile-web-app-{title,status-bar-style}.
+  appleWebApp: { capable: true, title: "Comercia", statusBarStyle: "default" },
+  icons: { apple: "/icons/icon-192x192.png" },
+  // Next 16 ya no emite la variante legacy; la añadimos para iOS Safari antiguo.
+  other: { "apple-mobile-web-app-capable": "yes" },
+};
+
+// PWA: <meta name="theme-color" content="#f97316"> (brand naranja).
+export const viewport: Viewport = {
+  themeColor: "#f97316",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
