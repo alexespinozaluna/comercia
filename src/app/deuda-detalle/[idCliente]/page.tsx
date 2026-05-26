@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { DeudaDetalle } from "@/types/database";
+import { DeudaDetalle, Negocio } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { numToString, fechaString } from "@/lib/format";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { BotonCompartirDeuda } from "@/components/deuda/BotonCompartirDeuda";
 import { BookOpenText, ChevronLeft, CreditCard } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -32,6 +33,7 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
   const router = useRouter();
   const [idCliente, setIdCliente] = useState<number>(0);
   const [deudas, setDeudas] = useState<DeudaDetalle[]>([]);
+  const [negocioNombre, setNegocioNombre] = useState("");
   const [loading, setLoading] = useState(true);
 
   // Carga: pide al backend solo las deudas de este cliente (filtrado en la BD).
@@ -41,8 +43,12 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
       const cid = parseInt(p.idCliente);
       setIdCliente(cid);
       try {
-        const data = await apiGet<DeudaDetalle[]>(`/api/deudas/detalle?idCliente=${cid}`);
+        const [data, negocio] = await Promise.all([
+          apiGet<DeudaDetalle[]>(`/api/deudas/detalle?idCliente=${cid}`),
+          apiGet<Negocio | null>("/api/negocio").catch(() => null),
+        ]);
         setDeudas(data);
+        setNegocioNombre(negocio?.Nombre ?? "");
       } catch (err) {
         console.error(err);
       } finally {
@@ -89,9 +95,18 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <h1 className="font-bold text-base text-foreground uppercase truncate">
+        <h1 className="flex-1 min-w-0 font-bold text-base text-foreground uppercase truncate">
           {nomCliente}
         </h1>
+        {idCliente > 0 && (
+          <BotonCompartirDeuda
+            idCliente={idCliente}
+            nombreCliente={nomCliente}
+            nombreNegocio={negocioNombre}
+            totalDeuda={totalSaldo}
+            nroTelefono={deudas[0]?.NroTelefono}
+          />
+        )}
       </div>
 
       {deudas.length === 0 ? (

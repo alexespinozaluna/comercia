@@ -5,6 +5,12 @@ const PUBLIC_PATHS = [
   "/login",
   "/api/auth/login",
   "/api/auth/logout",
+  // Links públicos (compartir sin login): páginas /p/* y sus APIs.
+  // OJO: "/p/" con barra final para no abarcar /producto, /perdidas, etc.
+  // Solo /api/link-publico/validar es pública; el POST /api/link-publico exige auth.
+  "/p/",
+  "/api/deudas/publica",
+  "/api/link-publico/validar",
   // Harness de tests E2E — solo expuesto en desarrollo (la ruta hace 404 en prod).
   ...(process.env.NODE_ENV !== "production" ? ["/dev-harness"] : []),
 ];

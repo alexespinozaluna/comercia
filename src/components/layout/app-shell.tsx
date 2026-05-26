@@ -266,8 +266,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
 
-  // Login es una página standalone — sin sidebar/header/nav.
-  if (pathname === "/login") {
+  // Login y páginas públicas (/p/*) son standalone — sin sidebar/header/nav.
+  if (pathname === "/login" || pathname.startsWith("/p/")) {
     return <>{children}</>;
   }
 

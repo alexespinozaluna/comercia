@@ -139,6 +139,20 @@ export interface DocumentoAudit {
   DataNew: Record<string, unknown> | null;
 }
 
+// Link público para compartir un recurso (deuda, venta, etc.) sin login.
+export interface LinkPublico {
+  id: number;
+  Token: string;
+  IdTenant: number;
+  TipoRecurso: string; // 'deuda_cliente' | 'venta' | 'cotizacion'
+  IdRecurso: number; // IdCliente, IdDocumento, etc.
+  Metadata: Record<string, unknown> | null;
+  FechaCreacion: string;
+  FechaExpiracion: string | null;
+  Estado: number; // 1=activo, 0=revocado
+  FechaUltimoAcceso: string | null;
+}
+
 export interface DocumentoItemAudit {
   id: number;
   IdDocumentoItem: number;

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   description: "Sistema de punto de venta moderno. Ventas, crédito, contado, pagos, egresos e ingresos.",
   // PWA: emite mobile-web-app-capable + apple-mobile-web-app-{title,status-bar-style}.
   appleWebApp: { capable: true, title: "Comercia", statusBarStyle: "default" },
-  icons: { apple: "/icons/icon-192x192.png" },
+  icons: { icon: "/icons/favicon.ico", apple: "/icons/icon-192x192.png" },
   // Next 16 ya no emite la variante legacy; la añadimos para iOS Safari antiguo.
   other: { "apple-mobile-web-app-capable": "yes" },
 };
