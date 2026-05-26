@@ -15,6 +15,7 @@ export function FechaSection({ fecha, onChange }: FechaSectionProps) {
       <Input
         type="date"
         value={fecha}
+        lang="es-CL"
         onChange={(e) => onChange(e.target.value)}
         className="h-9 text-sm rounded-md"
       />

@@ -39,6 +39,18 @@ export function fechaString(fechaHora: Date): string {
   return `${d}/${m}/${y}`;
 }
 
+/**
+ * Fecha local en formato YYYY-MM-DD para `<input type="date">`.
+ * Usa la fecha local del sistema (NO toISOString, que da UTC y puede
+ * adelantar/atrasar un día en zonas como es-CL).
+ */
+export function toInputDate(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 /** Extrae iniciales de las primeras 2 palabras del nombre */
 export function extraerIniciales(nombre: string): string {
   if (!nombre?.trim()) return "";

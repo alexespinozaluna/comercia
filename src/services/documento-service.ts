@@ -1,4 +1,11 @@
-import { Documento, DocumentoItem, MetodoPago, ClienteDireccion, DeudaDetalle, DeudaResumen } from "@/types/database";
+import {
+  Documento,
+  DocumentoItem,
+  MetodoPago,
+  ClienteDireccion,
+  DeudaDetalle,
+  DeudaResumen,
+} from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { deleteItem } from "./supabase-service";
 
@@ -11,11 +18,19 @@ function truncateField(value: string | null | undefined): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
-  return trimmed.length > MAX_FIELD_LEN ? trimmed.substring(0, MAX_FIELD_LEN) : trimmed;
+  return trimmed.length > MAX_FIELD_LEN
+    ? trimmed.substring(0, MAX_FIELD_LEN)
+    : trimmed;
 }
 
 /** Build a clean JSONB object from a Documento for RPC calls (strips nested relations and id=0) */
-function buildDocumentoJson(doc: Partial<Documento> & { FechaEmision: string; Total: number; bCredito: boolean }): Record<string, unknown> {
+function buildDocumentoJson(
+  doc: Partial<Documento> & {
+    FechaEmision: string;
+    Total: number;
+    bCredito: boolean;
+  },
+): Record<string, unknown> {
   return {
     FechaEmision: doc.FechaEmision,
     Descripcion: truncateField(doc.Descripcion),
@@ -51,7 +66,8 @@ export const documentoService = {
     fechaFin: string,
     bCredito = false,
     idCliente = 0,
-    tenantId?: number
+    tenantId?: number,
+    id?: number,
   ): Promise<Documento[]> {
     let query = getSupabaseServer()
       .from(TABLE)
@@ -65,6 +81,9 @@ export const documentoService = {
 
     if (bCredito) {
       query = query.eq("bCredito", true).neq("Saldo", 0);
+      if (id != null && id > 0) {
+        query = query.eq("id", id);
+      }
       if (idCliente > 0) {
         query = query.eq("IdCliente", idCliente);
       }
@@ -72,16 +91,22 @@ export const documentoService = {
       const fechaFinEnd = new Date(fechaFin + "T00:00:00");
       fechaFinEnd.setDate(fechaFinEnd.getDate() + 1);
       const fechaFinNext = fechaFinEnd.toISOString().split("T")[0];
-      query = query.gte("FechaEmision", fechaIni).lt("FechaEmision", fechaFinNext);
+      query = query
+        .gte("FechaEmision", fechaIni)
+        .lt("FechaEmision", fechaFinNext);
     }
 
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching ventas: ${error.message}`);
+    console.log("Fetched ventas:", data);
     return (data ?? []) as Documento[];
   },
 
   /** Get a single document with items and client */
-  async getVentaConItem(id: number, tenantId?: number): Promise<Documento | null> {
+  async getVentaConItem(
+    id: number,
+    tenantId?: number,
+  ): Promise<Documento | null> {
     let query = getSupabaseServer()
       .from(TABLE)
       .select("*, Cliente(*), DocumentoItem(*)")
@@ -102,20 +127,27 @@ export const documentoService = {
 
   /** Create a sale with items — atomic via RPC */
   async crearVentaConItems(
-    doc: Partial<Documento> & { FechaEmision: string; Total: number; bCredito: boolean },
+    doc: Partial<Documento> & {
+      FechaEmision: string;
+      Total: number;
+      bCredito: boolean;
+    },
     items: DocumentoItem[],
     idTenant: number,
-    idUsuarioCreacion: number
+    idUsuarioCreacion: number,
   ): Promise<Documento> {
     const docJson = buildDocumentoJson(doc);
     const itemsJson = buildItemsJson(items);
 
-    const { data, error } = await getSupabaseServer().rpc("crear_venta_con_items", {
-      p_documento: docJson,
-      p_items: itemsJson,
-      p_id_tenant: idTenant,
-      p_id_usuario_creacion: idUsuarioCreacion,
-    });
+    const { data, error } = await getSupabaseServer().rpc(
+      "crear_venta_con_items",
+      {
+        p_documento: docJson,
+        p_items: itemsJson,
+        p_id_tenant: idTenant,
+        p_id_usuario_creacion: idUsuarioCreacion,
+      },
+    );
 
     if (error) throw new Error(`Error creating venta: ${error.message}`);
     return data as Documento;
@@ -124,9 +156,13 @@ export const documentoService = {
   /** Update a sale with items — atomic via RPC */
   async modificarVentaConItems(
     id: number,
-    doc: Partial<Documento> & { FechaEmision: string; Total: number; bCredito: boolean },
+    doc: Partial<Documento> & {
+      FechaEmision: string;
+      Total: number;
+      bCredito: boolean;
+    },
     items: DocumentoItem[],
-    idTenant: number
+    idTenant: number,
   ): Promise<void> {
     // Fetch current items to compute diff
     const { data: currentItems, error: fetchErr } = await getSupabaseServer()
@@ -136,7 +172,8 @@ export const documentoService = {
       .eq("IdTenant", idTenant)
       .eq("Estado", 1);
 
-    if (fetchErr) throw new Error(`Error fetching current items: ${fetchErr.message}`);
+    if (fetchErr)
+      throw new Error(`Error fetching current items: ${fetchErr.message}`);
 
     const current = (currentItems ?? []) as DocumentoItem[];
     const updatedItems = items ?? [];
@@ -146,8 +183,12 @@ export const documentoService = {
       .filter((c) => !updatedItems.some((n) => n.id === c.id))
       .map((c) => c.id);
 
-    const toUpdate = updatedItems.filter((n) => current.some((c) => c.id === n.id));
-    const toAdd = updatedItems.filter((n) => !current.some((c) => c.id === n.id));
+    const toUpdate = updatedItems.filter((n) =>
+      current.some((c) => c.id === n.id),
+    );
+    const toAdd = updatedItems.filter(
+      (n) => !current.some((c) => c.id === n.id),
+    );
 
     const docJson = buildDocumentoJson(doc);
 
@@ -167,14 +208,17 @@ export const documentoService = {
       IdDocumento: id,
     }));
 
-    const { data, error } = await getSupabaseServer().rpc("modificar_venta_con_items", {
-      p_id_documento: id,
-      p_documento: docJson,
-      p_items_to_soft_delete: toDeleteIds.length > 0 ? toDeleteIds : null,
-      p_items_to_update: itemsToUpdate.length > 0 ? itemsToUpdate : null,
-      p_items_to_add: itemsToAdd.length > 0 ? itemsToAdd : null,
-      p_id_tenant: idTenant,
-    });
+    const { data, error } = await getSupabaseServer().rpc(
+      "modificar_venta_con_items",
+      {
+        p_id_documento: id,
+        p_documento: docJson,
+        p_items_to_soft_delete: toDeleteIds.length > 0 ? toDeleteIds : null,
+        p_items_to_update: itemsToUpdate.length > 0 ? itemsToUpdate : null,
+        p_items_to_add: itemsToAdd.length > 0 ? itemsToAdd : null,
+        p_id_tenant: idTenant,
+      },
+    );
 
     if (error) throw new Error(`Error updating venta: ${error.message}`);
 
@@ -195,23 +239,30 @@ export const documentoService = {
     }
 
     const { data, error } = await query;
-    if (error) throw new Error(`Error fetching ventas eliminadas: ${error.message}`);
+    if (error)
+      throw new Error(`Error fetching ventas eliminadas: ${error.message}`);
     return (data ?? []) as Documento[];
   },
 
   /** Get ticket text via Supabase RPC */
   async getTicketText(id: number, width: number): Promise<string> {
-    const { data, error } = await getSupabaseServer().rpc("generate_ticket_text", {
-      venta_id: id,
-      width,
-    });
+    const { data, error } = await getSupabaseServer().rpc(
+      "generate_ticket_text",
+      {
+        venta_id: id,
+        width,
+      },
+    );
 
     if (error) throw new Error(`Error generating ticket: ${error.message}`);
     return data as string;
   },
 
   /** Get client addresses */
-  async getClienteDirecciones(idCliente: number, tenantId?: number): Promise<ClienteDireccion[]> {
+  async getClienteDirecciones(
+    idCliente: number,
+    tenantId?: number,
+  ): Promise<ClienteDireccion[]> {
     let query = getSupabaseServer()
       .from("ClienteDireccion")
       .select("*")
@@ -222,15 +273,14 @@ export const documentoService = {
     }
 
     const { data, error } = await query;
-    if (error) throw new Error(`Error fetching ClienteDireccion: ${error.message}`);
+    if (error)
+      throw new Error(`Error fetching ClienteDireccion: ${error.message}`);
     return (data ?? []) as ClienteDireccion[];
   },
 
   /** Get payment methods */
   async getMetodoPago(tenantId?: number): Promise<MetodoPago[]> {
-    let query = getSupabaseServer()
-      .from("MetodoPago")
-      .select("*");
+    let query = getSupabaseServer().from("MetodoPago").select("*");
 
     if (tenantId != null) {
       query = query.eq("IdTenant", tenantId).eq("Estado", 1);
@@ -245,19 +295,24 @@ export const documentoService = {
    * Detalle de deudas activas (vista `v_deuda_detalle`).
    * Filtra por tenant siempre; si se pasa idCliente, filtra solo ese cliente.
    */
-  async getDeudaDetalle(tenantId: number, idCliente?: number): Promise<DeudaDetalle[]> {
+  async getDeudaDetalle(
+    tenantId: number,
+    idCliente?: number,
+  ): Promise<DeudaDetalle[]> {
     let query = getSupabaseServer()
       .from("v_deuda_detalle")
       .select("*")
       .eq("IdTenant", tenantId)
-      .order("FechaEmision", { ascending: false });
+      .order("FechaEmision", { ascending: false })
+      .order("id", { ascending: false });
 
     if (idCliente != null) {
       query = query.eq("IdCliente", idCliente);
     }
 
     const { data, error } = await query;
-    if (error) throw new Error(`Error fetching v_deuda_detalle: ${error.message}`);
+    if (error)
+      throw new Error(`Error fetching v_deuda_detalle: ${error.message}`);
     return (data ?? []) as DeudaDetalle[];
   },
 
@@ -269,7 +324,8 @@ export const documentoService = {
     const { data, error } = await getSupabaseServer().rpc("fn_deuda_resumen", {
       p_id_tenant: tenantId,
     });
-    if (error) throw new Error(`Error calling fn_deuda_resumen: ${error.message}`);
+    if (error)
+      throw new Error(`Error calling fn_deuda_resumen: ${error.message}`);
     return (data ?? []) as DeudaResumen[];
   },
 

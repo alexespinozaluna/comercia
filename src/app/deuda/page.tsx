@@ -24,13 +24,7 @@ export default function DeudaPage() {
     async function load() {
       try {
         const data = await apiGet<DeudaResumen[]>("/api/deudas/resumen");
-        setResumen(
-  data.sort((a, b) => {
-    const dateA = a.MaxFechaEmision ? new Date(a.MaxFechaEmision).getTime() : 0;
-    const dateB = b.MaxFechaEmision ? new Date(b.MaxFechaEmision).getTime() : 0;
-    return dateB - dateA; // más reciente primero
-  })
-);
+        setResumen(data);
       } catch (err) {
         console.error(err);
       } finally {

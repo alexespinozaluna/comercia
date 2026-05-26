@@ -68,7 +68,8 @@ RETURNS TABLE (
   "NroTelefono"     TEXT,
   "Cantidad"        BIGINT,
   "SumSaldo"        NUMERIC,
-  "MaxFechaEmision" DATE
+  "MaxFechaEmision" DATE,
+  "MaxId"           BIGINT
 )
 LANGUAGE sql
 STABLE
@@ -79,12 +80,15 @@ AS $$
     v."NroTelefono"::TEXT,
     COUNT(*)                       AS "Cantidad",
     SUM(v."Saldo")                 AS "SumSaldo",
-    MAX(v."FechaEmision")::DATE    AS "MaxFechaEmision"
+    MAX(v."FechaEmision")::DATE    AS "MaxFechaEmision",
+    MAX(v.id)                      AS "MaxId"
   FROM v_deuda_detalle v
   WHERE v."IdTenant"  = p_id_tenant
     AND v."IdCliente" IS NOT NULL
   GROUP BY v."IdCliente", v."NomCliente", v."NroTelefono"
-  ORDER BY SUM(v."Saldo") DESC;
+ ORDER BY 
+       MAX(v."FechaEmision") DESC,
+    MAX(v.id) DESC;
 $$;
 
 COMMENT ON FUNCTION fn_deuda_resumen(INTEGER) IS

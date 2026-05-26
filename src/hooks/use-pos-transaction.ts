@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Documento, Cliente } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
+import { toInputDate } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 import { useBasket, BasketItemLocal } from "./pos/use-basket";
@@ -30,7 +31,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
   // Form state
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+  const [fecha, setFecha] = useState(toInputDate());
   const [isCredit, setIsCredit] = useState(false);
 
   // Sub-hooks
@@ -83,7 +84,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
           return;
         }
 
-        setFecha(venta.FechaEmision?.split("T")[0] ?? new Date().toISOString().split("T")[0]);
+        setFecha(venta.FechaEmision?.split("T")[0] ?? toInputDate());
         setIsCredit(venta.bCredito);
         metodo.setSelectedId(venta.IdMetodoPago);
         concepto.hydrate(venta.Concepto);

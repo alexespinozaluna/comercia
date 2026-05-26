@@ -25,14 +25,22 @@ export function BotonCompartirDeuda({
 }: BotonCompartirDeudaProps) {
   const [loading, setLoading] = useState(false);
 
+  // Normaliza a formato wa.me: solo dígitos, con código de país 56.
+  // "+56937392804" → "56937392804" (quita +); "937392804" → "56937392804" (antepone 56).
+  const normalizarTelefono = (raw: string | null | undefined): string => {
+    const tel = (raw ?? "").replace(/\D/g, "");
+    if (!tel) return "";
+    return tel.startsWith("56") ? tel : `56${tel}`;
+  };
+
   // Mensaje al cliente — montos y fechas SOLO con funciones de @/lib/format.
   const construirMensaje = (link: string) =>
     `Estimado/a ${nombreCliente}
 
-Le informamos que tiene una deuda pendiente con ${nombreNegocio}:
+Le informamos que tiene una deuda pendiente:
 
-DEUDA: ${numToString(totalDeuda)}
-FECHA: ${fechaString(new Date())}
+*_Deuda: ${numToString(totalDeuda)}_*
+*_Fecha: ${fechaString(new Date())}_*
 
 Ver detalle:
 ${link}`;
@@ -45,9 +53,8 @@ ${link}`;
         idRecurso: idCliente,
       });
       const mensaje = construirMensaje(url);
-      // wa.me exige el número solo con dígitos (con código de país). Si no hay
-      // teléfono, abre WhatsApp para elegir contacto.
-      const tel = (nroTelefono ?? "").replace(/\D/g, "");
+      // Si no hay teléfono, abre WhatsApp para elegir contacto.
+      const tel = normalizarTelefono(nroTelefono);
       const destino = tel ? `https://wa.me/${tel}` : "https://wa.me/";
       window.open(`${destino}?text=${encodeURIComponent(mensaje)}`, "_blank");
     } catch {

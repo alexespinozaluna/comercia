@@ -9,7 +9,9 @@ function truncateField(value: string | null | undefined): string | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
-  return trimmed.length > MAX_FIELD_LEN ? trimmed.substring(0, MAX_FIELD_LEN) : trimmed;
+  return trimmed.length > MAX_FIELD_LEN
+    ? trimmed.substring(0, MAX_FIELD_LEN)
+    : trimmed;
 }
 
 export async function GET(req: NextRequest) {
@@ -24,8 +26,18 @@ export async function GET(req: NextRequest) {
     const fechaFin = searchParams.get("fechaFin") ?? "";
     const bCredito = searchParams.get("bCredito") === "true";
     const idCliente = parseInt(searchParams.get("idCliente") ?? "0");
+    const id = searchParams.get("id")
+      ? parseInt(searchParams.get("id") ?? "0")
+      : undefined;
 
-    const data = await documentoService.getVentas(fechaIni, fechaFin, bCredito, idCliente, user.idTenant);
+    const data = await documentoService.getVentas(
+      fechaIni,
+      fechaFin,
+      bCredito,
+      idCliente,
+      user.idTenant,
+      id,
+    );
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/ventas error:", err);
@@ -44,14 +56,31 @@ export async function POST(req: NextRequest) {
     // Validate caja abierta
     const caja = await cajaService.getCajaAbierta(user.idTenant);
     if (!caja) {
-      return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No hay caja abierta" },
+        { status: 400 },
+      );
     }
 
     const body = await req.json();
-    const { FechaEmision, Descripcion, Concepto, Total, bCredito, IdCliente, IdClienteDireccion, DireccionEntrega, IdMetodoPago, DocumentoItem: items } = body;
+    const {
+      FechaEmision,
+      Descripcion,
+      Concepto,
+      Total,
+      bCredito,
+      IdCliente,
+      IdClienteDireccion,
+      DireccionEntrega,
+      IdMetodoPago,
+      DocumentoItem: items,
+    } = body;
 
     if (!FechaEmision || Total == null) {
-      return NextResponse.json({ error: "FechaEmision y Total requeridos" }, { status: 400 });
+      return NextResponse.json(
+        { error: "FechaEmision y Total requeridos" },
+        { status: 400 },
+      );
     }
 
     const doc = {
@@ -70,14 +99,17 @@ export async function POST(req: NextRequest) {
 
     // Validate: if items exist, Descripcion should have been auto-generated
     if (items?.length > 0 && !doc.Descripcion) {
-      return NextResponse.json({ error: "Descripcion es requerida cuando hay items" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Descripcion es requerida cuando hay items" },
+        { status: 400 },
+      );
     }
 
     const createdDoc = await documentoService.crearVentaConItems(
       doc,
       items ?? [],
       user.idTenant,
-      user.id
+      user.id,
     );
 
     return NextResponse.json({ data: createdDoc });

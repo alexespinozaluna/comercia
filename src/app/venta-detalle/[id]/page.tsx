@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Documento, toDisplayDocumento, DocumentoDisplay } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
-import { numToString, fechaString, extraerIniciales } from "@/lib/format";
+import { numToString, fechaString } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Share2, Printer, Pencil, CreditCard, Trash2, Receipt, MapPin, UserRound, CalendarDays } from "lucide-react";
+import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
@@ -111,26 +111,10 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
 
       {/* Resumen card */}
       <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-3">
-        {/* Header */}
-        <div className="flex items-start gap-2">
-          <div className={cn(
-            "h-10 w-10 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold",
-            isGasto ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
-          )}>
-            {doc.Cliente ? extraerIniciales(doc.Cliente.Nombre) : <Receipt className="h-4 w-4" />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold truncate">
-              {doc.Concepto ?? doc.Descripcion ?? `Venta #${doc.NroVenta}`}
-            </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <StatusBadge variant={doc.bCredito ? "info" : "success"}>{doc.FormaVenta}</StatusBadge>
-            </div>
-          </div>
-          <div className={cn("text-lg font-extrabold shrink-0", isGasto ? "text-destructive" : "text-success")}>
-            {numToString(doc.Total)}
-          </div>
-        </div>
+        {/* Header: solo el concepto/descripción */}
+        <p className="text-sm font-semibold truncate">
+          {doc.Concepto ?? doc.Descripcion ?? `Venta #${doc.NroVenta}`}
+        </p>
 
         <Separator />
 
@@ -142,6 +126,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             </span>
             <span className="font-medium">{fechaString(new Date(doc.FechaEmision))}</span>
           </div>
+
           {doc.Cliente && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center gap-1.5">
@@ -150,6 +135,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
               <span className="font-medium">{doc.Cliente.Nombre}</span>
             </div>
           )}
+
           {doc.DireccionEntrega && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center gap-1.5">
@@ -158,6 +144,16 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
               <span className="font-medium truncate max-w-[55%] text-right">{doc.DireccionEntrega}</span>
             </div>
           )}
+
+          {/* Forma de pago — antes era un badge en el header */}
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground flex items-center gap-1.5">
+              <CreditCard className="h-3.5 w-3.5" /> Forma pago
+            </span>
+            <StatusBadge variant={doc.bCredito ? "info" : "success"}>{doc.FormaVenta}</StatusBadge>
+          </div>
+
+          {/* Montos: contado → Total; crédito → Abonado (si hay) + Saldo */}
           {doc.bCredito && doc.TotalAbono > 0 && (
             <div className="flex justify-between items-center text-success">
               <span className="font-medium">Abonado</span>
@@ -168,6 +164,14 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <div className="flex justify-between items-center">
               <span className="font-semibold text-destructive">Saldo pendiente</span>
               <span className="font-bold text-destructive">{numToString(doc.Saldo)}</span>
+            </div>
+          )}
+          {!doc.bCredito && (
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Total</span>
+              <span className={cn("font-bold", isGasto ? "text-destructive" : "text-success")}>
+                {numToString(doc.Total)}
+              </span>
             </div>
           )}
         </div>
