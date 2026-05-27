@@ -223,6 +223,36 @@ export const documentoService = {
     return data as { ok: boolean; abonos: number[]; no_distribuido: number };
   },
 
+  /**
+   * Edit an existing payment (abono) — atomic. Only for single-debt abonos
+   * (1 item), the 1:1 model produced by registrarAbono. The RPC validates the
+   * new amount against the referenced sale's available balance (its Total minus
+   * payments from other abono documents) and the DB trigger recomputes the
+   * sale's Saldo/TotalAbono.
+   */
+  async modificarAbono(
+    idAbono: number,
+    monto: number,
+    fecha: string,
+    concepto: string | null,
+    idMetodoPago: number | null,
+    idTenant: number,
+  ): Promise<{ ok: boolean; id_venta: number }> {
+    const { data, error } = await getSupabaseServer().rpc("modificar_abono", {
+      p_id_abono: idAbono,
+      p_monto: monto,
+      p_fecha: fecha,
+      p_concepto: concepto,
+      p_id_metodo_pago: idMetodoPago,
+      p_id_tenant: idTenant,
+    });
+
+    if (error) throw new Error(error.message);
+    const result = data as { ok?: boolean; error?: string; id_venta?: number };
+    if (result?.error) throw new Error(result.error);
+    return result as { ok: boolean; id_venta: number };
+  },
+
   /** Get deleted sales ( Estado = 0 ) with client join */
   async getVentasEliminadas(tenantId?: number): Promise<Documento[]> {
     let query = getSupabaseServer()

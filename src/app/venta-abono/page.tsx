@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Documento, MetodoPago } from "@/types/database";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { numToString, fechaString, extraerIniciales } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,9 @@ function VentaAbonoContent() {
   const searchParams = useSearchParams();
   const id = parseInt(searchParams.get("id") ?? "0");
   const tipo = parseInt(searchParams.get("tipo") ?? "1");
-  const pagina = searchParams.get("pagina") ?? "/";
+  const idAbono = parseInt(searchParams.get("idAbono") ?? "0");
+  const isEdit = idAbono > 0;
+  const pagina = searchParams.get("pagina") ?? (isEdit ? `/venta-detalle/${idAbono}` : "/");
 
   const [deudas, setDeudas] = useState<Documento[]>([]);
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
@@ -36,6 +38,8 @@ function VentaAbonoContent() {
   const [concepto, setConcepto] = useState("");
   const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
   const [selectedMetodo, setSelectedMetodo] = useState<number | null>(null);
+  // En edición: monto que este abono ya aportaba a la venta (se suma al disponible).
+  const [extraDisponible, setExtraDisponible] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,7 +49,27 @@ function VentaAbonoContent() {
         setMetodoPago(methods);
         if (methods.length > 0) setSelectedMetodo(methods[0].id);
 
-        if (tipo === 1 && id > 0) {
+        if (isEdit) {
+          // Cargar el abono y la venta que referencia
+          const abono = await apiGet<Documento | null>(`/api/ventas/${idAbono}`);
+          const item = abono?.DocumentoItem?.[0];
+          if (!abono || !item) {
+            toast.error("Abono no encontrado");
+            return;
+          }
+          if ((abono.DocumentoItem?.length ?? 0) !== 1) {
+            toast.error("Este abono no se puede editar (varias deudas)");
+            router.replace(`/venta-detalle/${idAbono}`);
+            return;
+          }
+          const venta = await apiGet<Documento | null>(`/api/ventas/${item.IdDocumentoRef}`);
+          if (venta) setDeudas([venta]);
+          setTotal(item.MontoAbono);
+          setExtraDisponible(item.MontoAbono);
+          setConcepto(abono.Concepto ?? "");
+          setFecha(abono.FechaEmision.split("T")[0]);
+          if (abono.IdMetodoPago != null) setSelectedMetodo(abono.IdMetodoPago);
+        } else if (tipo === 1 && id > 0) {
           const doc = await apiGet<Documento | null>(`/api/ventas/${id}`);
           if (doc) setDeudas([doc]);
         } else if (tipo === 2 && id > 0) {
@@ -59,26 +83,35 @@ function VentaAbonoContent() {
       }
     }
     load();
-  }, [id, tipo]);
+  }, [id, tipo, idAbono, isEdit, router]);
 
-  const totalDeuda = deudas.reduce((sum, d) => sum + d.Saldo, 0);
+  const totalDeuda = deudas.reduce((sum, d) => sum + d.Saldo, 0) + extraDisponible;
   const clienteName = deudas[0]?.Cliente?.Nombre ?? "";
 
   const handleSave = async () => {
     if (total <= 0) { toast.error("Ingrese un monto"); return; }
     if (total > totalDeuda) { toast.error("El monto excede la deuda"); return; }
     try {
-      // La distribución FIFO entre deudas y la validación se hacen en el servidor.
-      await apiPost("/api/abonos", {
-        tipo,
-        id,
-        FechaEmision: fecha,
-        Concepto: concepto || null,
-        Total: total,
-        IdMetodoPago: selectedMetodo,
-      });
+      if (isEdit) {
+        await apiPut(`/api/abonos/${idAbono}`, {
+          FechaEmision: fecha,
+          Concepto: concepto || null,
+          Total: total,
+          IdMetodoPago: selectedMetodo,
+        });
+      } else {
+        // La distribución FIFO entre deudas y la validación se hacen en el servidor.
+        await apiPost("/api/abonos", {
+          tipo,
+          id,
+          FechaEmision: fecha,
+          Concepto: concepto || null,
+          Total: total,
+          IdMetodoPago: selectedMetodo,
+        });
+      }
       useAppStore.getState().triggerRefresh();
-      toast.success("Abono registrado");
+      toast.success(isEdit ? "Abono modificado" : "Abono registrado");
       router.push(pagina);
     } catch (err) {
       console.error(err);
@@ -90,7 +123,7 @@ function VentaAbonoContent() {
 
   return (
     <div className="space-y-2 max-w-lg">
-      <PageHeader title="Registrar abono" onBack={() => router.back()} />
+      <PageHeader title={isEdit ? "Editar abono" : "Registrar abono"} onBack={() => router.back()} />
 
       {/* Cliente card */}
       {clienteName && (
@@ -210,7 +243,7 @@ function VentaAbonoContent() {
         disabled={total <= 0 || total > totalDeuda}
       >
         <CreditCard className="h-5 w-5" />
-        Confirmar abono
+        {isEdit ? "Guardar cambios" : "Confirmar abono"}
       </Button>
     </div>
   );

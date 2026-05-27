@@ -239,6 +239,17 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <Pencil className="h-4 w-4" /> Editar
           </Button>
         )}
+        {isAbono && doc.DocumentoItem?.length === 1 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-10"
+            onClick={() => router.push(`/venta-abono?idAbono=${doc.id}`)}
+            aria-label="Editar abono"
+          >
+            <Pencil className="h-4 w-4" /> Editar
+          </Button>
+        )}
         {canAbono && (
           <Button
             size="sm"
