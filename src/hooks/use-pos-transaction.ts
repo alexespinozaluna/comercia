@@ -33,6 +33,8 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
   // Form state
   const [fecha, setFecha] = useState(toInputDate());
   const [isCredit, setIsCredit] = useState(false);
+  // Ids de los DocumentoItem que tenia la venta al cargarse — base del diff de modificacion
+  const [originalItemIds, setOriginalItemIds] = useState<number[]>([]);
 
   // Sub-hooks
   const basket = useBasket();
@@ -95,6 +97,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         }
 
         if (venta.DocumentoItem) {
+          setOriginalItemIds(venta.DocumentoItem.map((item) => item.id));
           basket.hydrate(
             venta.DocumentoItem.map((item) => ({
               _tempId: `item-${item.id}`,
@@ -175,7 +178,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
       };
 
       if (isEdit) {
-        await apiPut(`/api/ventas/${id}`, documento);
+        await apiPut(`/api/ventas/${id}`, { ...documento, originalItemIds });
         toast.success("Venta modificada");
       } else {
         await apiPost("/api/ventas", documento);
@@ -199,6 +202,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     fecha,
     isEdit,
     id,
+    originalItemIds,
     router,
   ]);
 

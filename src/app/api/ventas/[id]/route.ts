@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { documentoService } from "@/services/documento-service";
+import { cajaService } from "@/services/caja-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 
 const MAX_FIELD_LEN = 500;
@@ -39,31 +40,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const idDoc = parseInt(id);
 
-    // Verify document exists, is active, belongs to tenant, and has no payments
-    const { data: existing, error: fetchErr } = await getSupabaseServer()
-      .from("Documento")
-      .select("id, Estado, IdTenant, TotalAbono")
-      .eq("id", idDoc)
-      .single();
-
-    if (fetchErr || !existing) {
-      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
-    }
-
-    if ((existing as { Estado: number }).Estado !== 1) {
-      return NextResponse.json({ error: "Este documento no se puede modificar" }, { status: 403 });
-    }
-
-    if ((existing as { IdTenant: number }).IdTenant !== user.idTenant) {
-      return NextResponse.json({ error: "No tiene permiso para modificar este documento" }, { status: 403 });
-    }
-
-    if ((existing as { TotalAbono: number }).TotalAbono > 0) {
-      return NextResponse.json({ error: "No se puede modificar: el documento ya tiene abonos registrados" }, { status: 403 });
-    }
-
     const body = await req.json();
-    const { FechaEmision, Descripcion, Concepto, Total, bCredito, IdCliente, IdClienteDireccion, DireccionEntrega, IdMetodoPago, DocumentoItem: items } = body;
+    const { FechaEmision, Descripcion, Concepto, Total, bCredito, IdCliente, IdClienteDireccion, DireccionEntrega, IdMetodoPago, DocumentoItem: items, originalItemIds } = body;
 
     const doc = {
       FechaEmision,
@@ -78,12 +56,56 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       IdMetodoPago: IdMetodoPago ?? null,
     };
 
-    await documentoService.modificarVentaConItems(idDoc, doc, items ?? [], user.idTenant);
+    // Nuevo (id 0 o invalido) → crear; existente (id > 0) → modificar
+    const isNew = !idDoc || idDoc <= 0;
 
-    return NextResponse.json({ ok: true });
+    if (isNew) {
+      // Crear requiere caja abierta (igual que POST /api/ventas)
+      const caja = await cajaService.getCajaAbierta(user.idTenant);
+      if (!caja) {
+        return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
+      }
+    } else {
+      // Verify document exists, is active, belongs to tenant, and has no payments
+      const { data: existing, error: fetchErr } = await getSupabaseServer()
+        .from("Documento")
+        .select("id, Estado, IdTenant, TotalAbono")
+        .eq("id", idDoc)
+        .single();
+
+      if (fetchErr || !existing) {
+        return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+      }
+
+      if ((existing as { Estado: number }).Estado !== 1) {
+        return NextResponse.json({ error: "Este documento no se puede modificar" }, { status: 403 });
+      }
+
+      if ((existing as { IdTenant: number }).IdTenant !== user.idTenant) {
+        return NextResponse.json({ error: "No tiene permiso para modificar este documento" }, { status: 403 });
+      }
+
+      if ((existing as { TotalAbono: number }).TotalAbono > 0) {
+        return NextResponse.json({ error: "No se puede modificar: el documento ya tiene abonos registrados" }, { status: 403 });
+      }
+    }
+
+    const result = await documentoService.guardarVentaConItems(
+      isNew ? 0 : idDoc,
+      { ...doc, IdTipoDocumento: 1 },
+      items ?? [],
+      originalItemIds ?? [],
+      user.idTenant,
+      user.id,
+    );
+
+    return NextResponse.json(isNew ? { data: result } : { ok: true });
   } catch (err) {
-    console.error("PUT /api/ventas/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    const clientMsg = msg.includes("Descuadre de totales")
+      ? "error: al conectarse al servidor"
+      : msg;
+    return NextResponse.json({ error: clientMsg }, { status: 400 });
   }
 }
 
@@ -136,8 +158,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("POST restore /api/ventas/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    const clientMsg = msg.includes("Descuadre de totales")
+      ? "error: al conectarse al servidor"
+      : msg;
+    return NextResponse.json({ error: clientMsg }, { status: 400 });
   }
 }
 

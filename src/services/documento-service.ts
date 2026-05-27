@@ -10,7 +10,6 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import { deleteItem } from "./supabase-service";
 
 const TABLE = "Documento";
-const TABLE_ITEM = "DocumentoItem";
 const MAX_FIELD_LEN = 500;
 
 /** Truncate a string to MAX_FIELD_LEN, return null if empty/null */
@@ -125,105 +124,103 @@ export const documentoService = {
     return data as Documento;
   },
 
-  /** Create a sale with items — atomic via RPC */
-  async crearVentaConItems(
+  /**
+   * Save a sale with items — create or update, fully atomic via a single RPC.
+   *
+   * `idDocumento` null/0 → create (items go in p_items); > 0 → update, where the
+   * diff is computed here against `originalItemIds` (the item ids the sale had
+   * when it loaded) and the current `items`. The whole insert/update/delete runs
+   * inside one PostgreSQL transaction, so a network error or concurrent change
+   * can no longer leave the sale half-saved.
+   */
+  async guardarVentaConItems(
+    idDocumento: number | null,
     doc: Partial<Documento> & {
       FechaEmision: string;
       Total: number;
       bCredito: boolean;
     },
     items: DocumentoItem[],
+    originalItemIds: number[],
     idTenant: number,
     idUsuarioCreacion: number,
   ): Promise<Documento> {
     const docJson = buildDocumentoJson(doc);
-    const itemsJson = buildItemsJson(items);
+
+    const isNew = !idDocumento || idDocumento <= 0;
+
+    const toDeleteIds = isNew
+      ? []
+      : originalItemIds.filter((oid) => !items.some((i) => i.id === oid));
+    const toUpdate = isNew ? [] : items.filter((i) => i.id && i.id > 0);
+    const toAdd = isNew ? [] : items.filter((i) => !i.id || i.id <= 0);
 
     const { data, error } = await getSupabaseServer().rpc(
-      "crear_venta_con_items",
+      "guardar_venta_con_items",
       {
+        p_id_documento: isNew ? 0 : idDocumento,
         p_documento: docJson,
-        p_items: itemsJson,
+        p_items: isNew ? buildItemsJson(items) : [],
+        p_items_to_delete:
+          !isNew && toDeleteIds.length > 0 ? toDeleteIds : null,
+        p_items_to_update:
+          !isNew && toUpdate.length > 0
+            ? toUpdate.map((item) => ({
+                id: item.id,
+                IdProducto: item.IdProducto,
+                Descripcion: item.Descripcion,
+                Cantidad: item.Cantidad,
+                PrecioVenta: item.PrecioVenta,
+                MontoAbono: item.MontoAbono ?? 0,
+                Total: item.Total ?? item.Cantidad * item.PrecioVenta,
+                IdDocumentoRef: item.IdDocumentoRef ?? null,
+              }))
+            : null,
+        p_items_to_add: !isNew && toAdd.length > 0 ? buildItemsJson(toAdd) : null,
         p_id_tenant: idTenant,
         p_id_usuario_creacion: idUsuarioCreacion,
       },
     );
 
-    if (error) throw new Error(`Error creating venta: ${error.message}`);
+    if (error) throw new Error(`Error guardando venta: ${error.message}`);
+    const result = data as { ok?: boolean; error?: string } | Documento;
+    if ((result as { error?: string }).error)
+      throw new Error((result as { error?: string }).error);
     return data as Documento;
   },
 
-  /** Update a sale with items — atomic via RPC */
-  async modificarVentaConItems(
+  /**
+   * Register a payment (abono) over debts — atomic, FIFO distribution server-side.
+   *
+   * `tipo` 1 → pay a single sale (`id` = IdDocumento); 2 → pay all of a client's
+   * debts (`id` = IdCliente). The RPC covers debts oldest-first, validates the
+   * amount against the real pending balance, and creates one Documento + one item
+   * per debt (IdDocumentoRef) inside a single transaction. The DB trigger then
+   * recomputes each sale's Saldo/TotalAbono.
+   */
+  async registrarAbono(
+    tipo: number,
     id: number,
-    doc: Partial<Documento> & {
-      FechaEmision: string;
-      Total: number;
-      bCredito: boolean;
-    },
-    items: DocumentoItem[],
+    monto: number,
+    fecha: string,
+    concepto: string | null,
+    idMetodoPago: number | null,
     idTenant: number,
-  ): Promise<void> {
-    // Fetch current items to compute diff
-    const { data: currentItems, error: fetchErr } = await getSupabaseServer()
-      .from(TABLE_ITEM)
-      .select("*")
-      .eq("IdDocumento", id)
-      .eq("IdTenant", idTenant)
-      .eq("Estado", 1);
+    idUsuario: number,
+  ): Promise<{ ok: boolean; abonos: number[]; no_distribuido: number }> {
+    const { data, error } = await getSupabaseServer().rpc("registrar_abono", {
+      p_tipo: tipo,
+      p_id: id,
+      p_monto: monto,
+      p_fecha: fecha,
+      p_concepto: concepto,
+      p_id_metodo_pago: idMetodoPago,
+      p_id_tenant: idTenant,
+      p_id_usuario: idUsuario,
+    });
 
-    if (fetchErr)
-      throw new Error(`Error fetching current items: ${fetchErr.message}`);
-
-    const current = (currentItems ?? []) as DocumentoItem[];
-    const updatedItems = items ?? [];
-
-    // Compute diff
-    const toDeleteIds = current
-      .filter((c) => !updatedItems.some((n) => n.id === c.id))
-      .map((c) => c.id);
-
-    const toUpdate = updatedItems.filter((n) =>
-      current.some((c) => c.id === n.id),
-    );
-    const toAdd = updatedItems.filter(
-      (n) => !current.some((c) => c.id === n.id),
-    );
-
-    const docJson = buildDocumentoJson(doc);
-
-    const itemsToUpdate = toUpdate.map((item) => ({
-      id: item.id,
-      IdProducto: item.IdProducto,
-      Descripcion: item.Descripcion,
-      Cantidad: item.Cantidad,
-      PrecioVenta: item.PrecioVenta,
-      MontoAbono: item.MontoAbono ?? 0,
-      Total: item.Total ?? item.Cantidad * item.PrecioVenta,
-      IdDocumentoRef: item.IdDocumentoRef ?? null,
-    }));
-
-    const itemsToAdd = buildItemsJson(toAdd).map((item) => ({
-      ...item,
-      IdDocumento: id,
-    }));
-
-    const { data, error } = await getSupabaseServer().rpc(
-      "modificar_venta_con_items",
-      {
-        p_id_documento: id,
-        p_documento: docJson,
-        p_items_to_soft_delete: toDeleteIds.length > 0 ? toDeleteIds : null,
-        p_items_to_update: itemsToUpdate.length > 0 ? itemsToUpdate : null,
-        p_items_to_add: itemsToAdd.length > 0 ? itemsToAdd : null,
-        p_id_tenant: idTenant,
-      },
-    );
-
-    if (error) throw new Error(`Error updating venta: ${error.message}`);
-
-    const result = data as { ok?: boolean; error?: string };
-    if (result.error) throw new Error(result.error);
+    if (error) throw new Error(error.message);
+    return data as { ok: boolean; abonos: number[]; no_distribuido: number };
   },
 
   /** Get deleted sales ( Estado = 0 ) with client join */

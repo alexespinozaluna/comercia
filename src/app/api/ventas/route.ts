@@ -105,9 +105,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const createdDoc = await documentoService.crearVentaConItems(
+    const createdDoc = await documentoService.guardarVentaConItems(
+      0,
       doc,
       items ?? [],
+      [],
       user.idTenant,
       user.id,
     );

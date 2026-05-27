@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Documento, DocumentoItem, MetodoPago } from "@/types/database";
+import { Documento, MetodoPago } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { numToString, fechaString, extraerIniciales } from "@/lib/format";
 import { Input } from "@/components/ui/input";
@@ -68,51 +68,21 @@ function VentaAbonoContent() {
     if (total <= 0) { toast.error("Ingrese un monto"); return; }
     if (total > totalDeuda) { toast.error("El monto excede la deuda"); return; }
     try {
-      let remaining = total;
-      const items: DocumentoItem[] = [];
-      for (const deuda of deudas) {
-        if (remaining <= 0) break;
-        const abono = Math.min(remaining, deuda.Saldo);
-        items.push({
-          id: 0,
-          IdProducto: 0,
-          Descripcion: deuda.Concepto ?? deuda.Descripcion ?? `Abono a ${deuda.id}`,
-          Cantidad: 1,
-          PrecioVenta: abono,
-          MontoAbono: abono,
-          Total: abono,
-          IdDocumento: 0,
-          IdDocumentoRef: deuda.id,
-        });
-        remaining -= abono;
-      }
-      const documento: Documento = {
-        id: 0,
-        Estado: 1,
-        IdTenant: 0,
-        FechaCreacion: new Date().toISOString(),
+      // La distribución FIFO entre deudas y la validación se hacen en el servidor.
+      await apiPost("/api/abonos", {
+        tipo,
+        id,
         FechaEmision: fecha,
-        Descripcion: null,
-        Concepto: concepto || "Abono",
+        Concepto: concepto || null,
         Total: total,
-        bCredito: false,
-        IdCliente: deudas[0]?.IdCliente ?? 0,
-        IdClienteDireccion: null,
-        DireccionEntrega: null,
-        DocumentoItem: items,
-        Cliente: undefined,
-        TotalAbono: 0,
-        IdTipoDocumento: 2,
-        Saldo: 0,
         IdMetodoPago: selectedMetodo,
-      };
-      await apiPost("/api/abonos", documento);
+      });
       useAppStore.getState().triggerRefresh();
       toast.success("Abono registrado");
       router.push(pagina);
     } catch (err) {
       console.error(err);
-      toast.error("Error al guardar abono");
+      toast.error(err instanceof Error ? err.message : "Error al guardar abono");
     }
   };
 
@@ -177,6 +147,9 @@ function VentaAbonoContent() {
               className="h-11 rounded-md pl-7 text-[18px] font-bold text-brand-dark"
             />
           </div>
+          {total > 0 && (
+            <p className="text-sm font-semibold mt-1">{numToString(total)}</p>
+          )}
           {total > 0 && total <= totalDeuda && (
             <p className="text-xs text-muted-foreground mt-1">
               Saldo restante: <span className="font-semibold text-destructive">{numToString(totalDeuda - total)}</span>

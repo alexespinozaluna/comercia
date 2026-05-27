@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Lock, User, LogIn } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
+
+const REMEMBER_KEY = "comercia_remember";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +18,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [remember, setRemember] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(REMEMBER_KEY);
+    if (saved) {
+      setCodigo(saved);
+      setRemember(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +46,11 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error || "Credenciales inválidas");
         return;
+      }
+      if (remember) {
+        localStorage.setItem(REMEMBER_KEY, codigo);
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
       }
       setAuthUser(data.user);
       toast.success(`Bienvenido, ${data.user.nombre}`);
@@ -94,6 +111,21 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <Checkbox
+              id="remember"
+              checked={remember}
+              onCheckedChange={(checked) => setRemember(checked)}
+              disabled={loading}
+            />
+            <label
+              htmlFor="remember"
+              className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer select-none"
+            >
+              Recordarme
+            </label>
           </div>
 
           {error && (
