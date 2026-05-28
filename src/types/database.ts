@@ -212,6 +212,12 @@ export interface CajaArqueo {
   CntGastos: number;
 }
 
+/** Fila del historial de caja con nombres de cajero ya resueltos. */
+export interface CajaHistorialItem extends Caja {
+  NomUsuarioApertura: string | null;
+  NomUsuarioCierre: string | null;
+}
+
 export interface ProductoMovimiento {
   id: number;
   IdTenant: number;

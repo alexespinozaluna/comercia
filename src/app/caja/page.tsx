@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useLayoutEffect, useMemo } from "react";
+import { useState, useLayoutEffect, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Caja, CajaArqueo } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
+import { AuthUser, getCurrentUser } from "@/lib/auth-client";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,10 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { numToString } from "@/lib/format";
 import { format } from "date-fns";
-import { Landmark, Lock, Unlock, AlertCircle } from "lucide-react";
+import { Landmark, Lock, Unlock, AlertCircle, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const ROLES_HISTORIAL = ["ADMIN", "SUPERVISOR"];
 
 /** Umbral en moneda para advertir antes de cerrar con diferencia. */
 const DIFERENCIA_UMBRAL = 1;
@@ -61,6 +64,12 @@ export default function CajaPage() {
   const [montoFinal, setMontoFinal] = useState("");
   const [observacion, setObservacion] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    getCurrentUser().then(setUser);
+  }, []);
+  const puedeVerHistorial = !!user && ROLES_HISTORIAL.includes(user.rol);
 
   async function load() {
     try {
@@ -154,7 +163,23 @@ export default function CajaPage() {
 
   return (
     <div className="max-w-lg space-y-2">
-      <PageHeader title="Control de caja" onBack={() => router.back()} />
+      <PageHeader
+        title="Control de caja"
+        onBack={() => router.back()}
+        actions={
+          puedeVerHistorial ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => router.push("/caja/historial")}
+            >
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Historial</span>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Estado actual */}
       <div
