@@ -138,10 +138,12 @@ export interface DeudaResumen {
 }
 
 export interface Negocio extends BaseEnty {
+  IdTenant: number;
   Nombre: string | null;
   Telefono: string | null;
   Direccion: string | null;
   Logo: string | null;
+  Estado: number;
 }
 
 export interface DocumentoAudit {

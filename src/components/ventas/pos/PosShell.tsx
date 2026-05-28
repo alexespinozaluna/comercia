@@ -87,6 +87,9 @@ export function PosShell({ paramsPromise }: PosShellProps) {
             products={pos.filteredProducts}
             search={pos.search}
             onSearchChange={pos.setSearch}
+            categorias={pos.categorias}
+            catFilter={pos.catFilter}
+            onCatFilterChange={pos.setCatFilter}
             basket={pos.basket}
             onAddProduct={pos.addToBasket}
             onQuickCreate={() => setProductSheetOpen(true)}

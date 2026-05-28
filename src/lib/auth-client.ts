@@ -4,6 +4,7 @@ export interface AuthUser {
   nombre: string;
   rol: string;
   idTenant: number;
+  idNegocio: number | null; // sucursal activa
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {

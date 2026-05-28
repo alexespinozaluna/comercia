@@ -1,15 +1,29 @@
 import { Negocio } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
-import { update, getAll } from "./supabase-service";
 
 const TABLE = "Negocio";
 
 export const negocioService = {
-  async get(): Promise<Negocio | null> {
+  /** Lista los negocios (sucursales) activos de un tenant, ordenados por id. */
+  async listByTenant(tenant: number): Promise<Negocio[]> {
     const { data, error } = await getSupabaseServer()
       .from(TABLE)
       .select("*")
-      .limit(1)
+      .eq("IdTenant", tenant)
+      .eq("Estado", 1)
+      .order("id", { ascending: true });
+
+    if (error) throw new Error(`Error fetching Negocios: ${error.message}`);
+    return (data ?? []) as Negocio[];
+  },
+
+  /** Un negocio por id, validando que pertenezca al tenant. */
+  async getById(id: number, tenant: number): Promise<Negocio | null> {
+    const { data, error } = await getSupabaseServer()
+      .from(TABLE)
+      .select("*")
+      .eq("id", id)
+      .eq("IdTenant", tenant)
       .single();
 
     if (error) {
@@ -19,7 +33,21 @@ export const negocioService = {
     return data as Negocio;
   },
 
-  async update(id: number, item: Partial<Negocio>): Promise<boolean> {
-    return update(TABLE, id, item);
+  /** Negocio por defecto del tenant (la sucursal activa más antigua). */
+  async getDefaultForTenant(tenant: number): Promise<Negocio | null> {
+    const list = await this.listByTenant(tenant);
+    return list[0] ?? null;
+  },
+
+  /** Actualiza un negocio, con guard de tenant. */
+  async update(id: number, tenant: number, item: Partial<Negocio>): Promise<boolean> {
+    const { error } = await getSupabaseServer()
+      .from(TABLE)
+      .update(item)
+      .eq("id", id)
+      .eq("IdTenant", tenant);
+
+    if (error) throw new Error(`Error updating Negocio: ${error.message}`);
+    return true;
   },
 };

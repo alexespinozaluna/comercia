@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
         nombre: user.nombre,
         rol: user.rol,
         idTenant: user.idTenant,
+        idNegocio: user.idNegocio,
       },
     });
   } catch {

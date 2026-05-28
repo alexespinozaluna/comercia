@@ -1,8 +1,9 @@
 "use client";
 
-import { Producto } from "@/types/database";
+import { Producto, Categoria } from "@/types/database";
 import { SearchInput } from "@/components/shared/search-input";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CategoriaFilter } from "@/components/producto/categoria-filter";
 import { Plus, Package, ShoppingCart } from "lucide-react";
 import { numToString } from "@/lib/format";
 import { BasketItemLocal } from "@/hooks/use-pos-transaction";
@@ -13,6 +14,9 @@ interface ProductSearchProps {
   products: Producto[];
   search: string;
   onSearchChange: (value: string) => void;
+  categorias: Categoria[];
+  catFilter: number | null;
+  onCatFilterChange: (id: number | null) => void;
   basket: BasketItemLocal[];
   onAddProduct: (product: Producto) => void;
   onQuickCreate: () => void;
@@ -25,6 +29,9 @@ export function ProductSearch({
   products,
   search,
   onSearchChange,
+  categorias,
+  catFilter,
+  onCatFilterChange,
   basket,
   onAddProduct,
   onQuickCreate,
@@ -41,6 +48,9 @@ export function ProductSearch({
         onChange={onSearchChange}
         debounceMs={200}
       />
+
+      {/* Filtro por categoría */}
+      <CategoriaFilter categorias={categorias} value={catFilter} onChange={onCatFilterChange} />
 
       {/* Product grid */}
       {products.length === 0 ? (

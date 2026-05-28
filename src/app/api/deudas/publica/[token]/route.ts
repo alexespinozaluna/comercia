@@ -21,7 +21,8 @@ export async function GET(
     const [deudas, negocio] = await Promise.all([
       // getDeudaDetalle(tenantId, idCliente) — orden correcto de argumentos.
       documentoService.getDeudaDetalle(link.IdTenant, link.IdRecurso),
-      negocioService.get(),
+      // Negocio del tenant del link (ya no global LIMIT 1 — corrige fuga multi-tenant).
+      negocioService.getDefaultForTenant(link.IdTenant),
     ]);
 
     return NextResponse.json({ data: { deudas, negocio } });

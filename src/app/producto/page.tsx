@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { CategoriaFilter } from "@/components/producto/categoria-filter";
 import { toast } from "sonner";
 import { Plus, Package, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,31 +25,6 @@ function stockVariant(cantidad: number | null): {
   if (cantidad === 0) return { label: "Sin stock", className: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400" };
   if (cantidad <= 5) return { label: `Stock: ${cantidad}`, className: "bg-brand-surface text-brand-dark" };
   return { label: `Stock: ${cantidad}`, className: "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" };
-}
-
-function CategoriaChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "shrink-0 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors ring-1",
-        active
-          ? "bg-brand text-white ring-brand"
-          : "bg-white dark:bg-card text-muted-foreground ring-border hover:ring-brand/40 hover:text-foreground",
-      )}
-    >
-      {label}
-    </button>
-  );
 }
 
 export default function ProductoPage() {
@@ -136,19 +112,7 @@ export default function ProductoPage() {
       />
 
       {/* Filtro por categoría */}
-      {categoriaList.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-0.5 px-0.5">
-          <CategoriaChip label="Todos" active={catFilter == null} onClick={() => setCatFilter(null)} />
-          {categoriaList.map((c) => (
-            <CategoriaChip
-              key={c.id}
-              label={c.Nombre}
-              active={catFilter === c.id}
-              onClick={() => setCatFilter(c.id)}
-            />
-          ))}
-        </div>
-      )}
+      <CategoriaFilter categorias={categoriaList} value={catFilter} onChange={setCatFilter} />
 
       {loading ? (
         <LoadingState variant="skeleton-cards" count={6} />

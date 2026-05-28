@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { usuarioService } from "@/services/usuario-service";
+import { negocioService } from "@/services/negocio-service";
 import { createToken } from "@/lib/jwt";
 
 export async function POST(req: NextRequest) {
@@ -22,12 +23,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Sucursal activa por defecto: el primer negocio activo del tenant
+    const negocio = await negocioService.getDefaultForTenant(user.IdTenant);
+    const idNegocio = negocio?.id ?? null;
+
     const token = await createToken({
       sub: String(user.id),
       codigo: user.Codigo,
       nombre: user.Nombre,
       rol: user.Rol,
       idTenant: user.IdTenant,
+      idNegocio,
     });
 
     const response = NextResponse.json({
@@ -37,6 +43,7 @@ export async function POST(req: NextRequest) {
         nombre: user.Nombre,
         rol: user.Rol,
         idTenant: user.IdTenant,
+        idNegocio,
       },
     });
 

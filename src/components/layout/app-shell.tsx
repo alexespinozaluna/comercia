@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NavMenu } from "./nav-menu";
 import { MobileNav } from "./mobile-nav";
+import { NegocioSelector } from "./negocio-selector";
 import { getCurrentUser, logout, type AuthUser } from "@/lib/auth-client";
 import { useAppStore } from "@/stores/app-store";
 import { extraerIniciales, numToString } from "@/lib/format";
@@ -314,6 +315,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </h1>
 
           <div className="flex-1" />
+
+          {/* Selector de sucursal */}
+          <NegocioSelector />
 
           {/* Caja status */}
           <CajaStatusBadge caja={caja} />

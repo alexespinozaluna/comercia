@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Negocio } from "@/types/database";
 import { apiGet, apiPut } from "@/lib/api-client";
+import { useAppStore } from "@/stores/app-store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
@@ -27,17 +28,20 @@ export default function ConfiguracionPage() {
   const [logo, setLogo] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await apiGet<Negocio | null>("/api/negocio");
-        if (data) {
-          setNegocio(data);
-          setNombre(data.Nombre ?? "");
-          setDireccion(data.Direccion ?? "");
-          setTelefono(data.Telefono ?? "");
-          setLogo(data.Logo ?? "");
+        // GET devuelve la lista de sucursales del tenant; editamos la activa.
+        const list = await apiGet<Negocio[]>("/api/negocio");
+        const activo = list.find((n) => n.id === idNegocioActivo) ?? list[0] ?? null;
+        if (activo) {
+          setNegocio(activo);
+          setNombre(activo.Nombre ?? "");
+          setDireccion(activo.Direccion ?? "");
+          setTelefono(activo.Telefono ?? "");
+          setLogo(activo.Logo ?? "");
         }
       } catch (err) {
         console.error(err);
@@ -47,7 +51,7 @@ export default function ConfiguracionPage() {
       }
     }
     load();
-  }, []);
+  }, [idNegocioActivo]);
 
   const handleSave = async () => {
     if (!negocio) { toast.error("No hay registro de negocio"); return; }

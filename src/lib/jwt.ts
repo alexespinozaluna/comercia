@@ -12,6 +12,7 @@ export interface JWTPayload {
   nombre: string;
   rol: string;
   idTenant: number;
+  idNegocio: number | null; // sucursal activa
   iat: number;
   exp: number;
 }

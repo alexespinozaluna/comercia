@@ -7,6 +7,7 @@ export interface APIUser {
   nombre: string;
   rol: string;
   idTenant: number;
+  idNegocio: number | null; // sucursal activa (null en tokens previos a multi-sucursal)
 }
 
 export async function getCurrentUserFromRequest(req: NextRequest): Promise<APIUser | null> {
@@ -20,6 +21,7 @@ export async function getCurrentUserFromRequest(req: NextRequest): Promise<APIUs
       nombre: payload.nombre,
       rol: payload.rol,
       idTenant: payload.idTenant,
+      idNegocio: payload.idNegocio ?? null,
     };
   } catch {
     return null;

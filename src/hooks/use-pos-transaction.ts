@@ -227,6 +227,9 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     filteredProducts: productos.filtered,
     search: productos.search,
     setSearch: productos.setSearch,
+    categorias: productos.categorias,
+    catFilter: productos.catFilter,
+    setCatFilter: productos.setCatFilter,
     addProductToList: (p: Parameters<typeof productos.add>[0]) => {
       productos.add(p);
       basket.add(p);
