@@ -1,4 +1,4 @@
-import { Caja } from "@/types/database";
+import { Caja, CajaArqueo } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 
 const TABLE = "Caja";
@@ -33,22 +33,53 @@ export const cajaService = {
       .select()
       .single();
 
-    if (error) throw new Error(`Error abriendo caja: ${error.message}`);
+    if (error) {
+      // 23505 = unique_violation → ya hay una caja abierta para este tenant
+      // (índice único parcial UX_Caja_AbiertaPorTenant).
+      if (error.code === "23505") {
+        throw new Error("Ya existe una caja abierta para este tenant");
+      }
+      throw new Error(`Error abriendo caja: ${error.message}`);
+    }
     return data as Caja;
   },
 
-  async cerrarCaja(id: number, idUsuario: number, montoFinal: number): Promise<void> {
-    const { error } = await getSupabaseServer()
-      .from(TABLE)
-      .update({
-        FechaCierre: new Date().toISOString(),
-        MontoFinal: montoFinal,
-        Estado: 0,
-        IdUsuarioCierre: idUsuario,
-      })
-      .eq("id", id);
+  /**
+   * Cierre atómico. Recalcula MontoEsperado y Diferencia en el servidor
+   * vía fn_cerrar_caja — el cliente nunca decide el esperado.
+   * La RPC también valida: caja existe, pertenece al tenant y está abierta.
+   */
+  async cerrarCaja(
+    id: number,
+    tenantId: number,
+    idUsuario: number,
+    montoFinal: number,
+    observacion: string | null,
+  ): Promise<Caja> {
+    const { data, error } = await getSupabaseServer().rpc("fn_cerrar_caja", {
+      p_id_caja: id,
+      p_id_tenant: tenantId,
+      p_id_usuario: idUsuario,
+      p_monto_final: montoFinal,
+      p_observacion: observacion,
+    });
 
-    if (error) throw new Error(`Error cerrando caja: ${error.message}`);
+    if (error) throw new Error(error.message);
+    return data as Caja;
+  },
+
+  /** Desglose en vivo del efectivo esperado en la caja abierta o cerrada. */
+  async getArqueo(id: number, tenantId: number): Promise<CajaArqueo> {
+    const { data, error } = await getSupabaseServer().rpc("fn_caja_arqueo", {
+      p_id_caja: id,
+      p_id_tenant: tenantId,
+    });
+
+    if (error) throw new Error(`Error calculando arqueo: ${error.message}`);
+    // La función SQL devuelve una sola fila (TABLE return).
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) throw new Error("Arqueo vacío");
+    return row as CajaArqueo;
   },
 
   async getHistorial(tenantId: number, limit = 20): Promise<Caja[]> {

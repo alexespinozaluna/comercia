@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         IdTipoDocumento: 3,
         Saldo: 0,
         IdMetodoPago: IdMetodoPago ?? null,
+        IdCaja: caja.id,
         IdTenant: user.idTenant,
         Estado: 1,
         IdUsuarioCreacion: user.id,

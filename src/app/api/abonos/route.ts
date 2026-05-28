@@ -45,6 +45,11 @@ export async function POST(req: NextRequest) {
       user.id,
     );
 
+    // Vincular los abonos creados (1..N) con la caja activa, para arqueo.
+    if (result?.abonos?.length) {
+      await documentoService.setIdCaja(result.abonos, caja.id, user.idTenant);
+    }
+
     return NextResponse.json({ data: result });
   } catch (err) {
     // Surface RPC business errors (p.ej. "El monto ingresado es mayor a la deuda")

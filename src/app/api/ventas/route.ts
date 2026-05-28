@@ -114,6 +114,13 @@ export async function POST(req: NextRequest) {
       user.id,
     );
 
+    // Vincular el documento creado a la caja activa (para arqueo).
+    // UPDATE separado para no tocar el RPC guardar_venta_con_items.
+    if (createdDoc?.id) {
+      await documentoService.setIdCaja(createdDoc.id, caja.id, user.idTenant);
+      createdDoc.IdCaja = caja.id;
+    }
+
     return NextResponse.json({ data: createdDoc });
   } catch (err) {
     console.error("POST /api/ventas error:", err);

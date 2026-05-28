@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest } from "@/lib/api-auth";
+import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { cajaService } from "@/services/caja-service";
 
 export async function POST(req: NextRequest) {
@@ -8,18 +8,34 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
+    requireRole(user, ["ADMIN", "CAJERO", "SUPERVISOR"]);
 
     const body = await req.json();
-    const { id, montoFinal } = body;
+    const id = parseInt(body.id, 10);
+    const montoFinal = parseFloat(body.montoFinal);
+    const observacion: string | null =
+      typeof body.observacion === "string" ? body.observacion.trim() || null : null;
 
-    if (!id || montoFinal == null) {
-      return NextResponse.json({ error: "id y montoFinal requeridos" }, { status: 400 });
+    if (!Number.isFinite(id) || id <= 0) {
+      return NextResponse.json({ error: "id inválido" }, { status: 400 });
+    }
+    if (!Number.isFinite(montoFinal) || montoFinal < 0) {
+      return NextResponse.json({ error: "MontoFinal inválido" }, { status: 400 });
     }
 
-    await cajaService.cerrarCaja(parseInt(id), user.id, parseFloat(montoFinal));
-    return NextResponse.json({ ok: true });
+    // fn_cerrar_caja valida tenant + Estado=1 + recalcula esperado/diferencia
+    const data = await cajaService.cerrarCaja(
+      id,
+      user.idTenant,
+      user.id,
+      montoFinal,
+      observacion,
+    );
+    return NextResponse.json({ data });
   } catch (err) {
+    const msg = err instanceof Error ? err.message : "Error interno";
+    const status = msg === "Forbidden" ? 403 : 400;
     console.error("POST /api/caja/cierre error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status });
   }
 }

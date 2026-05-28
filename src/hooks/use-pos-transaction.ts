@@ -175,6 +175,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         IdTipoDocumento: TIPO_DOCUMENTO_VENTA,
         Saldo: isCredit ? basket.total : 0,
         IdMetodoPago: metodo.selectedId,
+        IdCaja: null, // backend lo setea al crear
       };
 
       if (isEdit) {

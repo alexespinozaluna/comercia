@@ -35,6 +35,7 @@ export interface Cliente extends BaseEnty {
 export interface MetodoPago extends BaseEnty {
   Nombre: string;
   Simbolo: string;
+  bEfectivo: boolean;
 }
 
 export interface DocumentoItem {
@@ -66,6 +67,7 @@ export interface Documento extends BaseEnty {
   IdTipoDocumento: number;
   Saldo: number;
   IdMetodoPago: number | null;
+  IdCaja: number | null;
 }
 
 // Computed properties (not in DB, derived on client)
@@ -190,8 +192,24 @@ export interface Caja {
   FechaCierre: string | null;
   MontoInicial: number;
   MontoFinal: number | null;
+  MontoEsperado: number | null;
+  Diferencia: number | null;
+  Observacion: string | null;
   Estado: number;
   IdUsuarioCierre: number | null;
+}
+
+/** Desglose del arqueo de caja devuelto por fn_caja_arqueo. */
+export interface CajaArqueo {
+  IdCaja: number;
+  MontoInicial: number;
+  VentasEfectivo: number;
+  AbonosEfectivo: number;
+  GastosEfectivo: number;
+  MontoEsperado: number;
+  CntVentas: number;
+  CntAbonos: number;
+  CntGastos: number;
 }
 
 export interface ProductoMovimiento {

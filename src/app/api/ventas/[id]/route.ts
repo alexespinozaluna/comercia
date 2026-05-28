@@ -59,10 +59,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Nuevo (id 0 o invalido) → crear; existente (id > 0) → modificar
     const isNew = !idDoc || idDoc <= 0;
 
+    let cajaActiva: { id: number } | null = null;
     if (isNew) {
       // Crear requiere caja abierta (igual que POST /api/ventas)
-      const caja = await cajaService.getCajaAbierta(user.idTenant);
-      if (!caja) {
+      cajaActiva = await cajaService.getCajaAbierta(user.idTenant);
+      if (!cajaActiva) {
         return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
       }
     } else {
@@ -98,6 +99,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       user.idTenant,
       user.id,
     );
+
+    // Vincular venta nueva a la caja activa (para arqueo).
+    if (isNew && cajaActiva && result?.id) {
+      await documentoService.setIdCaja(result.id, cajaActiva.id, user.idTenant);
+      result.IdCaja = cajaActiva.id;
+    }
 
     return NextResponse.json(isNew ? { data: result } : { ok: true });
   } catch (err) {

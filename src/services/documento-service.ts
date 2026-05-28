@@ -390,5 +390,25 @@ export const documentoService = {
     return (data ?? []) as DeudaResumen[];
   },
 
+  /**
+   * Vincula uno o varios documentos a una caja (para arqueo). Filtra por
+   * tenant por seguridad y solo actualiza filas activas.
+   */
+  async setIdCaja(
+    idDocumento: number | number[],
+    idCaja: number,
+    tenantId: number,
+  ): Promise<void> {
+    const ids = Array.isArray(idDocumento) ? idDocumento : [idDocumento];
+    if (ids.length === 0) return;
+    const { error } = await getSupabaseServer()
+      .from(TABLE)
+      .update({ IdCaja: idCaja })
+      .in("id", ids)
+      .eq("IdTenant", tenantId)
+      .eq("Estado", 1);
+    if (error) throw new Error(`Error vinculando IdCaja: ${error.message}`);
+  },
+
   delete: (id: number) => deleteItem(TABLE, id),
 };
