@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Producto } from "@/types/database";
-import { apiGet } from "@/lib/api-client";
+import { Producto, Categoria, SIN_CATEGORIA_ID } from "@/types/database";
+import { apiGet, apiPut } from "@/lib/api-client";
 import { numToString } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
 import { SearchInput } from "@/components/shared/search-input";
@@ -11,6 +11,8 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import { Plus, Package, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,20 +26,54 @@ function stockVariant(cantidad: number | null): {
   return { label: `Stock: ${cantidad}`, className: "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" };
 }
 
+function CategoriaChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "shrink-0 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap transition-colors ring-1",
+        active
+          ? "bg-brand text-white ring-brand"
+          : "bg-white dark:bg-card text-muted-foreground ring-border hover:ring-brand/40 hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function ProductoPage() {
   const router = useRouter();
   const authUser = useAppStore((s) => s.authUser);
   const isAdmin = authUser?.rol === "ADMIN" || authUser?.rol === "SUPERVISOR";
 
   const [products, setProducts] = useState<Producto[]>([]);
+  const [categoriaList, setCategoriaList] = useState<Categoria[]>([]);
+  const [categorias, setCategorias] = useState<Map<number, string>>(new Map());
   const [search, setSearch] = useState("");
+  // null = TODOS; un número = filtrar por esa categoría (0 = Sin categoría)
+  const [catFilter, setCatFilter] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await apiGet<Producto[]>("/api/productos");
+        const [data, cats] = await Promise.all([
+          apiGet<Producto[]>("/api/productos"),
+          apiGet<Categoria[]>("/api/categorias"),
+        ]);
         setProducts(data);
+        setCategoriaList(cats);
+        setCategorias(new Map(cats.map((c) => [c.id, c.Nombre])));
       } catch (err) {
         console.error(err);
       } finally {
@@ -47,9 +83,34 @@ export default function ProductoPage() {
     load();
   }, []);
 
-  const filtered = search
-    ? products.filter((p) => p.Nombre.toLowerCase().includes(search.toLowerCase()))
-    : products;
+  const toggleActivo = async (product: Producto, next: boolean) => {
+    // Optimista: actualiza local y revierte si falla
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, bActivoVenta: next } : p)),
+    );
+    try {
+      await apiPut(`/api/productos/${product.id}`, {
+        Nombre: product.Nombre,
+        PrecioCosto: product.PrecioCosto,
+        PrecioVenta: product.PrecioVenta,
+        FechaVencimiento: product.FechaVencimiento,
+        IdCategoria: product.IdCategoria,
+        bActivoVenta: next,
+      });
+    } catch (err) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, bActivoVenta: !next } : p)),
+      );
+      toast.error(err instanceof Error ? err.message : "Error al actualizar");
+    }
+  };
+
+  const filtered = products.filter((p) => {
+    const matchSearch =
+      !search || p.Nombre.toLowerCase().includes(search.toLowerCase());
+    const matchCat = catFilter == null || p.IdCategoria === catFilter;
+    return matchSearch && matchCat;
+  });
 
   return (
     <div className="space-y-2">
@@ -74,6 +135,21 @@ export default function ProductoPage() {
         debounceMs={300}
       />
 
+      {/* Filtro por categoría */}
+      {categoriaList.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-0.5 px-0.5">
+          <CategoriaChip label="Todos" active={catFilter == null} onClick={() => setCatFilter(null)} />
+          {categoriaList.map((c) => (
+            <CategoriaChip
+              key={c.id}
+              label={c.Nombre}
+              active={catFilter === c.id}
+              onClick={() => setCatFilter(c.id)}
+            />
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <LoadingState variant="skeleton-cards" count={6} />
       ) : filtered.length === 0 ? (
@@ -86,8 +162,18 @@ export default function ProductoPage() {
               <div
                 key={product.id}
                 onClick={() => router.push(`/producto/datos/${product.id}`)}
-                className="bg-white dark:bg-card rounded-md ring-1 ring-border/50 p-3.5 cursor-pointer hover:shadow-sm hover:ring-brand/30 transition-all flex flex-col gap-2"
+                className={cn(
+                  "bg-white dark:bg-card rounded-md ring-1 ring-border/50 p-3.5 cursor-pointer hover:shadow-sm hover:ring-brand/30 transition-all flex flex-col gap-2",
+                  !product.bActivoVenta && "opacity-60",
+                )}
               >
+                {/* Categoría */}
+                {product.IdCategoria !== SIN_CATEGORIA_ID && categorias.has(product.IdCategoria) && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-brand bg-brand-surface px-1.5 py-0.5 rounded-sm w-fit">
+                    {categorias.get(product.IdCategoria)}
+                  </span>
+                )}
+
                 {/* Name */}
                 <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1">
                   {product.Nombre}
@@ -112,19 +198,35 @@ export default function ProductoPage() {
                   </p>
                 )}
 
-                {/* Kardex button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/producto/kardex/${product.id}`);
-                  }}
-                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-brand transition-colors w-fit mt-auto"
-                  aria-label="Ver kardex"
-                >
-                  <BarChart2 className="h-3.5 w-3.5" />
-                  Kardex
-                </button>
+                {/* Footer: Kardex + toggle activo */}
+                <div className="flex items-center justify-between mt-auto pt-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/producto/kardex/${product.id}`);
+                    }}
+                    className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-brand transition-colors w-fit"
+                    aria-label="Ver kardex"
+                  >
+                    <BarChart2 className="h-3.5 w-3.5" />
+                    Kardex
+                  </button>
+                  <div
+                    className="flex items-center gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Activo para venta"
+                  >
+                    <span className="text-[10px] text-muted-foreground">
+                      {product.bActivoVenta ? "Venta" : "Oculto"}
+                    </span>
+                    <Switch
+                      size="sm"
+                      checked={product.bActivoVenta}
+                      onCheckedChange={(v) => toggleActivo(product, v)}
+                    />
+                  </div>
+                </div>
               </div>
             );
           })}

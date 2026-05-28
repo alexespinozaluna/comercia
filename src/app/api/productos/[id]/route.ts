@@ -29,17 +29,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const body = await req.json();
-    const { Nombre, PrecioCosto, PrecioVenta, Cantidad, FechaVencimiento } = body;
+    const { Nombre, PrecioCosto, PrecioVenta, FechaVencimiento, IdCategoria, bActivoVenta } = body;
+
+    // Stock (Cantidad) NO se toca aquí: se gestiona vía Ajustes/Kardex.
+    const update: Record<string, unknown> = {
+      Nombre,
+      PrecioCosto: PrecioCosto ?? null,
+      PrecioVenta,
+      FechaVencimiento: FechaVencimiento ?? null,
+    };
+    if (IdCategoria != null) update.IdCategoria = IdCategoria;
+    if (bActivoVenta != null) update.bActivoVenta = bActivoVenta;
 
     const { error } = await getSupabaseServer()
       .from("Producto")
-      .update({
-        Nombre,
-        PrecioCosto: PrecioCosto ?? null,
-        PrecioVenta,
-        Cantidad: Cantidad ?? null,
-        FechaVencimiento: FechaVencimiento ?? null,
-      })
+      .update(update)
       .eq("id", parseInt(id))
       .eq("IdTenant", user.idTenant)
       .eq("Estado", 1);

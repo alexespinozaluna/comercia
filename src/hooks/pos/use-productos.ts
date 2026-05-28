@@ -10,7 +10,7 @@ export function useProductos() {
 
   useEffect(() => {
     let cancelled = false;
-    apiGet<Producto[]>("/api/productos")
+    apiGet<Producto[]>("/api/productos?activos=1")
       .then((data) => {
         if (!cancelled) setItems(data);
       })

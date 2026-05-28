@@ -6,12 +6,14 @@ import { Producto } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
+import { CategoriaSelect } from "@/components/producto/categoria-select";
+import { SIN_CATEGORIA_ID } from "@/types/database";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
-import Link from "next/link";
-import { Info } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -31,6 +33,8 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
   const [precioVenta, setPrecioVenta] = useState(0);
   const [cantidad, setCantidad] = useState<number | null>(null);
   const [fechaVencimiento, setFechaVencimiento] = useState<string>("");
+  const [idCategoria, setIdCategoria] = useState<number>(SIN_CATEGORIA_ID);
+  const [activoVenta, setActivoVenta] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,6 +51,8 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
             setPrecioVenta(product.PrecioVenta);
             setCantidad(product.Cantidad);
             setFechaVencimiento(product.FechaVencimiento?.split("T")[0] ?? "");
+            setIdCategoria(product.IdCategoria ?? SIN_CATEGORIA_ID);
+            setActivoVenta(product.bActivoVenta ?? true);
           }
         } catch (err) {
           console.error(err);
@@ -66,6 +72,8 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
         PrecioVenta: precioVenta,
         Cantidad: cantidad,
         FechaVencimiento: fechaVencimiento || null,
+        IdCategoria: idCategoria,
+        bActivoVenta: activoVenta,
       };
       if (isEdit) {
         await apiPut(`/api/productos/${id}`, data);
@@ -125,6 +133,23 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
+        {/* Categoría */}
+        <div>
+          <FieldLabel>Categoría</FieldLabel>
+          <CategoriaSelect value={idCategoria} onChange={setIdCategoria} />
+        </div>
+
+        {/* Activo para venta */}
+        <div className="flex items-center justify-between rounded-md border border-border px-3 py-2.5">
+          <div>
+            <p className="text-sm font-medium">Activo para venta</p>
+            <p className="text-[11px] text-muted-foreground">
+              Si se desactiva, no aparece en la lista de venta
+            </p>
+          </div>
+          <Switch checked={activoVenta} onCheckedChange={setActivoVenta} />
+        </div>
+
         {/* Precio Costo */}
         <div>
           <FieldLabel>Precio de costo</FieldLabel>
@@ -144,16 +169,20 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
 
         {/* Cantidad */}
         <div>
-          <FieldLabel>Cantidad inicial</FieldLabel>
+          <FieldLabel>{isEdit ? "Stock actual" : "Cantidad inicial"}</FieldLabel>
           {isEdit ? (
-            <div className="flex items-center gap-2 rounded-md bg-muted/50 border border-border px-3 py-2.5">
-              <Info className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-sm text-muted-foreground">
-                Stock gestionado en{" "}
-                <Link href="/producto/ajustes" className="font-semibold text-brand hover:text-brand-dark underline underline-offset-2">
-                  Ajustes de stock
-                </Link>
-              </span>
+            <div className="flex items-center gap-3 rounded-md bg-muted/50 border border-border px-3 py-2.5">
+              <span className="text-sm font-semibold">{cantidad ?? "—"}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="ml-auto gap-1.5"
+                onClick={() => router.push(`/producto/ajustes?producto=${id}`)}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Ajustar Stock
+              </Button>
             </div>
           ) : (
             <Input

@@ -40,35 +40,39 @@ export default function AjustesPage() {
   const [loading, setLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"baja" | "inventario">("baja");
+  const [initialProductId, setInitialProductId] = useState<number | undefined>(undefined);
   const { refreshCounter } = useAppStore();
 
   useEffect(() => {
-    getCurrentUser().then((u) => {
+    getCurrentUser().then(async (u) => {
       setUser(u);
-      if (u && ALLOWED_ROLES.includes(u.rol)) {
-        loadAjustes(u);
-      } else {
+      if (!u || !ALLOWED_ROLES.includes(u.rol)) {
+        setLoading(false);
+        return;
+      }
+      // Si llega ?producto=<id> (botón "Ajustar Stock" del detalle), abrir
+      // el formulario con ese producto preseleccionado.
+      const pid = parseInt(new URLSearchParams(window.location.search).get("producto") ?? "", 10);
+      if (Number.isFinite(pid) && pid > 0) {
+        setInitialProductId(pid);
+        setSheetMode("baja");
+        setSheetOpen(true);
+      }
+      setLoading(true);
+      try {
+        const [allData, tiposData] = await Promise.all([
+          apiGet<ProductoMovimiento[]>("/api/kardex"),
+          apiGet<TipoMovimiento[]>("/api/tipo-movimiento"),
+        ]);
+        setMovimientos(allData.filter((m) => m.TipoMovimiento >= 3));
+        setTiposMovimiento(tiposData);
+      } catch (err) {
+        console.error(err);
+      } finally {
         setLoading(false);
       }
     });
   }, [refreshCounter]);
-
-  const loadAjustes = async (u: AuthUser) => {
-    setLoading(true);
-    try {
-      const [allData, tiposData] = await Promise.all([
-        apiGet<ProductoMovimiento[]>("/api/kardex"),
-        apiGet<TipoMovimiento[]>("/api/tipo-movimiento"),
-      ]);
-      const ajustes = allData.filter((m) => m.TipoMovimiento >= 3);
-      setMovimientos(ajustes);
-      setTiposMovimiento(tiposData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openSheet = (mode: "baja" | "inventario") => {
     setSheetMode(mode);
@@ -158,7 +162,21 @@ export default function AjustesPage() {
         </div>
       )}
 
-      <RegistroBajaForm open={sheetOpen} onOpenChange={setSheetOpen} initialMode={sheetMode} />
+      <RegistroBajaForm
+        open={sheetOpen}
+        onOpenChange={(v) => {
+          setSheetOpen(v);
+          if (!v) {
+            setInitialProductId(undefined);
+            // Limpiar ?producto= de la URL para que no reabra al refrescar
+            if (window.location.search) {
+              window.history.replaceState(null, "", window.location.pathname);
+            }
+          }
+        }}
+        initialMode={sheetMode}
+        initialProductId={initialProductId}
+      />
     </div>
   );
 }

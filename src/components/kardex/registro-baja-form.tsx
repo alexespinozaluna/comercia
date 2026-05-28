@@ -45,10 +45,19 @@ interface RegistroBajaFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialMode?: AjusteMode;
+  /** Si se indica, preselecciona ese producto al abrir. */
+  initialProductId?: number;
 }
 
-export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja" }: RegistroBajaFormProps) {
+export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja", initialProductId }: RegistroBajaFormProps) {
   const [mode, setMode] = useState<AjusteMode>(initialMode);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [search, setSearch] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
+  const [cantidad, setCantidad] = useState<number>(0);
+  const [motivo, setMotivo] = useState<string>("");
+  const [observacion, setObservacion] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Sync mode when initialMode changes (e.g., user clicks different buttons)
   useEffect(() => {
@@ -58,28 +67,32 @@ export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja" }: R
       setCantidad(0);
     }
   }, [open, initialMode]);
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [search, setSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
-  const [cantidad, setCantidad] = useState<number>(0);
-  const [motivo, setMotivo] = useState<string>("");
-  const [observacion, setObservacion] = useState("");
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      loadProductos();
-    }
-  }, [open]);
-
-  const loadProductos = async () => {
-    try {
-      const data = await apiGet<Producto[]>("/api/productos");
-      setProductos(data.filter((p) => p.Cantidad != null));
-    } catch {
-      toast.error("Error al cargar productos");
-    }
-  };
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiGet<Producto[]>("/api/productos");
+        const conStock = data.filter((p) => p.Cantidad != null);
+        if (cancelled) return;
+        setProductos(conStock);
+        // Preselección por id (botón "Ajustar Stock" desde el detalle del producto)
+        if (initialProductId) {
+          const found = conStock.find((p) => p.id === initialProductId);
+          if (found) {
+            setSelectedProduct(found);
+            setCantidad(0);
+          }
+        }
+      } catch {
+        if (!cancelled) toast.error("Error al cargar productos");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, initialProductId]);
 
   const filtered = search
     ? productos.filter((p) => p.Nombre.toLowerCase().includes(search.toLowerCase()))

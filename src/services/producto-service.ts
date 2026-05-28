@@ -5,10 +5,13 @@ import { add, update, deleteItem } from "./supabase-service";
 const TABLE = "Producto";
 
 export const productoService = {
-  async getAll(tenantId?: number): Promise<Producto[]> {
+  async getAll(tenantId?: number, soloActivos = false): Promise<Producto[]> {
     let query = getSupabaseServer().from(TABLE).select("*");
     if (tenantId != null) {
       query = query.eq("IdTenant", tenantId).eq("Estado", 1);
+    }
+    if (soloActivos) {
+      query = query.eq("bActivoVenta", true);
     }
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching ${TABLE}: ${error.message}`);

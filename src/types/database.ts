@@ -12,7 +12,20 @@ export interface Producto extends BaseEnty {
   PrecioVenta: number;
   Cantidad: number | null;
   FechaVencimiento: string | null;
+  IdCategoria: number;
+  bActivoVenta: boolean;
 }
+
+export interface Categoria {
+  id: number;
+  IdTenant: number;
+  Nombre: string;
+  Estado: number;
+  FechaCreacion: string;
+}
+
+/** id de la categoría sentinel "Sin categoría". */
+export const SIN_CATEGORIA_ID = 0;
 
 export interface ClienteDireccion {
   id: number;
