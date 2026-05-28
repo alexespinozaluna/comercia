@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Documento, MetodoPago } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
-import { numToString, fechaString, extraerIniciales } from "@/lib/format";
+import { numToString, fechaString, extraerIniciales, toInputDate } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
@@ -33,7 +33,7 @@ function VentaAbonoContent() {
   const pagina = searchParams.get("pagina") ?? (isEdit ? `/venta-detalle/${idAbono}` : "/");
 
   const [deudas, setDeudas] = useState<Documento[]>([]);
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+  const [fecha, setFecha] = useState(toInputDate());
   const [total, setTotal] = useState(0);
   const [concepto, setConcepto] = useState("");
   const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);

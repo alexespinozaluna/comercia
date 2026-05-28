@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { AuthUser } from "@/lib/auth-client";
+import { toInputDate } from "@/lib/format";
 
 interface AppState {
   // Filter state (persisted in sessionStorage)
@@ -22,8 +23,8 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   filterTipo: "Dia",
-  filterFechaInicio: new Date().toISOString().split("T")[0],
-  filterFechaFin: new Date().toISOString().split("T")[0],
+  filterFechaInicio: toInputDate(),
+  filterFechaFin: toInputDate(),
   filterIndex: 0,
 
   refreshCounter: 0,

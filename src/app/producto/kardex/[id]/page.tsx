@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Producto, ProductoMovimiento, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { toInputDate } from "@/lib/format";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PageHeader } from "@/components/shared/page-header";
@@ -56,12 +57,11 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
   const [productId, setProductId] = useState<string>("0");
 
   const [fechaInicio, setFechaInicio] = useState(() => {
-    const today = new Date();
-    const monthAgo = new Date(today);
+    const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
-    return monthAgo.toISOString().split("T")[0];
+    return toInputDate(monthAgo);
   });
-  const [fechaFin, setFechaFin] = useState(() => new Date().toISOString().split("T")[0]);
+  const [fechaFin, setFechaFin] = useState(() => toInputDate());
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("Todos");
 
   useEffect(() => {

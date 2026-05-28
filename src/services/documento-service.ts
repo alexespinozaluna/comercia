@@ -253,6 +253,40 @@ export const documentoService = {
     return result as { ok: boolean; id_venta: number };
   },
 
+  /**
+   * Elimina FÍSICAMENTE un abono (Documento tipo 2).
+   *
+   * Se borra en duro (no soft-delete) a propósito: el FK
+   * DocumentoItem.IdDocumento → Documento(id) es ON DELETE CASCADE, así que al
+   * borrar el Documento se borran sus DocumentoItem, y cada DELETE de item
+   * dispara fn_actualizar_saldo_total_abono (rama OLD.IdDocumentoRef) que
+   * recalcula Saldo/TotalAbono de la venta referenciada. De este modo el saldo
+   * se restaura siempre, sin depender de que el trigger filtre por Estado.
+   */
+  async eliminarAbono(idAbono: number, idTenant: number): Promise<void> {
+    const { data: abono, error: fetchErr } = await getSupabaseServer()
+      .from(TABLE)
+      .select("id, IdTipoDocumento")
+      .eq("id", idAbono)
+      .eq("IdTenant", idTenant)
+      .single();
+
+    if (fetchErr || !abono) throw new Error("Abono no encontrado");
+    if ((abono as { IdTipoDocumento: number }).IdTipoDocumento !== 2) {
+      throw new Error("El documento no es un abono");
+    }
+
+    // Borrado físico — la cascada borra los items y el trigger restaura el Saldo
+    const { error } = await getSupabaseServer()
+      .from(TABLE)
+      .delete()
+      .eq("id", idAbono)
+      .eq("IdTenant", idTenant)
+      .eq("IdTipoDocumento", 2);
+
+    if (error) throw new Error(`Error eliminando abono: ${error.message}`);
+  },
+
   /** Get deleted sales ( Estado = 0 ) with client join */
   async getVentasEliminadas(tenantId?: number): Promise<Documento[]> {
     let query = getSupabaseServer()

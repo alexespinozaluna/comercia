@@ -48,13 +48,16 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
 
   const handleDelete = async () => {
     if (!doc) return;
+    // Abono (tipo 2): borrado físico vía /api/abonos para que la cascada + trigger
+    // restauren el Saldo de la venta. Venta/gasto: soft-delete vía /api/ventas.
+    const esAbono = doc.IdTipoDocumento === 2;
     try {
-      await apiDelete(`/api/ventas/${doc.id}`);
+      await apiDelete(esAbono ? `/api/abonos/${doc.id}` : `/api/ventas/${doc.id}`);
       useAppStore.getState().triggerRefresh();
-      toast.success("Documento eliminado");
+      toast.success(esAbono ? "Abono eliminado" : "Documento eliminado");
       router.push("/");
-    } catch {
-      toast.error("Error al eliminar");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar");
     }
   };
 

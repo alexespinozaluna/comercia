@@ -42,3 +42,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getCurrentUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+    requireRole(user, ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"]);
+
+    const { id } = await params;
+    const idAbono = parseInt(id);
+    if (!idAbono || idAbono <= 0) {
+      return NextResponse.json({ error: "id inválido" }, { status: 400 });
+    }
+
+    // Borrado físico: la cascada del FK y el trigger restauran el Saldo de la venta
+    await documentoService.eliminarAbono(idAbono, user.idTenant);
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Error interno";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
+}

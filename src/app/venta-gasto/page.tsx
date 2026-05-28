@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MetodoPago, Documento } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
+import { toInputDate } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +29,7 @@ function VentaGastoContent() {
   const urlRef = searchParams.get("UrlRef") ?? "/";
   const isEdit = id > 0;
 
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+  const [fecha, setFecha] = useState(toInputDate());
   const [valor, setValor] = useState(0);
   const [concepto, setConcepto] = useState("");
   const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
@@ -44,7 +45,7 @@ function VentaGastoContent() {
         if (isEdit) {
           const data = await apiGet<Documento | null>(`/api/ventas/${id}`);
           if (data) {
-            setFecha(data.FechaEmision?.split("T")[0] ?? new Date().toISOString().split("T")[0]);
+            setFecha(data.FechaEmision?.split("T")[0] ?? toInputDate());
             setValor(data.Total);
             setConcepto(data.Concepto ?? data.Descripcion ?? "");
             setSelectedMetodo(data.IdMetodoPago);
