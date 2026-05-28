@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     let idCaja: number | null = idParam ? parseInt(idParam, 10) : null;
 
     if (!idCaja || !Number.isFinite(idCaja) || idCaja <= 0) {
-      const abierta = await cajaService.getCajaAbierta(user.idTenant);
+      const abierta = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
       if (!abierta) {
         return NextResponse.json({ error: "No hay caja abierta" }, { status: 404 });
       }

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const idCliente = idClienteParam ? Number(idClienteParam) : undefined;
     const idClienteValido = idCliente != null && !Number.isNaN(idCliente) ? idCliente : undefined;
 
-    const data = await documentoService.getDeudaDetalle(user.idTenant, idClienteValido);
+    const data = await documentoService.getDeudaDetalle(user.idTenant, idClienteValido, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/deudas/detalle error:", err);

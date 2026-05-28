@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       idUsuario: idUsuario && idUsuario > 0 ? idUsuario : undefined,
       soloDescuadre: descuadre,
       limit,
+      idNegocio: user.idNegocio,
     });
     return NextResponse.json({ data });
   } catch (err) {

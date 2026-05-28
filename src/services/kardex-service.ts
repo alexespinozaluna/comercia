@@ -4,7 +4,7 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 const TABLE = "ProductoMovimiento";
 
 export const kardexService = {
-  async getByProducto(idProducto: number, tenantId?: number, fechaInicio?: string, fechaFin?: string): Promise<ProductoMovimiento[]> {
+  async getByProducto(idProducto: number, tenantId?: number, fechaInicio?: string, fechaFin?: string, negocioId?: number | null): Promise<ProductoMovimiento[]> {
     let query = getSupabaseServer()
       .from(TABLE)
       .select("*")
@@ -13,6 +13,9 @@ export const kardexService = {
 
     if (tenantId != null) {
       query = query.eq("IdTenant", tenantId);
+    }
+    if (negocioId != null) {
+      query = query.eq("IdNegocio", negocioId);
     }
     if (fechaInicio) {
       query = query.gte("Fecha", fechaInicio);

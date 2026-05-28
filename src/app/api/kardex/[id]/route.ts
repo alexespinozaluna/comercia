@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const fechaInicio = searchParams.get("fechaInicio") ?? undefined;
     const fechaFin = searchParams.get("fechaFin") ?? undefined;
 
-    const data = await kardexService.getByProducto(productId, user.idTenant, fechaInicio, fechaFin);
+    const data = await kardexService.getByProducto(productId, user.idTenant, fechaInicio, fechaFin, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/kardex/[id] error:", err);

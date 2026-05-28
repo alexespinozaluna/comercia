@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const { id } = await params;
-    const data = await documentoService.getVentaConItem(parseInt(id), user.idTenant);
+    const data = await documentoService.getVentaConItem(parseInt(id), user.idTenant, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/ventas/[id] error:", err);
@@ -62,7 +62,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     let cajaActiva: { id: number } | null = null;
     if (isNew) {
       // Crear requiere caja abierta (igual que POST /api/ventas)
-      cajaActiva = await cajaService.getCajaAbierta(user.idTenant);
+      cajaActiva = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
       if (!cajaActiva) {
         return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
       }
@@ -98,6 +98,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       originalItemIds ?? [],
       user.idTenant,
       user.id,
+      user.idNegocio,
     );
 
     // Vincular venta nueva a la caja activa (para arqueo).

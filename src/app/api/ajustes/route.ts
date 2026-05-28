@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
     requireRole(user, ["ADMIN", "SUPERVISOR"]);
 
-    const caja = await cajaService.getCajaAbierta(user.idTenant);
+    const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
       return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
     }
@@ -64,8 +64,9 @@ export async function POST(req: NextRequest) {
 
     const fechaEmision = new Date().toISOString();
 
-    // Fetch product
-    const producto = await productoService.getById(IdProducto, user.idTenant);
+    // Fetch product — getById con sucursal sobrescribe Cantidad con el stock
+    // de ProductoStock de la sucursal activa (catálogo compartido, stock por sucursal).
+    const producto = await productoService.getById(IdProducto, user.idTenant, user.idNegocio);
     if (!producto) {
       return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
     }
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
         Saldo: 0,
         IdMetodoPago: null,
         IdTenant: user.idTenant,
+        IdNegocio: user.idNegocio,
         Estado: 1,
         IdUsuarioCreacion: user.id,
       })
@@ -160,6 +162,7 @@ export async function POST(req: NextRequest) {
         IdDocumento: docData.id,
         IdDocumentoRef: null,
         IdTenant: user.idTenant,
+        IdNegocio: user.idNegocio,
         Estado: 1,
       });
 
@@ -187,6 +190,7 @@ export async function POST(req: NextRequest) {
         Observacion: observacionMov,
         Fecha: fechaEmision,
         IdTenant: user.idTenant,
+        IdNegocio: user.idNegocio,
       });
 
     if (movError) {
@@ -194,15 +198,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Error al registrar movimiento" }, { status: 500 });
     }
 
-    // 4. Update product stock
-    const { error: updError } = await supabase
-      .from("Producto")
-      .update({ Cantidad: stockNuevo })
-      .eq("id", IdProducto)
-      .eq("IdTenant", user.idTenant);
+    // 4. Actualizar stock de la sucursal activa (ProductoStock). Si la sesión
+    //    no trae sucursal (token previo), fallback legacy a Producto.Cantidad.
+    const stockUpd =
+      user.idNegocio != null
+        ? await supabase.from("ProductoStock").upsert(
+            {
+              IdProducto,
+              IdNegocio: user.idNegocio,
+              IdTenant: user.idTenant,
+              Cantidad: stockNuevo,
+            },
+            { onConflict: "IdProducto,IdNegocio" },
+          )
+        : await supabase
+            .from("Producto")
+            .update({ Cantidad: stockNuevo })
+            .eq("id", IdProducto)
+            .eq("IdTenant", user.idTenant);
 
-    if (updError) {
-      console.error("Error updating product stock:", updError);
+    if (stockUpd.error) {
+      console.error("Error updating product stock:", stockUpd.error);
       return NextResponse.json({ error: "Error al actualizar stock" }, { status: 500 });
     }
 

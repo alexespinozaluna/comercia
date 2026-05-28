@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
     }
     requireRole(user, ["ADMIN", "CAJERO", "SUPERVISOR"]);
 
-    // Validar caja abierta
-    const caja = await cajaService.getCajaAbierta(user.idTenant);
+    // Validar caja abierta (de la sucursal activa)
+    const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
       return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
     }
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
         IdMetodoPago: IdMetodoPago ?? null,
         IdCaja: caja.id,
         IdTenant: user.idTenant,
+        IdNegocio: user.idNegocio,
         Estado: 1,
         IdUsuarioCreacion: user.id,
       })

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     }
 
     const soloActivos = req.nextUrl.searchParams.get("activos") === "1";
-    const data = await productoService.getAll(user.idTenant, soloActivos);
+    const data = await productoService.getAll(user.idTenant, soloActivos, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/productos error:", err);
@@ -55,10 +55,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Stock inicial → registrar entrada en Kardex (tipo 2 = Compra/Ingreso)
-    // para que el kardex cuadre con el stock desde el día 1.
+    // Stock inicial → va a la sucursal activa (ProductoStock) + entrada en Kardex
+    // (tipo 2 = Compra/Ingreso) para que el kardex cuadre desde el día 1.
     const cantidadInicial = Cantidad ?? 0;
-    if (data?.id && cantidadInicial > 0) {
+    if (data?.id && cantidadInicial > 0 && user.idNegocio != null) {
+      const { error: stockErr } = await supabase.from("ProductoStock").upsert(
+        {
+          IdProducto: data.id,
+          IdNegocio: user.idNegocio,
+          IdTenant: user.idTenant,
+          Cantidad: cantidadInicial,
+        },
+        { onConflict: "IdProducto,IdNegocio" },
+      );
+      if (stockErr) {
+        console.error("POST /api/productos stock inicial error:", stockErr);
+      }
+
       const { error: movErr } = await supabase.from("ProductoMovimiento").insert({
         IdProducto: data.id,
         TipoMovimiento: 2, // Compra / Ingreso
@@ -70,6 +83,7 @@ export async function POST(req: NextRequest) {
         Observacion: "Stock inicial",
         Fecha: new Date().toISOString(),
         IdTenant: user.idTenant,
+        IdNegocio: user.idNegocio,
       });
       if (movErr) {
         // No abortamos la creación del producto por un fallo de kardex; solo log.

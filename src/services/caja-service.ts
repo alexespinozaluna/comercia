@@ -4,12 +4,17 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 const TABLE = "Caja";
 
 export const cajaService = {
-  async getCajaAbierta(tenantId: number): Promise<Caja | null> {
-    const { data, error } = await getSupabaseServer()
+  async getCajaAbierta(tenantId: number, idNegocio?: number | null): Promise<Caja | null> {
+    let query = getSupabaseServer()
       .from(TABLE)
       .select("*")
       .eq("IdTenant", tenantId)
-      .eq("Estado", 1)
+      .eq("Estado", 1);
+
+    // Acota a la sucursal activa; con idNegocio nulo (token previo) queda a nivel cuenta.
+    if (idNegocio != null) query = query.eq("IdNegocio", idNegocio);
+
+    const { data, error } = await query
       .order("FechaApertura", { ascending: false })
       .limit(1)
       .single();
@@ -21,11 +26,17 @@ export const cajaService = {
     return data as Caja;
   },
 
-  async abrirCaja(tenantId: number, idUsuario: number, montoInicial: number): Promise<Caja> {
+  async abrirCaja(
+    tenantId: number,
+    idUsuario: number,
+    montoInicial: number,
+    idNegocio?: number | null,
+  ): Promise<Caja> {
     const { data, error } = await getSupabaseServer()
       .from(TABLE)
       .insert({
         IdTenant: tenantId,
+        IdNegocio: idNegocio ?? null,
         IdUsuarioApertura: idUsuario,
         MontoInicial: montoInicial,
         Estado: 1,
@@ -34,10 +45,10 @@ export const cajaService = {
       .single();
 
     if (error) {
-      // 23505 = unique_violation → ya hay una caja abierta para este tenant
-      // (índice único parcial UX_Caja_AbiertaPorTenant).
+      // 23505 = unique_violation → ya hay una caja abierta para esta sucursal
+      // (índice único parcial UX_Caja_AbiertaPorNegocio).
       if (error.code === "23505") {
-        throw new Error("Ya existe una caja abierta para este tenant");
+        throw new Error("Ya existe una caja abierta para esta sucursal");
       }
       throw new Error(`Error abriendo caja: ${error.message}`);
     }
@@ -98,9 +109,10 @@ export const cajaService = {
       idUsuario?: number;
       soloDescuadre?: boolean;
       limit?: number;
+      idNegocio?: number | null;
     } = {},
   ): Promise<CajaHistorialItem[]> {
-    const { desde, hasta, idUsuario, soloDescuadre, limit = 100 } = opts;
+    const { desde, hasta, idUsuario, soloDescuadre, limit = 100, idNegocio } = opts;
 
     let query = getSupabaseServer()
       .from(TABLE)
@@ -108,6 +120,9 @@ export const cajaService = {
       .eq("IdTenant", tenantId)
       .order("FechaApertura", { ascending: false })
       .limit(limit);
+
+    // Sucursal activa; null → nivel cuenta.
+    if (idNegocio != null) query = query.eq("IdNegocio", idNegocio);
 
     if (desde) query = query.gte("FechaApertura", desde);
     if (hasta) {

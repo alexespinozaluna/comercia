@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const data = await cajaService.getCajaAbierta(user.idTenant);
+    const data = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/caja error:", err);

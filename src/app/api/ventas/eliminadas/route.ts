@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const data = await documentoService.getVentasEliminadas(user.idTenant);
+    const data = await documentoService.getVentasEliminadas(user.idTenant, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/ventas/eliminadas error:", err);

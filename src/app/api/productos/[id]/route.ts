@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const { id } = await params;
-    const data = await productoService.getById(parseInt(id), user.idTenant);
+    const data = await productoService.getById(parseInt(id), user.idTenant, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     console.error("GET /api/productos/[id] error:", err);

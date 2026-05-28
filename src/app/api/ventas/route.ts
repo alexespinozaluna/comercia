@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
       idCliente,
       user.idTenant,
       id,
+      user.idNegocio,
     );
     return NextResponse.json({ data });
   } catch (err) {
@@ -53,8 +54,8 @@ export async function POST(req: NextRequest) {
     }
     requireRole(user, ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"]);
 
-    // Validate caja abierta
-    const caja = await cajaService.getCajaAbierta(user.idTenant);
+    // Validate caja abierta (de la sucursal activa)
+    const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
       return NextResponse.json(
         { error: "No hay caja abierta" },
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
       [],
       user.idTenant,
       user.id,
+      user.idNegocio,
     );
 
     // Vincular el documento creado a la caja activa (para arqueo).

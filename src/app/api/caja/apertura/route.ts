@@ -20,12 +20,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existente = await cajaService.getCajaAbierta(user.idTenant);
+    const existente = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (existente) {
       return NextResponse.json({ error: "Ya existe una caja abierta" }, { status: 400 });
     }
 
-    const data = await cajaService.abrirCaja(user.idTenant, user.id, montoInicial);
+    const data = await cajaService.abrirCaja(user.idTenant, user.id, montoInicial, user.idNegocio);
     return NextResponse.json({ data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";

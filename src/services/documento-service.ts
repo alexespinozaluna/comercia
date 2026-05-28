@@ -67,6 +67,7 @@ export const documentoService = {
     idCliente = 0,
     tenantId?: number,
     id?: number,
+    negocioId?: number | null,
   ): Promise<Documento[]> {
     let query = getSupabaseServer()
       .from(TABLE)
@@ -76,6 +77,11 @@ export const documentoService = {
 
     if (tenantId != null) {
       query = query.eq("IdTenant", tenantId).eq("Estado", 1);
+    }
+
+    // Sucursal activa (si el token la trae); null → nivel cuenta.
+    if (negocioId != null) {
+      query = query.eq("IdNegocio", negocioId);
     }
 
     if (bCredito) {
@@ -105,6 +111,7 @@ export const documentoService = {
   async getVentaConItem(
     id: number,
     tenantId?: number,
+    negocioId?: number | null,
   ): Promise<Documento | null> {
     let query = getSupabaseServer()
       .from(TABLE)
@@ -113,6 +120,10 @@ export const documentoService = {
 
     if (tenantId != null) {
       query = query.eq("IdTenant", tenantId).eq("Estado", 1);
+    }
+
+    if (negocioId != null) {
+      query = query.eq("IdNegocio", negocioId);
     }
 
     const { data, error } = await query.single();
@@ -144,6 +155,7 @@ export const documentoService = {
     originalItemIds: number[],
     idTenant: number,
     idUsuarioCreacion: number,
+    idNegocio: number | null = null,
   ): Promise<Documento> {
     const docJson = buildDocumentoJson(doc);
 
@@ -179,6 +191,7 @@ export const documentoService = {
         p_items_to_add: !isNew && toAdd.length > 0 ? buildItemsJson(toAdd) : null,
         p_id_tenant: idTenant,
         p_id_usuario_creacion: idUsuarioCreacion,
+        p_id_negocio: idNegocio,
       },
     );
 
@@ -207,6 +220,7 @@ export const documentoService = {
     idMetodoPago: number | null,
     idTenant: number,
     idUsuario: number,
+    idNegocio: number | null = null,
   ): Promise<{ ok: boolean; abonos: number[]; no_distribuido: number }> {
     const { data, error } = await getSupabaseServer().rpc("registrar_abono", {
       p_tipo: tipo,
@@ -217,6 +231,7 @@ export const documentoService = {
       p_id_metodo_pago: idMetodoPago,
       p_id_tenant: idTenant,
       p_id_usuario: idUsuario,
+      p_id_negocio: idNegocio,
     });
 
     if (error) throw new Error(error.message);
@@ -288,7 +303,7 @@ export const documentoService = {
   },
 
   /** Get deleted sales ( Estado = 0 ) with client join */
-  async getVentasEliminadas(tenantId?: number): Promise<Documento[]> {
+  async getVentasEliminadas(tenantId?: number, negocioId?: number | null): Promise<Documento[]> {
     let query = getSupabaseServer()
       .from(TABLE)
       .select("*, Cliente(*)")
@@ -297,6 +312,10 @@ export const documentoService = {
 
     if (tenantId != null) {
       query = query.eq("IdTenant", tenantId).eq("Estado", 0);
+    }
+
+    if (negocioId != null) {
+      query = query.eq("IdNegocio", negocioId);
     }
 
     const { data, error } = await query;
@@ -359,6 +378,7 @@ export const documentoService = {
   async getDeudaDetalle(
     tenantId: number,
     idCliente?: number,
+    negocioId?: number | null,
   ): Promise<DeudaDetalle[]> {
     let query = getSupabaseServer()
       .from("v_deuda_detalle")
@@ -371,6 +391,11 @@ export const documentoService = {
       query = query.eq("IdCliente", idCliente);
     }
 
+    // Sucursal activa; null (p.ej. link público) → todas las sucursales.
+    if (negocioId != null) {
+      query = query.eq("IdNegocio", negocioId);
+    }
+
     const { data, error } = await query;
     if (error)
       throw new Error(`Error fetching v_deuda_detalle: ${error.message}`);
@@ -381,9 +406,10 @@ export const documentoService = {
    * Resumen de deudas agrupado por cliente (función `fn_deuda_resumen`).
    * Ya viene ordenado por monto pendiente DESC desde la BD.
    */
-  async getDeudaResumen(tenantId: number): Promise<DeudaResumen[]> {
+  async getDeudaResumen(tenantId: number, negocioId?: number | null): Promise<DeudaResumen[]> {
     const { data, error } = await getSupabaseServer().rpc("fn_deuda_resumen", {
       p_id_tenant: tenantId,
+      p_id_negocio: negocioId ?? null,
     });
     if (error)
       throw new Error(`Error calling fn_deuda_resumen: ${error.message}`);

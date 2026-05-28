@@ -47,6 +47,8 @@ export function NegocioSelector() {
       setAuthUser(updated);
       triggerRefresh();
       toast.success(`Sucursal: ${n.Nombre ?? `#${n.id}`}`);
+      // Volver a la página principal y refrescar: los datos mostrados son por sucursal.
+      router.push("/");
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al cambiar de sucursal");
