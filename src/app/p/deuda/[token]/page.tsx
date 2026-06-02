@@ -1,7 +1,8 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { DeudaDetalle, Negocio } from "@/types/database";
-import { numToString, fechaString } from "@/lib/format";
+import { numToString, fechaString, extraerIniciales } from "@/lib/format";
 
 // Dinámica: depende del token y de los headers del request.
 export const dynamic = "force-dynamic";
@@ -12,6 +13,47 @@ interface DeudaPublicaData {
 }
 
 const SIN_DIRECCION = "Sin dirección";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+
+  const h = await headers();
+  const host = h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const origin = host ? `${proto}://${host}` : "";
+
+  const res = await fetch(`${origin}/api/deudas/publica/${token}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return {};
+
+  const { data } = await res.json();
+  const deudas = data?.deudas as DeudaDetalle[] | undefined;
+  const negocio = data?.negocio as Negocio | null;
+  if (!deudas?.length) return {};
+
+  const cliente = deudas[0];
+  const totalDeuda = deudas.reduce((s, d) => s + Number(d.Saldo), 0);
+  const nombreCliente = cliente.NomCliente ?? "Cliente";
+  const nombreNegocio = negocio?.Nombre ?? "Comercia";
+
+  const title = `Deuda pendiente — ${nombreCliente}`;
+  const description = `${numToString(totalDeuda)} · ${nombreNegocio}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: nombreNegocio,
+    },
+  };
+}
 
 export default async function DeudaPublicaPage({
   params,
@@ -42,44 +84,49 @@ export default async function DeudaPublicaPage({
   }
 
   const totalDeuda = deudas.reduce((s, d) => s + Number(d.Saldo), 0);
-  const totalAbono = deudas.reduce((s, d) => s + Number(d.TotalAbono ?? 0), 0);
   const cliente = deudas[0];
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
-      {/* Header negocio */}
+      {/* Header negocio compacto */}
       {negocio && (
-        <div className="text-center py-4 border-b border-border">
-          <h1 className="text-xl font-extrabold text-brand">{negocio.Nombre}</h1>
-          {negocio.Direccion && (
-            <p className="text-xs text-muted-foreground">{negocio.Direccion}</p>
-          )}
-          {negocio.Telefono && (
-            <p className="text-xs text-muted-foreground">Tel: {negocio.Telefono}</p>
-          )}
+        <div className="flex items-center gap-3 pb-3 border-b border-border">
+          <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center shrink-0">
+            <span className="text-sm font-bold text-brand">
+              {extraerIniciales(negocio.Nombre ?? "")}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-foreground truncate">
+              {negocio.Nombre}
+            </h1>
+            {(negocio.Direccion || negocio.Telefono) && (
+              <p className="text-xs text-muted-foreground truncate">
+                {[negocio.Direccion, negocio.Telefono && `Tel: ${negocio.Telefono}`]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Info cliente */}
-      <div>
-        <h2 className="text-lg font-bold text-foreground">{cliente.NomCliente}</h2>
-        {cliente.NroTelefono && (
-          <p className="text-sm text-muted-foreground">{cliente.NroTelefono}</p>
-        )}
-      </div>
-
-      {/* Cards resumen */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-red-50 rounded-lg p-3">
-          <p className="text-xs text-red-600 font-semibold uppercase">Deuda</p>
-          <p className="text-2xl font-extrabold text-red-600 tabular-nums truncate">
-            {numToString(totalDeuda)}
-          </p>
+      {/* Barra cliente + deuda total */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-foreground font-bold truncate">
+            {cliente.NomCliente ?? "Cliente"}
+          </h2>
+          {cliente.NroTelefono && (
+            <p className="text-muted-foreground text-xs truncate">
+              {cliente.NroTelefono}
+            </p>
+          )}
         </div>
-        <div className="bg-green-50 rounded-lg p-3">
-          <p className="text-xs text-green-600 font-semibold uppercase">Abono</p>
-          <p className="text-2xl font-extrabold text-green-600 tabular-nums truncate">
-            {numToString(totalAbono)}
+        <div className="text-right shrink-0">
+          <p className="text-red-600 text-[10px] uppercase font-semibold">Debe</p>
+          <p className="text-red-600 font-extrabold text-lg tabular-nums">
+            {numToString(totalDeuda)}
           </p>
         </div>
       </div>
@@ -92,6 +139,7 @@ export default async function DeudaPublicaPage({
             key={direccion}
             className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden"
           >
+            {/* Header grupo */}
             <div className="flex justify-between items-center px-3 py-2 bg-orange-50 border-b border-border">
               <span className="text-sm font-bold text-orange-800 truncate flex-1">
                 {direccion}
@@ -100,58 +148,34 @@ export default async function DeudaPublicaPage({
                 {numToString(subtotal)}
               </span>
             </div>
-            {/* Ítems del grupo en formato tabla */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-orange-200 text-orange-800">
-                    <th className="text-left py-1.5 px-2 font-semibold w-6">#</th>
-                    <th className="text-left py-1.5 px-2 font-semibold whitespace-nowrap">Fecha</th>
-                    <th className="text-left py-1.5 px-2 font-semibold">Descripción</th>
-                    <th className="text-right py-1.5 px-2 font-semibold whitespace-nowrap">Total</th>
-                    <th className="text-right py-1.5 px-2 font-semibold whitespace-nowrap">Abono</th>
-                    <th className="text-right py-1.5 px-2 font-semibold whitespace-nowrap">Deuda</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((d, idx) => (
-                    <tr key={d.id} className="border-b border-border/40 last:border-0">
-                      <td className="py-2 px-2 text-muted-foreground">{idx + 1}</td>
-                      <td className="py-2 px-2 text-muted-foreground whitespace-nowrap">
-                        {fechaString(new Date(d.FechaEmision))}
-                      </td>
-                      <td className="py-2 px-2">
-                        {d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}
-                      </td>
-                      <td className="py-2 px-2 text-right whitespace-nowrap tabular-nums">
+
+            {/* Items */}
+            <div className="divide-y divide-border/40">
+              {items.map((d) => (
+                <div
+                  key={d.id}
+                  className="flex justify-between items-start gap-3 px-3 py-2.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {fechaString(new Date(d.FechaEmision))}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-bold text-red-600 tabular-nums">
+                      {numToString(Number(d.Saldo))}
+                    </div>
+                    {Number(d.TotalAbono) > 0 && (
+                      <div className="text-xs text-muted-foreground line-through tabular-nums">
                         {numToString(Number(d.Total))}
-                      </td>
-                      <td className="py-2 px-2 text-right whitespace-nowrap tabular-nums text-green-600">
-                        {numToString(Number(d.TotalAbono))}
-                      </td>
-                      <td className="py-2 px-2 text-right whitespace-nowrap tabular-nums font-semibold text-red-600">
-                        {numToString(Number(d.Saldo))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-orange-200">
-                    <td colSpan={3} className="py-2 px-2 font-bold text-orange-800">
-                      Subtotal
-                    </td>
-                    <td className="py-2 px-2 text-right font-bold whitespace-nowrap tabular-nums">
-                      {numToString(items.reduce((s, d) => s + Number(d.Total), 0))}
-                    </td>
-                    <td className="py-2 px-2 text-right font-bold whitespace-nowrap tabular-nums text-green-600">
-                      {numToString(items.reduce((s, d) => s + Number(d.TotalAbono), 0))}
-                    </td>
-                    <td className="py-2 px-2 text-right font-bold whitespace-nowrap tabular-nums text-red-600">
-                      {numToString(items.reduce((s, d) => s + Number(d.Saldo), 0))}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -159,7 +183,7 @@ export default async function DeudaPublicaPage({
 
       {/* Footer */}
       <p className="text-center text-xs text-muted-foreground pb-4">
-        Reporte generado el {new Date().toLocaleDateString("es-CL")}
+        Reporte generado el {fechaString(new Date())}
       </p>
     </div>
   );

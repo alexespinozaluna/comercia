@@ -10,7 +10,7 @@ import { SearchInput } from "@/components/shared/search-input";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
-import { BookOpenText, Users, Wallet, ChevronRight } from "lucide-react";
+import { BookOpenText, ChevronRight } from "lucide-react";
 
 export default function DeudaPage() {
   const router = useRouter();
@@ -38,40 +38,37 @@ export default function DeudaPage() {
     ? resumen.filter((r) => (r.NomCliente ?? "").toLowerCase().includes(search.toLowerCase()))
     : resumen;
 
-  const totalClientes = filtered.length;
   const totalPorCobrar = filtered.reduce((sum, r) => sum + Number(r.SumSaldo), 0);
 
   return (
     <div className="space-y-2">
       <PageHeader title="Deudas" />
 
-      {/* Cards de resumen */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 flex items-center gap-2">
-          <div className="h-10 w-10 rounded-md bg-info/10 flex items-center justify-center shrink-0">
-            <Users className="h-5 w-5 text-info" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-              Clientes con deuda
-            </p>
-            <p className="text-[20px] font-extrabold text-foreground leading-tight tabular-nums">
-              {totalClientes}
-            </p>
-          </div>
+      {/* Card resumen */}
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-4 flex items-center justify-between">
+        {/* Izquierda — total monetario */}
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+            Total pendiente
+          </p>
+          <p className="text-[26px] font-extrabold text-destructive tabular-nums leading-tight">
+            {numToString(totalPorCobrar)}
+          </p>
         </div>
-        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 flex items-center gap-2">
-          <div className="h-10 w-10 rounded-md bg-destructive/10 flex items-center justify-center shrink-0">
-            <Wallet className="h-5 w-5 text-destructive" />
+
+        {/* Derecha — clientes + total deudas */}
+        <div className="text-right">
+          <div className="flex items-baseline justify-end gap-1.5">
+            <span className="text-[26px] font-extrabold text-foreground tabular-nums leading-tight">
+              {resumen.length}
+            </span>
+            <span className="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5 tabular-nums">
+              ({resumen.reduce((s, r) => s + r.Cantidad, 0)})
+            </span>
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-              Total pendiente
-            </p>
-            <p className="text-[20px] font-extrabold text-destructive leading-tight tabular-nums truncate">
-              {numToString(totalPorCobrar)}
-            </p>
-          </div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">
+            {resumen.length === 1 ? "Cliente" : "Clientes"}
+          </p>
         </div>
       </div>
 
