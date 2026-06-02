@@ -191,6 +191,7 @@ export interface SistemaTenant {
 export interface SistemaUsuario {
   id: number;
   IdTenant: number;
+  IdNegocio: number | null;
   Codigo: string;
   Nombre: string;
   PasswordHash: string;

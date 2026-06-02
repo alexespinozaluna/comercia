@@ -29,7 +29,7 @@ function ClientePageInner() {
       try {
         const [data, deudas] = await Promise.all([
           apiGet<Cliente[]>("/api/clientes"),
-          fetch("/api/deudas").then((r) => (r.ok ? r.json() : [])) as Promise<Documento[]>,
+          apiGet<Documento[]>("/api/deudas").catch(() => [] as Documento[]),
         ]);
         setClientes(data);
         const map = new Map<number, number>();

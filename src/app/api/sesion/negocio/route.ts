@@ -3,13 +3,16 @@ import { getCurrentUserFromRequest } from "@/lib/api-auth";
 import { negocioService } from "@/services/negocio-service";
 import { createToken } from "@/lib/jwt";
 
-// POST: cambia la sucursal activa de la sesión. Valida que el negocio
-// pertenezca al tenant del usuario y re-emite el token con el nuevo idNegocio.
+// POST: cambia la sucursal activa de la sesión. Solo ADMIN — los demás roles
+// tienen su sucursal fija (SistemaUsuario.IdNegocio).
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUserFromRequest(req);
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+    if (user.rol !== "ADMIN") {
+      return NextResponse.json({ error: "Solo ADMIN" }, { status: 403 });
     }
 
     const { idNegocio } = await req.json();

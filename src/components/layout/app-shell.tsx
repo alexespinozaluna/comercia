@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, LogOut, ChevronDown, Landmark, Settings, ClipboardList } from "lucide-react";
+import { Menu, LogOut, ChevronDown, Landmark, Settings, ClipboardList, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -142,6 +142,13 @@ function UserMenu({
           <DropdownMenuItem onClick={() => router.push("/configuracion")}>
             <Settings className="h-4 w-4" />
             Configuración
+          </DropdownMenuItem>
+        )}
+
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => router.push("/configuracion/usuarios")}>
+            <Users className="h-4 w-4" />
+            Usuarios
           </DropdownMenuItem>
         )}
 

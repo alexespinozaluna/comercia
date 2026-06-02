@@ -34,8 +34,9 @@ export function NegocioSelector() {
       .catch(() => setNegocios([]));
   }, [tenantId]);
 
-  // Sin usuario o con una sola sucursal no hace falta el selector.
-  if (!authUser || negocios.length <= 1) return null;
+  // Solo ADMIN navega entre sucursales; no-ADMIN tiene su sucursal fija.
+  // También se oculta si hay una sola sucursal.
+  if (!authUser || authUser.rol !== "ADMIN" || negocios.length <= 1) return null;
 
   const activo = negocios.find((n) => n.id === authUser.idNegocio) ?? negocios[0];
 

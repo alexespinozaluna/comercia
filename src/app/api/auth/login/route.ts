@@ -23,9 +23,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Sucursal activa por defecto: el primer negocio activo del tenant
-    const negocio = await negocioService.getDefaultForTenant(user.IdTenant);
-    const idNegocio = negocio?.id ?? null;
+    // Sucursal activa: la asignada al usuario; fallback al default del tenant
+    // (caso ADMIN sin IdNegocio fijo).
+    const idNegocio =
+      user.IdNegocio ??
+      (await negocioService.getDefaultForTenant(user.IdTenant))?.id ??
+      null;
 
     const token = await createToken({
       sub: String(user.id),
