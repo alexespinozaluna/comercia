@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditUpdate } from "@/lib/audit";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -17,13 +18,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { error } = await getSupabaseServer()
       .from("Documento")
-      .update({
-        FechaEmision,
-        Descripcion: Descripcion ?? null,
-        Concepto: Concepto ?? null,
-        Total,
-        IdMetodoPago: IdMetodoPago ?? null,
-      })
+      .update(
+        auditUpdate(user.id, {
+          FechaEmision,
+          Descripcion: Descripcion ?? null,
+          Concepto: Concepto ?? null,
+          Total,
+          IdMetodoPago: IdMetodoPago ?? null,
+        }),
+      )
       .eq("id", idDoc)
       .eq("IdTenant", user.idTenant)
       .eq("IdTipoDocumento", 3)

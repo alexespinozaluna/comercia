@@ -31,13 +31,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const data = await usuarioService.create(user.idTenant, {
-      Codigo: body.Codigo,
-      Nombre: body.Nombre,
-      Password: body.Password,
-      Rol: body.Rol,
-      IdNegocio: body.IdNegocio ?? null,
-    });
+    const data = await usuarioService.create(
+      user.idTenant,
+      {
+        Codigo: body.Codigo,
+        Nombre: body.Nombre,
+        Password: body.Password,
+        Rol: body.Rol,
+        IdNegocio: body.IdNegocio ?? null,
+      },
+      user.id,
+    );
     return NextResponse.json({ data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";

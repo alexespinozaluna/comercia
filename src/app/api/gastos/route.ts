@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { cajaService } from "@/services/caja-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditCreate } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,25 +27,26 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await getSupabaseServer()
       .from("Documento")
-      .insert({
-        FechaEmision,
-        Descripcion: Descripcion ?? null,
-        Concepto: Concepto ?? null,
-        Total,
-        bCredito: false,
-        IdCliente: null,
-        IdClienteDireccion: null,
-        DireccionEntrega: null,
-        TotalAbono: 0,
-        IdTipoDocumento: 3,
-        Saldo: 0,
-        IdMetodoPago: IdMetodoPago ?? null,
-        IdCaja: caja.id,
-        IdTenant: user.idTenant,
-        IdNegocio: user.idNegocio,
-        Estado: 1,
-        IdUsuarioCreacion: user.id,
-      })
+      .insert(
+        auditCreate(user.id, {
+          FechaEmision,
+          Descripcion: Descripcion ?? null,
+          Concepto: Concepto ?? null,
+          Total,
+          bCredito: false,
+          IdCliente: null,
+          IdClienteDireccion: null,
+          DireccionEntrega: null,
+          TotalAbono: 0,
+          IdTipoDocumento: 3,
+          Saldo: 0,
+          IdMetodoPago: IdMetodoPago ?? null,
+          IdCaja: caja.id,
+          IdTenant: user.idTenant,
+          IdNegocio: user.idNegocio,
+          Estado: 1,
+        }),
+      )
       .select()
       .single();
 

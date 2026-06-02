@@ -23,12 +23,27 @@ const formatTimePart = (date: Date) =>
     hour12: true,
   });
 
-/** Formato fecha corta con hora: dd/MMM | h:mm tt */
-export function fechaCortaHora(fecha: Date, fechaHora: Date): string {
-  if (fecha.toDateString() === fechaHora.toDateString()) {
-    return `${formatDatePart(fechaHora)} | ${formatTimePart(fechaHora)}`;
+/** Parsea "YYYY-MM-DD" (Postgres DATE) como fecha LOCAL, no UTC.
+ * `new Date("2026-06-01")` interpreta UTC y en zonas negativas (Chile) salta
+ * al día anterior. Este helper evita ese bug. */
+export function parseDateOnly(s: string): Date {
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Formato fecha corta con hora: dd/MMM | h:mm tt si la fecha de emisión y la
+ * de creación caen el mismo día calendario local; si difieren, solo dd/MMM.
+ *
+ * @param fechaEmisionStr — string de columna DATE (ej. "2026-06-01")
+ * @param fechaCreacionIso — string de columna TIMESTAMPTZ (ej. "2026-06-02T05:30:00Z")
+ */
+export function fechaCortaHora(fechaEmisionStr: string, fechaCreacionIso: string): string {
+  const fechaEmision = parseDateOnly(fechaEmisionStr);
+  const fechaCreacion = new Date(fechaCreacionIso);
+  if (fechaEmision.toDateString() === fechaCreacion.toDateString()) {
+    return `${formatDatePart(fechaCreacion)} | ${formatTimePart(fechaCreacion)}`;
   }
-  return `${formatDatePart(fecha)} | ${formatTimePart(fecha)}`;
+  return formatDatePart(fechaEmision);
 }
 
 /** Formato fecha corta: dd/MM/yy */
@@ -76,4 +91,9 @@ export function parseFormatted(raw: string): number {
   const cleaned = raw.replace(/\./g, "").replace(",", ".");
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
+}
+
+/** ISO 8601 UTC para columnas TIMESTAMPTZ. Único punto de creación de timestamps en la app. */
+export function nowIso(): string {
+  return new Date().toISOString();
 }

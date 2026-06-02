@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { clienteService } from "@/services/cliente-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditCreate, auditUpdate } from "@/lib/audit";
 import { ClienteDireccion } from "@/types/database";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -40,13 +41,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Update cliente
     const { error: updErr } = await getSupabaseServer()
       .from("Cliente")
-      .update({
-        Nombre,
-        NroTelefono: NroTelefono ?? null,
-        TipoDocumento: TipoDocumento ?? null,
-        NroDocumento: NroDocumento ?? null,
-        Comentario: Comentario ?? null,
-      })
+      .update(
+        auditUpdate(user.id, {
+          Nombre,
+          NroTelefono: NroTelefono ?? null,
+          TipoDocumento: TipoDocumento ?? null,
+          NroDocumento: NroDocumento ?? null,
+          Comentario: Comentario ?? null,
+        }),
+      )
       .eq("id", idCliente)
       .eq("IdTenant", user.idTenant)
       .eq("Estado", 1);
@@ -81,7 +84,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const idsToDelete = toDelete.map((d) => d.id);
       const { error: delErr } = await getSupabaseServer()
         .from("ClienteDireccion")
-        .update({ Estado: 0 })
+        .update(auditUpdate(user.id, { Estado: 0 }))
         .in("id", idsToDelete)
         .eq("IdTenant", user.idTenant);
       if (delErr) console.error("PUT /api/clientes/[id] delete direcciones error:", delErr);
@@ -92,12 +95,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const { id: _id, FechaCreacion, ...updateData } = item as ClienteDireccion & { FechaCreacion?: string };
       const { error: updItemErr } = await getSupabaseServer()
         .from("ClienteDireccion")
-        .update({
-          Direccion: updateData.Direccion,
-          Telefono: updateData.Telefono ?? null,
-          Contacto: updateData.Contacto,
-          bPrincipal: updateData.bPrincipal,
-        })
+        .update(
+          auditUpdate(user.id, {
+            Direccion: updateData.Direccion,
+            Telefono: updateData.Telefono ?? null,
+            Contacto: updateData.Contacto,
+            bPrincipal: updateData.bPrincipal,
+          }),
+        )
         .eq("id", item.id)
         .eq("IdTenant", user.idTenant);
       if (updItemErr) console.error("PUT /api/clientes/[id] update direccion error:", updItemErr);
@@ -105,15 +110,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Batch insert
     if (toAdd.length > 0) {
-      const addData = toAdd.map((d) => ({
-        Direccion: d.Direccion,
-        Telefono: d.Telefono ?? null,
-        Contacto: d.Contacto,
-        bPrincipal: d.bPrincipal ?? false,
-        IdCliente: idCliente,
-        IdTenant: user.idTenant,
-        Estado: 1,
-      }));
+      const addData = toAdd.map((d) =>
+        auditCreate(user.id, {
+          Direccion: d.Direccion,
+          Telefono: d.Telefono ?? null,
+          Contacto: d.Contacto,
+          bPrincipal: d.bPrincipal ?? false,
+          IdCliente: idCliente,
+          IdTenant: user.idTenant,
+          Estado: 1,
+        }),
+      );
       const { error: addErr } = await getSupabaseServer().from("ClienteDireccion").insert(addData);
       if (addErr) console.error("PUT /api/clientes/[id] insert direcciones error:", addErr);
     }
@@ -160,7 +167,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Soft delete direcciones primero
     const { error: dirDelErr } = await getSupabaseServer()
       .from("ClienteDireccion")
-      .update({ Estado: 0 })
+      .update(auditUpdate(user.id, { Estado: 0 }))
       .eq("IdCliente", idCliente)
       .eq("IdTenant", user.idTenant);
 
@@ -171,7 +178,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Soft delete cliente
     const { error } = await getSupabaseServer()
       .from("Cliente")
-      .update({ Estado: 0 })
+      .update(auditUpdate(user.id, { Estado: 0 }))
       .eq("id", idCliente)
       .eq("IdTenant", user.idTenant);
 

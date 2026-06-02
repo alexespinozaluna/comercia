@@ -1,9 +1,17 @@
 // TypeScript types matching the Supabase database schema
 // Column names are PascalCase to match the C# entities / Supabase table columns
 
-export interface BaseEnty {
+export interface CreatableEnty {
   id: number;
   FechaCreacion: string;
+  // Opcionales: los pone el backend (lib/audit.ts) y vienen de la DB; el
+  // frontend no necesita construirlos al armar payloads de creación.
+  IdUsuarioCreacion?: number | null;
+}
+
+export interface BaseEnty extends CreatableEnty {
+  FechaModificacion?: string | null;
+  IdUsuarioModificacion?: number | null;
 }
 
 export interface Producto extends BaseEnty {
@@ -81,6 +89,9 @@ export interface Documento extends BaseEnty {
   Saldo: number;
   IdMetodoPago: number | null;
   IdCaja: number | null;
+  // Embeds PostgREST opcionales (los pobla el select del service).
+  UsuarioCreacion?: { Nombre: string } | null;
+  UsuarioModificacion?: { Nombre: string } | null;
 }
 
 // Computed properties (not in DB, derived on client)
@@ -243,7 +254,7 @@ export interface ProductoMovimiento {
   StockAnterior: number;
   StockNuevo: number;
   IdDocumento: number | null;
-  IdUsuario: number | null;
+  IdUsuarioCreacion: number | null;
   Observacion: string | null;
   Fecha: string;
 }

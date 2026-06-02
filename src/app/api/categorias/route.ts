@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
     }
 
-    const data = await categoriaService.create(user.idTenant, String(Nombre));
+    const data = await categoriaService.create(user.idTenant, String(Nombre), user.id);
     return NextResponse.json({ data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";

@@ -74,13 +74,18 @@ export async function PUT(
       }
     }
 
-    await usuarioService.update(idUsuario, user.idTenant, {
-      Nombre: body.Nombre,
-      Password: body.Password || undefined,
-      Rol: body.Rol,
-      IdNegocio: body.IdNegocio,
-      Estado: body.Estado,
-    });
+    await usuarioService.update(
+      idUsuario,
+      user.idTenant,
+      {
+        Nombre: body.Nombre,
+        Password: body.Password || undefined,
+        Rol: body.Rol,
+        IdNegocio: body.IdNegocio,
+        Estado: body.Estado,
+      },
+      user.id,
+    );
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";
@@ -114,7 +119,7 @@ export async function DELETE(
       );
     }
 
-    await usuarioService.softDelete(idUsuario, user.idTenant);
+    await usuarioService.softDelete(idUsuario, user.idTenant, user.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";

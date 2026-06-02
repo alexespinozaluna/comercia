@@ -3,6 +3,7 @@ import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { cajaService } from "@/services/caja-service";
 import { productoService } from "@/services/producto-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditCreate, auditUpdate } from "@/lib/audit";
 import { TIPO_MOVIMIENTO } from "@/types/database";
 import type { OperacionTipo, TipoMovimiento } from "@/types/database";
 
@@ -123,24 +124,25 @@ export async function POST(req: NextRequest) {
     // 1. Create Documento (IdTipoDocumento = 5 for Ajuste)
     const { data: docData, error: docError } = await supabase
       .from("Documento")
-      .insert({
-        FechaEmision: fechaEmision,
-        Descripcion: conceptoDocumento,
-        Concepto: Motivo,
-        Total: 0,
-        bCredito: false,
-        IdCliente: null,
-        IdClienteDireccion: null,
-        DireccionEntrega: null,
-        TotalAbono: 0,
-        IdTipoDocumento: 5,
-        Saldo: 0,
-        IdMetodoPago: null,
-        IdTenant: user.idTenant,
-        IdNegocio: user.idNegocio,
-        Estado: 1,
-        IdUsuarioCreacion: user.id,
-      })
+      .insert(
+        auditCreate(user.id, {
+          FechaEmision: fechaEmision,
+          Descripcion: conceptoDocumento,
+          Concepto: Motivo,
+          Total: 0,
+          bCredito: false,
+          IdCliente: null,
+          IdClienteDireccion: null,
+          DireccionEntrega: null,
+          TotalAbono: 0,
+          IdTipoDocumento: 5,
+          Saldo: 0,
+          IdMetodoPago: null,
+          IdTenant: user.idTenant,
+          IdNegocio: user.idNegocio,
+          Estado: 1,
+        }),
+      )
       .select()
       .single();
 
@@ -152,19 +154,21 @@ export async function POST(req: NextRequest) {
     // 2. Create DocumentoItem
     const { error: itemError } = await supabase
       .from("DocumentoItem")
-      .insert({
-        IdProducto,
-        Descripcion: producto.Nombre,
-        Cantidad: cantidadMovimiento,
-        PrecioVenta: producto.PrecioVenta,
-        MontoAbono: 0,
-        Total: cantidadMovimiento * producto.PrecioVenta,
-        IdDocumento: docData.id,
-        IdDocumentoRef: null,
-        IdTenant: user.idTenant,
-        IdNegocio: user.idNegocio,
-        Estado: 1,
-      });
+      .insert(
+        auditCreate(user.id, {
+          IdProducto,
+          Descripcion: producto.Nombre,
+          Cantidad: cantidadMovimiento,
+          PrecioVenta: producto.PrecioVenta,
+          MontoAbono: 0,
+          Total: cantidadMovimiento * producto.PrecioVenta,
+          IdDocumento: docData.id,
+          IdDocumentoRef: null,
+          IdTenant: user.idTenant,
+          IdNegocio: user.idNegocio,
+          Estado: 1,
+        }),
+      );
 
     if (itemError) {
       console.error("Error creating documento item:", itemError);
@@ -179,19 +183,20 @@ export async function POST(req: NextRequest) {
 
     const { error: movError } = await supabase
       .from("ProductoMovimiento")
-      .insert({
-        IdProducto,
-        TipoMovimiento: tipoMovimiento,
-        Cantidad: cantidadMovimiento,
-        StockAnterior: stockAnterior,
-        StockNuevo: stockNuevo,
-        IdDocumento: docData.id,
-        IdUsuario: user.id,
-        Observacion: observacionMov,
-        Fecha: fechaEmision,
-        IdTenant: user.idTenant,
-        IdNegocio: user.idNegocio,
-      });
+      .insert(
+        auditCreate(user.id, {
+          IdProducto,
+          TipoMovimiento: tipoMovimiento,
+          Cantidad: cantidadMovimiento,
+          StockAnterior: stockAnterior,
+          StockNuevo: stockNuevo,
+          IdDocumento: docData.id,
+          Observacion: observacionMov,
+          Fecha: fechaEmision,
+          IdTenant: user.idTenant,
+          IdNegocio: user.idNegocio,
+        }),
+      );
 
     if (movError) {
       console.error("Error creating movimiento:", movError);
@@ -203,17 +208,17 @@ export async function POST(req: NextRequest) {
     const stockUpd =
       user.idNegocio != null
         ? await supabase.from("ProductoStock").upsert(
-            {
+            auditCreate(user.id, {
               IdProducto,
               IdNegocio: user.idNegocio,
               IdTenant: user.idTenant,
               Cantidad: stockNuevo,
-            },
+            }),
             { onConflict: "IdProducto,IdNegocio" },
           )
         : await supabase
             .from("Producto")
-            .update({ Cantidad: stockNuevo })
+            .update(auditUpdate(user.id, { Cantidad: stockNuevo }))
             .eq("id", IdProducto)
             .eq("IdTenant", user.idTenant);
 

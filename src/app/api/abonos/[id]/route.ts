@@ -33,6 +33,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       Concepto ?? null,
       IdMetodoPago ?? null,
       user.idTenant,
+      user.id,
     );
 
     return NextResponse.json({ data: result });

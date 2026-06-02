@@ -1,5 +1,6 @@
 import { Negocio } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditUpdate } from "@/lib/audit";
 
 const TABLE = "Negocio";
 
@@ -40,10 +41,15 @@ export const negocioService = {
   },
 
   /** Actualiza un negocio, con guard de tenant. */
-  async update(id: number, tenant: number, item: Partial<Negocio>): Promise<boolean> {
+  async update(
+    id: number,
+    tenant: number,
+    item: Partial<Negocio>,
+    idUsuario: number,
+  ): Promise<boolean> {
     const { error } = await getSupabaseServer()
       .from(TABLE)
-      .update(item)
+      .update(auditUpdate(idUsuario, item))
       .eq("id", id)
       .eq("IdTenant", tenant);
 

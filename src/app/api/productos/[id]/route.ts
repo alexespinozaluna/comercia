@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { productoService } from "@/services/producto-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditUpdate } from "@/lib/audit";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -43,7 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { error } = await getSupabaseServer()
       .from("Producto")
-      .update(update)
+      .update(auditUpdate(user.id, update))
       .eq("id", parseInt(id))
       .eq("IdTenant", user.idTenant)
       .eq("Estado", 1);
@@ -94,7 +95,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Soft delete
     const { error } = await getSupabaseServer()
       .from("Producto")
-      .update({ Estado: 0 })
+      .update(auditUpdate(user.id, { Estado: 0 }))
       .eq("id", productId)
       .eq("IdTenant", user.idTenant);
 

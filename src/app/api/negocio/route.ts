@@ -32,12 +32,17 @@ export async function PUT(req: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: "id requerido" }, { status: 400 });
     }
-    const ok = await negocioService.update(id, user.idTenant, {
-      Nombre: Nombre ?? null,
-      Direccion: Direccion ?? null,
-      Telefono: Telefono ?? null,
-      Logo: Logo ?? null,
-    });
+    const ok = await negocioService.update(
+      id,
+      user.idTenant,
+      {
+        Nombre: Nombre ?? null,
+        Direccion: Direccion ?? null,
+        Telefono: Telefono ?? null,
+        Logo: Logo ?? null,
+      },
+      user.id,
+    );
     return NextResponse.json({ ok });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";

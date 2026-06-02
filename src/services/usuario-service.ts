@@ -2,6 +2,7 @@ import { SistemaUsuario } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { verifyPassword, hashPassword } from "@/lib/password";
 import { negocioService } from "@/services/negocio-service";
+import { auditCreate, auditUpdate } from "@/lib/audit";
 
 const TABLE = "SistemaUsuario";
 
@@ -110,6 +111,7 @@ export const usuarioService = {
   async create(
     tenant: number,
     input: CreateUsuarioInput,
+    idUsuarioActor: number,
   ): Promise<UsuarioSinPassword> {
     if (!input.Codigo?.trim()) throw new Error("Codigo requerido");
     if (!input.Nombre?.trim()) throw new Error("Nombre requerido");
@@ -133,15 +135,17 @@ export const usuarioService = {
 
     const { data, error } = await getSupabaseServer()
       .from(TABLE)
-      .insert({
-        Codigo: input.Codigo.trim(),
-        Nombre: input.Nombre.trim(),
-        PasswordHash,
-        Rol: input.Rol,
-        IdTenant: tenant,
-        IdNegocio: idNegocioFinal,
-        Estado: 1,
-      })
+      .insert(
+        auditCreate(idUsuarioActor, {
+          Codigo: input.Codigo.trim(),
+          Nombre: input.Nombre.trim(),
+          PasswordHash,
+          Rol: input.Rol,
+          IdTenant: tenant,
+          IdNegocio: idNegocioFinal,
+          Estado: 1,
+        }),
+      )
       .select(SELECT_PUBLIC)
       .single();
 
@@ -158,6 +162,7 @@ export const usuarioService = {
     id: number,
     tenant: number,
     input: UpdateUsuarioInput,
+    idUsuarioActor: number,
   ): Promise<boolean> {
     const actual = await this.getById(id, tenant);
     if (!actual) throw new Error("Usuario no encontrado");
@@ -209,7 +214,7 @@ export const usuarioService = {
 
     const { error } = await getSupabaseServer()
       .from(TABLE)
-      .update(patch)
+      .update(auditUpdate(idUsuarioActor, patch))
       .eq("id", id)
       .eq("IdTenant", tenant);
 
@@ -217,7 +222,11 @@ export const usuarioService = {
     return true;
   },
 
-  async softDelete(id: number, tenant: number): Promise<boolean> {
+  async softDelete(
+    id: number,
+    tenant: number,
+    idUsuarioActor: number,
+  ): Promise<boolean> {
     const actual = await this.getById(id, tenant);
     if (!actual) throw new Error("Usuario no encontrado");
 
@@ -230,7 +239,7 @@ export const usuarioService = {
 
     const { error } = await getSupabaseServer()
       .from(TABLE)
-      .update({ Estado: 0 })
+      .update(auditUpdate(idUsuarioActor, { Estado: 0 }))
       .eq("id", id)
       .eq("IdTenant", tenant);
 

@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       user.idTenant,
       tipoRecurso,
       idRecurso,
+      user.id,
       metadata
     );
 

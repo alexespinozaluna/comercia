@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { productoService } from "@/services/producto-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditCreate } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,17 +37,19 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabaseServer();
     const { data, error } = await supabase
       .from("Producto")
-      .insert({
-        Nombre,
-        PrecioCosto: PrecioCosto ?? null,
-        PrecioVenta,
-        Cantidad: Cantidad ?? null,
-        FechaVencimiento: FechaVencimiento ?? null,
-        IdCategoria: IdCategoria ?? 0,
-        bActivoVenta: bActivoVenta ?? true,
-        IdTenant: user.idTenant,
-        Estado: 1,
-      })
+      .insert(
+        auditCreate(user.id, {
+          Nombre,
+          PrecioCosto: PrecioCosto ?? null,
+          PrecioVenta,
+          Cantidad: Cantidad ?? null,
+          FechaVencimiento: FechaVencimiento ?? null,
+          IdCategoria: IdCategoria ?? 0,
+          bActivoVenta: bActivoVenta ?? true,
+          IdTenant: user.idTenant,
+          Estado: 1,
+        }),
+      )
       .select()
       .single();
 
@@ -60,31 +63,32 @@ export async function POST(req: NextRequest) {
     const cantidadInicial = Cantidad ?? 0;
     if (data?.id && cantidadInicial > 0 && user.idNegocio != null) {
       const { error: stockErr } = await supabase.from("ProductoStock").upsert(
-        {
+        auditCreate(user.id, {
           IdProducto: data.id,
           IdNegocio: user.idNegocio,
           IdTenant: user.idTenant,
           Cantidad: cantidadInicial,
-        },
+        }),
         { onConflict: "IdProducto,IdNegocio" },
       );
       if (stockErr) {
         console.error("POST /api/productos stock inicial error:", stockErr);
       }
 
-      const { error: movErr } = await supabase.from("ProductoMovimiento").insert({
-        IdProducto: data.id,
-        TipoMovimiento: 2, // Compra / Ingreso
-        Cantidad: cantidadInicial,
-        StockAnterior: 0,
-        StockNuevo: cantidadInicial,
-        IdDocumento: null,
-        IdUsuario: user.id,
-        Observacion: "Stock inicial",
-        Fecha: new Date().toISOString(),
-        IdTenant: user.idTenant,
-        IdNegocio: user.idNegocio,
-      });
+      const { error: movErr } = await supabase.from("ProductoMovimiento").insert(
+        auditCreate(user.id, {
+          IdProducto: data.id,
+          TipoMovimiento: 2, // Compra / Ingreso
+          Cantidad: cantidadInicial,
+          StockAnterior: 0,
+          StockNuevo: cantidadInicial,
+          IdDocumento: null,
+          Observacion: "Stock inicial",
+          Fecha: new Date().toISOString(),
+          IdTenant: user.idTenant,
+          IdNegocio: user.idNegocio,
+        }),
+      );
       if (movErr) {
         // No abortamos la creación del producto por un fallo de kardex; solo log.
         console.error("POST /api/productos kardex inicial error:", movErr);

@@ -3,6 +3,7 @@ import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { documentoService } from "@/services/documento-service";
 import { cajaService } from "@/services/caja-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditUpdate } from "@/lib/audit";
 
 const MAX_FIELD_LEN = 500;
 
@@ -103,7 +104,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Vincular venta nueva a la caja activa (para arqueo).
     if (isNew && cajaActiva && result?.id) {
-      await documentoService.setIdCaja(result.id, cajaActiva.id, user.idTenant);
+      await documentoService.setIdCaja(result.id, cajaActiva.id, user.idTenant, user.id);
       result.IdCaja = cajaActiva.id;
     }
 
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Restore items
     const { error: itemErr } = await getSupabaseServer()
       .from("DocumentoItem")
-      .update({ Estado: 1 })
+      .update(auditUpdate(user.id, { Estado: 1 }))
       .eq("IdDocumento", idDoc)
       .eq("IdTenant", user.idTenant);
 
@@ -155,7 +156,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Restore document
     const { error } = await getSupabaseServer()
       .from("Documento")
-      .update({ Estado: 1 })
+      .update(auditUpdate(user.id, { Estado: 1 }))
       .eq("id", idDoc)
       .eq("IdTenant", user.idTenant);
 
@@ -208,7 +209,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Soft delete items
     const { error: itemDelErr } = await getSupabaseServer()
       .from("DocumentoItem")
-      .update({ Estado: 0 })
+      .update(auditUpdate(user.id, { Estado: 0 }))
       .eq("IdDocumento", idDoc)
       .eq("IdTenant", user.idTenant);
 
@@ -219,7 +220,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Soft delete document
     const { error } = await getSupabaseServer()
       .from("Documento")
-      .update({ Estado: 0 })
+      .update(auditUpdate(user.id, { Estado: 0 }))
       .eq("id", idDoc)
       .eq("IdTenant", user.idTenant);
 

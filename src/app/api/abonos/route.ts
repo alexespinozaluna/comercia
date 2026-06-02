@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     // Vincular los abonos creados (1..N) con la caja activa, para arqueo.
     if (result?.abonos?.length) {
-      await documentoService.setIdCaja(result.abonos, caja.id, user.idTenant);
+      await documentoService.setIdCaja(result.abonos, caja.id, user.idTenant, user.id);
     }
 
     return NextResponse.json({ data: result });

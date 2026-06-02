@@ -8,6 +8,7 @@ import {
 } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { deleteItem } from "./supabase-service";
+import { auditCreate, auditUpdate } from "@/lib/audit";
 
 const TABLE = "Documento";
 const MAX_FIELD_LEN = 500;
@@ -107,7 +108,7 @@ export const documentoService = {
     return (data ?? []) as Documento[];
   },
 
-  /** Get a single document with items and client */
+  /** Get a single document with items, client and creator/modifier names. */
   async getVentaConItem(
     id: number,
     tenantId?: number,
@@ -115,7 +116,11 @@ export const documentoService = {
   ): Promise<Documento | null> {
     let query = getSupabaseServer()
       .from(TABLE)
-      .select("*, Cliente(*), DocumentoItem(*)")
+      .select(
+        "*, Cliente(*), DocumentoItem(*), " +
+          "UsuarioCreacion:SistemaUsuario!FK_Documento_UsuarioCreacion(Nombre), " +
+          "UsuarioModificacion:SistemaUsuario!FK_Documento_UsuarioModificacion(Nombre)",
+      )
       .eq("id", id);
 
     if (tenantId != null) {
@@ -132,7 +137,7 @@ export const documentoService = {
       if (error.code === "PGRST116") return null;
       throw new Error(`Error fetching documento: ${error.message}`);
     }
-    return data as Documento;
+    return data as unknown as Documento;
   },
 
   /**
@@ -154,7 +159,7 @@ export const documentoService = {
     items: DocumentoItem[],
     originalItemIds: number[],
     idTenant: number,
-    idUsuarioCreacion: number,
+    idUsuario: number,
     idNegocio: number | null = null,
   ): Promise<Documento> {
     const docJson = buildDocumentoJson(doc);
@@ -167,30 +172,41 @@ export const documentoService = {
     const toUpdate = isNew ? [] : items.filter((i) => i.id && i.id > 0);
     const toAdd = isNew ? [] : items.filter((i) => !i.id || i.id <= 0);
 
+    // Audit: viaja dentro del JSON. INSERT → auditCreate; UPDATE → auditUpdate.
+    const docPayload = isNew
+      ? auditCreate(idUsuario, docJson)
+      : auditUpdate(idUsuario, docJson);
+
     const { data, error } = await getSupabaseServer().rpc(
       "guardar_venta_con_items",
       {
         p_id_documento: isNew ? 0 : idDocumento,
-        p_documento: docJson,
-        p_items: isNew ? buildItemsJson(items) : [],
+        p_documento: docPayload,
+        p_items: isNew
+          ? buildItemsJson(items).map((it) => auditCreate(idUsuario, it))
+          : [],
         p_items_to_delete:
           !isNew && toDeleteIds.length > 0 ? toDeleteIds : null,
         p_items_to_update:
           !isNew && toUpdate.length > 0
-            ? toUpdate.map((item) => ({
-                id: item.id,
-                IdProducto: item.IdProducto,
-                Descripcion: item.Descripcion,
-                Cantidad: item.Cantidad,
-                PrecioVenta: item.PrecioVenta,
-                MontoAbono: item.MontoAbono ?? 0,
-                Total: item.Total ?? item.Cantidad * item.PrecioVenta,
-                IdDocumentoRef: item.IdDocumentoRef ?? null,
-              }))
+            ? toUpdate.map((item) =>
+                auditUpdate(idUsuario, {
+                  id: item.id,
+                  IdProducto: item.IdProducto,
+                  Descripcion: item.Descripcion,
+                  Cantidad: item.Cantidad,
+                  PrecioVenta: item.PrecioVenta,
+                  MontoAbono: item.MontoAbono ?? 0,
+                  Total: item.Total ?? item.Cantidad * item.PrecioVenta,
+                  IdDocumentoRef: item.IdDocumentoRef ?? null,
+                }),
+              )
             : null,
-        p_items_to_add: !isNew && toAdd.length > 0 ? buildItemsJson(toAdd) : null,
+        p_items_to_add:
+          !isNew && toAdd.length > 0
+            ? buildItemsJson(toAdd).map((it) => auditCreate(idUsuario, it))
+            : null,
         p_id_tenant: idTenant,
-        p_id_usuario_creacion: idUsuarioCreacion,
         p_id_negocio: idNegocio,
       },
     );
@@ -252,6 +268,7 @@ export const documentoService = {
     concepto: string | null,
     idMetodoPago: number | null,
     idTenant: number,
+    idUsuario: number,
   ): Promise<{ ok: boolean; id_venta: number }> {
     const { data, error } = await getSupabaseServer().rpc("modificar_abono", {
       p_id_abono: idAbono,
@@ -260,6 +277,7 @@ export const documentoService = {
       p_concepto: concepto,
       p_id_metodo_pago: idMetodoPago,
       p_id_tenant: idTenant,
+      p_id_usuario_modificacion: idUsuario,
     });
 
     if (error) throw new Error(error.message);
@@ -424,12 +442,13 @@ export const documentoService = {
     idDocumento: number | number[],
     idCaja: number,
     tenantId: number,
+    idUsuario: number,
   ): Promise<void> {
     const ids = Array.isArray(idDocumento) ? idDocumento : [idDocumento];
     if (ids.length === 0) return;
     const { error } = await getSupabaseServer()
       .from(TABLE)
-      .update({ IdCaja: idCaja })
+      .update(auditUpdate(idUsuario, { IdCaja: idCaja }))
       .in("id", ids)
       .eq("IdTenant", tenantId)
       .eq("Estado", 1);

@@ -16,7 +16,7 @@ export async function PUT(
     const { id } = await params;
     const { Nombre } = await req.json();
 
-    await categoriaService.rename(parseInt(id, 10), user.idTenant, String(Nombre ?? ""));
+    await categoriaService.rename(parseInt(id, 10), user.idTenant, String(Nombre ?? ""), user.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";
@@ -38,7 +38,7 @@ export async function DELETE(
     requireRole(user, ["ADMIN", "SUPERVISOR"]);
 
     const { id } = await params;
-    await categoriaService.remove(parseInt(id, 10), user.idTenant);
+    await categoriaService.remove(parseInt(id, 10), user.idTenant, user.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error interno";

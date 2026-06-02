@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Documento, toDisplayDocumento, DocumentoDisplay } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
-import { numToString, fechaString } from "@/lib/format";
+import { numToString, fechaCortaHora } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays } from "lucide-react";
+import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
@@ -127,8 +127,21 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <span className="text-muted-foreground flex items-center gap-1.5">
               <CalendarDays className="h-3.5 w-3.5" /> Fecha
             </span>
-            <span className="font-medium">{fechaString(new Date(doc.FechaEmision))}</span>
+            <span className="font-medium">
+              {fechaCortaHora(doc.FechaEmision, doc.FechaCreacion)}
+            </span>
           </div>
+
+          {doc.UsuarioCreacion?.Nombre && (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <UserCheck className="h-3.5 w-3.5" /> Creada por
+              </span>
+              <span className="font-medium truncate max-w-[55%] text-right">
+                {doc.UsuarioCreacion.Nombre}
+              </span>
+            </div>
+          )}
 
           {doc.Cliente && (
             <div className="flex justify-between items-center">

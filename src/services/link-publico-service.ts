@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { LinkPublico } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { auditCreate } from "@/lib/audit";
 
 const TABLE = "LinkPublico";
 
@@ -10,6 +11,7 @@ export const linkPublicoService = {
     idTenant: number,
     tipoRecurso: string,
     idRecurso: number,
+    idUsuario: number,
     metadata?: Record<string, unknown>
   ): Promise<LinkPublico> {
     const sb = getSupabaseServer();
@@ -31,14 +33,16 @@ export const linkPublicoService = {
     // Crear nuevo (el Token lo genera la BD por defecto).
     const { data, error } = await sb
       .from(TABLE)
-      .insert({
-        Token: randomUUID(), // generado en código (no dependemos del DEFAULT de la BD)
-        IdTenant: idTenant,
-        TipoRecurso: tipoRecurso,
-        IdRecurso: idRecurso,
-        Metadata: metadata ?? null,
-        Estado: 1,
-      })
+      .insert(
+        auditCreate(idUsuario, {
+          Token: randomUUID(), // generado en código (no dependemos del DEFAULT de la BD)
+          IdTenant: idTenant,
+          TipoRecurso: tipoRecurso,
+          IdRecurso: idRecurso,
+          Metadata: metadata ?? null,
+          Estado: 1,
+        }),
+      )
       .select()
       .single();
 
