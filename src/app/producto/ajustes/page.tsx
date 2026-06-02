@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ProductoMovimiento, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { cantidadString } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
 import { AuthUser } from "@/lib/auth-client";
 import { getCurrentUser } from "@/lib/auth-client";
@@ -145,13 +146,13 @@ export default function AjustesPage() {
                   )}
                   <div className="flex items-center gap-2 mt-1.5 text-xs">
                     <span className={cn("font-bold", info.text)}>
-                      {info.sign}{m.Cantidad}
+                      {info.sign}{cantidadString(m.Cantidad)}
                     </span>
                     <span className="text-muted-foreground">
-                      Stock: <span className="font-medium text-foreground">{m.StockAnterior}</span>
+                      Stock: <span className="font-medium text-foreground">{cantidadString(m.StockAnterior)}</span>
                       {" → "}
                       <span className={cn("font-bold", m.StockNuevo < m.StockAnterior ? "text-amber-600" : "text-sky-600")}>
-                        {m.StockNuevo}
+                        {cantidadString(m.StockNuevo)}
                       </span>
                     </span>
                   </div>

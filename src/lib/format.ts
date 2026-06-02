@@ -86,6 +86,15 @@ export function formatN2(value: number): string {
   });
 }
 
+/** Cantidad: hasta 3 decimales, sin ceros sobrantes ("5", "5,5", "5,567"). */
+export function cantidadString(value: number | null | undefined): string {
+  const safe = value ?? 0;
+  return safe.toLocaleString(localInfo, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
 /** Parse a user-typed es-CL formatted string back to a number ("1.234,56" → 1234.56). */
 export function parseFormatted(raw: string): number {
   const cleaned = raw.replace(/\./g, "").replace(",", ".");

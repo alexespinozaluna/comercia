@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Producto, ProductoMovimiento, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { toInputDate } from "@/lib/format";
+import { toInputDate, cantidadString } from "@/lib/format";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PageHeader } from "@/components/shared/page-header";
@@ -122,7 +122,7 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">{producto.Nombre}</div>
             <div className="text-xs text-muted-foreground">
-              {producto.Cantidad != null ? `Stock actual: ${producto.Cantidad}` : "Stock no rastreado"}
+              {producto.Cantidad != null ? `Stock actual: ${cantidadString(producto.Cantidad)}` : "Stock no rastreado"}
             </div>
           </div>
         </div>
@@ -211,13 +211,13 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
                   )}
                   <div className="flex items-center gap-2 mt-1.5 text-xs">
                     <span className={cn("font-bold", info.textColor)}>
-                      {info.sign}{m.Cantidad}
+                      {info.sign}{cantidadString(m.Cantidad)}
                     </span>
                     <span className="text-muted-foreground">
-                      Stock: <span className="font-medium text-foreground">{m.StockAnterior}</span>
+                      Stock: <span className="font-medium text-foreground">{cantidadString(m.StockAnterior)}</span>
                       {" → "}
                       <span className={cn("font-bold", m.StockNuevo < m.StockAnterior ? "text-amber-600" : m.StockNuevo > m.StockAnterior ? "text-emerald-600" : "text-foreground")}>
-                        {m.StockNuevo}
+                        {cantidadString(m.StockNuevo)}
                       </span>
                     </span>
                   </div>

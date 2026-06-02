@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Producto } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
-import { numToString } from "@/lib/format";
+import { numToString, cantidadString } from "@/lib/format";
 import {
   Command,
   CommandInput,
@@ -223,7 +223,7 @@ export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja", ini
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{selectedProduct.Nombre}</div>
                   <div className="text-xs text-muted-foreground">
-                    Stock: <span className="font-semibold">{selectedProduct.Cantidad}</span>
+                    Stock: <span className="font-semibold">{cantidadString(selectedProduct.Cantidad)}</span>
                     {" · "}{numToString(selectedProduct.PrecioVenta)}
                   </div>
                 </div>
@@ -261,7 +261,7 @@ export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja", ini
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             {p.Cantidad != null ? (
                               <StatusBadge variant={p.Cantidad > 0 ? "success" : "error"}>
-                                {p.Cantidad}
+                                {cantidadString(p.Cantidad)}
                               </StatusBadge>
                             ) : null}
                             <span>{numToString(p.PrecioVenta)}</span>
@@ -326,7 +326,7 @@ export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja", ini
               />
               {selectedProduct && (
                 <div className="text-xs text-muted-foreground">
-                  Stock disponible: <span className="font-medium">{selectedProduct.Cantidad}</span>
+                  Stock disponible: <span className="font-medium">{cantidadString(selectedProduct.Cantidad)}</span>
                 </div>
               )}
             </div>

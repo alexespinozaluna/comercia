@@ -5,7 +5,7 @@ import { SearchInput } from "@/components/shared/search-input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CategoriaFilter } from "@/components/producto/categoria-filter";
 import { Plus, Package, ShoppingCart } from "lucide-react";
-import { numToString } from "@/lib/format";
+import { numToString, cantidadString } from "@/lib/format";
 import { BasketItemLocal } from "@/hooks/use-pos-transaction";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -110,7 +110,7 @@ export function ProductSearch({
                     {inBasket && (
                       <div className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-brand-surface border border-white flex items-center justify-center z-10">
                         <span className="text-[10px] font-bold text-brand-dark">
-                          {inBasket.Cantidad}
+                          {cantidadString(inBasket.Cantidad)}
                         </span>
                       </div>
                     )}

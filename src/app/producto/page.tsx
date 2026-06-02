@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Producto, Categoria, SIN_CATEGORIA_ID } from "@/types/database";
 import { apiGet, apiPut } from "@/lib/api-client";
-import { numToString } from "@/lib/format";
+import { numToString, cantidadString } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
 import { SearchInput } from "@/components/shared/search-input";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -23,8 +23,9 @@ function stockVariant(cantidad: number | null): {
 } {
   if (cantidad == null) return { label: "", className: "" };
   if (cantidad === 0) return { label: "Sin stock", className: "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400" };
-  if (cantidad <= 5) return { label: `Stock: ${cantidad}`, className: "bg-brand-surface text-brand-dark" };
-  return { label: `Stock: ${cantidad}`, className: "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" };
+  const txt = `Stock: ${cantidadString(cantidad)}`;
+  if (cantidad <= 5) return { label: txt, className: "bg-brand-surface text-brand-dark" };
+  return { label: txt, className: "bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400" };
 }
 
 export default function ProductoPage() {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Documento, toDisplayDocumento, DocumentoDisplay } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
-import { numToString, fechaCortaHora } from "@/lib/format";
+import { numToString, fechaCortaHora, cantidadString } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -208,7 +208,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             {doc.DocumentoItem.map((item) => (
               <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-4 py-2.5 text-sm items-center">
                 <span className="font-medium truncate">{item.Descripcion}</span>
-                <span className="text-center text-muted-foreground w-10">{item.Cantidad}</span>
+                <span className="text-center text-muted-foreground w-10">{cantidadString(item.Cantidad)}</span>
                 <span className="text-right text-muted-foreground w-20">{numToString(item.PrecioVenta)}</span>
                 <span className="text-right font-semibold w-20">{numToString(item.Total)}</span>
               </div>

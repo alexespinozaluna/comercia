@@ -1,7 +1,7 @@
 "use client";
 
 import { Package, Pencil, Trash2 } from "lucide-react";
-import { numToString } from "@/lib/format";
+import { numToString, cantidadString } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
 
@@ -89,7 +89,7 @@ export function CartItemsList({
                     −
                   </button>
                   <span className="w-8 text-center text-sm font-bold tabular-nums">
-                    {item.Cantidad}
+                    {cantidadString(item.Cantidad)}
                   </span>
                   <button
                     type="button"
