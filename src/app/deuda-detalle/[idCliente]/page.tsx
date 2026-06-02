@@ -173,6 +173,11 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
                           <div className="text-xs text-muted-foreground mt-0.5 truncate">
                             {fechaString(new Date(d.FechaEmision))} | {formatHora(d.FechaCreacion)} | {relTime}
                           </div>
+                          {d.NomUsuarioCreacion && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              Creada por {d.NomUsuarioCreacion}
+                            </div>
+                          )}
                         </div>
                         <div className="flex flex-col items-end shrink-0">
                           <span className="text-sm font-semibold text-success tabular-nums">

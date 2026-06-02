@@ -118,7 +118,7 @@ export interface ResumenAbono {
   FechaUltima: string;
 }
 
-// Fila de la vista v_deuda_detalle (documento con deuda activa + join cliente)
+// Fila de la vista v_deuda_detalle (documento con deuda activa + join cliente + creador)
 export interface DeudaDetalle {
   id: number;
   IdTenant: number;
@@ -134,8 +134,10 @@ export interface DeudaDetalle {
   TotalAbono: number;
   bCredito: boolean;
   IdTipoDocumento: number;
+  IdUsuarioCreacion: number | null;
   NomCliente: string | null;
   NroTelefono: string | null;
+  NomUsuarioCreacion: string | null;
 }
 
 // Resultado de fn_deuda_resumen(p_id_tenant) — agrupado por cliente

@@ -320,11 +320,14 @@ export const documentoService = {
     if (error) throw new Error(`Error eliminando abono: ${error.message}`);
   },
 
-  /** Get deleted sales ( Estado = 0 ) with client join */
+  /** Get deleted sales ( Estado = 0 ) with client join + creador */
   async getVentasEliminadas(tenantId?: number, negocioId?: number | null): Promise<Documento[]> {
     let query = getSupabaseServer()
       .from(TABLE)
-      .select("*, Cliente(*)")
+      .select(
+        "*, Cliente(*), " +
+          "UsuarioCreacion:SistemaUsuario!FK_Documento_UsuarioCreacion(Nombre)",
+      )
       .order("FechaEmision", { ascending: false })
       .order("id", { ascending: false });
 
@@ -339,7 +342,7 @@ export const documentoService = {
     const { data, error } = await query;
     if (error)
       throw new Error(`Error fetching ventas eliminadas: ${error.message}`);
-    return (data ?? []) as Documento[];
+    return (data ?? []) as unknown as Documento[];
   },
 
   /** Get ticket text via Supabase RPC */

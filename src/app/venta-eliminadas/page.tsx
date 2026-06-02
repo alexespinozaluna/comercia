@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { RotateCcw, Trash2, Receipt, CalendarDays, UserRound } from "lucide-react";
+import { RotateCcw, Trash2, Receipt, CalendarDays, UserRound, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
@@ -97,6 +97,11 @@ export default function VentaEliminadasPage() {
                         {d.Cliente?.Nombre && (
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
                             <UserRound className="h-3 w-3" /> {d.Cliente.Nombre}
+                          </div>
+                        )}
+                        {d.UsuarioCreacion?.Nombre && (
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <UserCheck className="h-3 w-3" /> {d.UsuarioCreacion.Nombre}
                           </div>
                         )}
                       </div>
