@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck } from "lucide-react";
+import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck, Package } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
@@ -197,20 +197,28 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       {doc.DocumentoItem && doc.DocumentoItem.length > 0 && (
         <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-4 py-2 border-b border-border bg-muted/40">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Producto</span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground text-center w-10">Cant.</span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground text-right w-20">Precio</span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground text-right w-20">Total</span>
+          <div className="px-4 py-2 border-b border-border bg-muted/40">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Productos</span>
           </div>
           {/* Rows */}
           <div className="divide-y divide-border">
             {doc.DocumentoItem.map((item) => (
-              <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-4 py-2.5 text-sm items-center">
-                <span className="font-medium truncate">{item.Descripcion}</span>
-                <span className="text-center text-muted-foreground w-10">{cantidadString(item.Cantidad)}</span>
-                <span className="text-right text-muted-foreground w-20">{numToString(item.PrecioVenta)}</span>
-                <span className="text-right font-semibold w-20">{numToString(item.Total)}</span>
+              <div key={item.id} className="flex items-start gap-3 px-4 py-2.5">
+                {/* Avatar */}
+                <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center shrink-0">
+                  <Package className="h-5 w-5 text-brand" />
+                </div>
+                {/* Detalle */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-2">
+                    <span className="flex-1 text-sm font-medium text-foreground">{item.Descripcion}</span>
+                    <span className="text-sm font-semibold tabular-nums shrink-0">{numToString(item.Total)}</span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground flex items-center gap-3">
+                    <span className="tabular-nums">{cantidadString(item.Cantidad)} und</span>
+                    <span>Precio U. <span className="tabular-nums">{numToString(item.PrecioVenta)}</span></span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
