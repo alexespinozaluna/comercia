@@ -6,7 +6,7 @@ import { createToken } from "@/lib/jwt";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { codigo, password } = body;
+    const { codigo, password, remember } = body;
 
     if (!codigo || !password) {
       return NextResponse.json(
@@ -30,14 +30,22 @@ export async function POST(req: NextRequest) {
       (await negocioService.getDefaultForTenant(user.IdTenant))?.id ??
       null;
 
-    const token = await createToken({
-      sub: String(user.id),
-      codigo: user.Codigo,
-      nombre: user.Nombre,
-      rol: user.Rol,
-      idTenant: user.IdTenant,
-      idNegocio,
-    });
+    // "Recordarme": sesión larga (30 días); si no, 8 horas. Aplica tanto al
+    // exp del JWT como al maxAge de la cookie para que ambos coincidan.
+    const maxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 8;
+    const expiresIn = remember ? "30d" : "8h";
+
+    const token = await createToken(
+      {
+        sub: String(user.id),
+        codigo: user.Codigo,
+        nombre: user.Nombre,
+        rol: user.Rol,
+        idTenant: user.IdTenant,
+        idNegocio,
+      },
+      expiresIn,
+    );
 
     const response = NextResponse.json({
       user: {
@@ -56,7 +64,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 8, // 8 hours
+      maxAge,
       path: "/",
     });
 

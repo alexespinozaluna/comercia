@@ -17,11 +17,14 @@ export interface JWTPayload {
   exp: number;
 }
 
-export async function createToken(payload: Omit<JWTPayload, "iat" | "exp">): Promise<string> {
+export async function createToken(
+  payload: Omit<JWTPayload, "iat" | "exp">,
+  expiresIn: string = "8h",
+): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("8h")
+    .setExpirationTime(expiresIn)
     .sign(SECRET_KEY);
 }
 
