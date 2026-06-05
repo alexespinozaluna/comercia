@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DeudaResumen } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { numToString, extraerIniciales, fechaString } from "@/lib/format";
+import { numToString, fechaString } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchInput } from "@/components/shared/search-input";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -96,44 +96,46 @@ export default function DeudaPage() {
                 key={r.IdCliente}
                 className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden hover:ring-brand/30 transition-all"
               >
-                <div className="flex items-center gap-2 p-3">
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/deuda-detalle/${r.IdCliente}`)}
-                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                        {extraerIniciales(nombre)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold truncate text-foreground hover:text-brand transition-colors">
-                        {nombre}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {r.Cantidad} deuda{r.Cantidad !== 1 ? "s" : ""}
-                      </div>
-                       <div className="text-xs text-muted-foreground">
-                        {fechaString(new Date(r.MaxFechaEmision))}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-[16px] font-extrabold text-destructive leading-none tabular-nums">
-                        {numToString(Number(r.SumSaldo))}
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-                  </button>
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs bg-brand hover:bg-brand-dark text-white px-2.5 shrink-0"
-                    onClick={() =>
-                      router.push(`/venta-abono?id=${r.IdCliente}&tipo=2&pagina=deuda`)
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/deuda-detalle/${r.IdCliente}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/deuda-detalle/${r.IdCliente}`);
                     }
-                  >
-                    Abonar
-                  </Button>
+                  }}
+                  className="w-full text-left p-3 cursor-pointer"
+                >
+                  {/* Primera fila — nombre completo */}
+                  <div className="flex items-start gap-2">
+                    <span className="flex-1 text-sm font-bold text-foreground">
+                      {nombre}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/60 shrink-0 mt-0.5" />
+                  </div>
+
+                  {/* Segunda fila — info + saldo + abonar */}
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex-1 min-w-0 text-xs text-muted-foreground">
+                      {r.Cantidad} deuda{r.Cantidad !== 1 ? "s" : ""} ·{" "}
+                      {fechaString(new Date(r.MaxFechaEmision))}
+                    </div>
+                    <div className="text-[16px] font-extrabold text-destructive leading-none tabular-nums shrink-0">
+                      {numToString(Number(r.SumSaldo))}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs bg-brand hover:bg-brand-dark text-white px-2.5 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/venta-abono?id=${r.IdCliente}&tipo=2&pagina=deuda`);
+                      }}
+                    >
+                      Abonar
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
