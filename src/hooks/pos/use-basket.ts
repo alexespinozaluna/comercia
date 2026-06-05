@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import { Producto } from "@/types/database";
-import { numToString } from "@/lib/format";
+import { formatNumero } from "@/lib/format";
 
 export interface BasketItemLocal {
   _tempId: string;
@@ -13,9 +13,9 @@ export interface BasketItemLocal {
   MontoAbono: number;
 }
 
-/** Build a concepto/descripcion string from basket items: "{Cantidad} {Descripcion} {PrecioVenta formateado}" */
+/** Build a concepto/descripcion string from basket items: "{Cantidad} {Descripcion} {PrecioVenta}" (sin símbolo de moneda). */
 function crearConcepto(items: BasketItemLocal[]): string {
-  return items.map((b) => `${b.Cantidad} ${b.Descripcion} ${numToString(b.PrecioVenta)}`).join(", ");
+  return items.map((b) => `${b.Cantidad} ${b.Descripcion} ${formatNumero(b.PrecioVenta)}`).join(", ");
 }
 
 export function useBasket() {

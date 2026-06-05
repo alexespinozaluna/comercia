@@ -1,16 +1,24 @@
 const localInfo = process.env.NEXT_PUBLIC_LOCALE ?? "es-CL";
 
-/** Formato de moneda chilena: $ 37.500 */
-export function numToString(
+/** Número formateado SIN símbolo de moneda: 37.500 (N0) / 37.500,00 (N2). */
+export function formatNumero(
   value: number | null | undefined,
   format: "N0" | "N2" = "N0",
 ): string {
   const safe = value ?? 0;
   const decimals = format === "N2" ? 2 : 0;
-  return `$ ${safe.toLocaleString(localInfo, {
+  return safe.toLocaleString(localInfo, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
-  })}`;
+  });
+}
+
+/** Formato de moneda chilena: $ 37.500 */
+export function numToString(
+  value: number | null | undefined,
+  format: "N0" | "N2" = "N0",
+): string {
+  return `$ ${formatNumero(value, format)}`;
 }
 
 const formatDatePart = (date: Date) =>
