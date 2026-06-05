@@ -90,6 +90,7 @@ export interface Documento extends BaseEnty {
   IdMetodoPago: number | null;
   IdCaja: number | null;
   // Embeds PostgREST opcionales (los pobla el select del service).
+  MetodoPago?: { Nombre: string } | null;
   UsuarioCreacion?: { Nombre: string } | null;
   UsuarioModificacion?: { Nombre: string } | null;
 }

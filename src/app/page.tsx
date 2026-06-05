@@ -15,6 +15,7 @@ import { LossSection } from "@/components/ventas/loss-section";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchInput } from "@/components/shared/search-input";
+import { FilterSheet, EMPTY_FILTER, pasaFiltro, type VentaFilter } from "@/components/ventas/filter-sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,6 +129,7 @@ export default function HomePage() {
   const [ventas, setVentas] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filtros, setFiltros] = useState<VentaFilter>(EMPTY_FILTER);
 
   const { filterTipo, filterIndex, filterFechaInicio, filterFechaFin, setFilter, refreshCounter } =
     useAppStore();
@@ -196,7 +198,12 @@ export default function HomePage() {
           v.Descripcion?.toLowerCase().includes(term)
       )
     : gastos;
-  
+
+  // Filtros (Método pago / Usuario / Cliente): refinan SOLO la lista mostrada;
+  // los totales del Balance se siguen calculando sobre filtered* (sin filtros).
+  const displayIngresos = filteredIngresos.filter((v) => pasaFiltro(v, filtros));
+  const displayGastos = filteredGastos.filter((v) => pasaFiltro(v, filtros));
+
   const totalEfectivo = filteredIngresos.filter((v) => !v.bCredito).reduce((sum, v) => sum + v.Total, 0);
   const totalAbono = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.TotalAbono, 0);
   const totalGastos = filteredGastos.reduce((sum, v) => sum + v.Total, 0);
@@ -266,13 +273,17 @@ export default function HomePage() {
         ventasTotal={ventasTotal}
       />
 
-      {/* Búsqueda — filtra los items de cada tab, sin afectar los totales del Balance */}
-      <SearchInput
-        placeholder="Buscar ventas, clientes o conceptos..."
-        value={search}
-        onChange={setSearch}
-        debounceMs={300}
-      />
+      {/* Búsqueda + filtros — refinan los items de cada tab, sin afectar los totales del Balance */}
+      <div className="flex items-center gap-2">
+        <SearchInput
+          className="flex-1"
+          placeholder="Buscar ventas, clientes o conceptos..."
+          value={search}
+          onChange={setSearch}
+          debounceMs={300}
+        />
+        <FilterSheet ventas={ventas} value={filtros} onChange={setFiltros} />
+      </div>
 
       {/* Tabs: Ingresos / Gastos */}
       {loading && ventas.length === 0 ? (
@@ -303,7 +314,7 @@ export default function HomePage() {
           </TabsList>
 
           <TabsContent value="ingreso" className="mt-3">
-            {filteredIngresos.length === 0 ? (
+            {displayIngresos.length === 0 ? (
               <EmptyState
                 icon={Receipt}
                 title={search ? "Sin resultados" : "Sin ingresos"}
@@ -315,7 +326,7 @@ export default function HomePage() {
               />
             ) : (
               <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 divide-y divide-border overflow-hidden">
-                {filteredIngresos.map((v) => (
+                {displayIngresos.map((v) => (
                   <div key={v.id} className="px-3">
                     <VentaListItem venta={v} />
                   </div>
@@ -325,7 +336,7 @@ export default function HomePage() {
           </TabsContent>
 
           <TabsContent value="gasto" className="mt-3">
-            {filteredGastos.length === 0 ? (
+            {displayGastos.length === 0 ? (
               <EmptyState
                 icon={TrendingDown}
                 title={search ? "Sin resultados" : "Sin gastos"}
@@ -337,7 +348,7 @@ export default function HomePage() {
               />
             ) : (
               <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 divide-y divide-border overflow-hidden">
-                {filteredGastos.map((v) => (
+                {displayGastos.map((v) => (
                   <div key={v.id} className="px-3">
                     <VentaListItem venta={v} />
                   </div>

@@ -72,7 +72,10 @@ export const documentoService = {
   ): Promise<Documento[]> {
     let query = getSupabaseServer()
       .from(TABLE)
-      .select("*, Cliente(*)")
+      .select(
+        "*, Cliente(*), MetodoPago(Nombre), " +
+          "UsuarioCreacion:SistemaUsuario!FK_Documento_UsuarioCreacion(Nombre)",
+      )
       .order("FechaEmision", { ascending: false })
       .order("id", { ascending: false });
 
