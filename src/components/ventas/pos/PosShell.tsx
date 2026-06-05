@@ -74,6 +74,7 @@ export function PosShell({ paramsPromise }: PosShellProps) {
         onSelectClient={pos.handleSelectClient}
         onRemoveClient={pos.removeClient}
         onDireccionChange={pos.setSelectedDireccionId}
+        requireRealClient={pos.isCredit}
       />
     </CartSummary>
   );

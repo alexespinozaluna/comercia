@@ -9,7 +9,10 @@ interface CartItemsListProps {
   items: BasketItemLocal[];
   onUpdateQuantity: (tempId: string, delta: number) => void;
   onRemoveItem: (tempId: string) => void;
-  onTapItem: (item: BasketItemLocal) => void;
+  /** Abre el editor de SOLO cantidad. */
+  onEditQuantity: (item: BasketItemLocal) => void;
+  /** Abre el editor de SOLO precio. */
+  onEditPrice: (item: BasketItemLocal) => void;
   onClear: () => void;
 }
 
@@ -17,7 +20,8 @@ export function CartItemsList({
   items,
   onUpdateQuantity,
   onRemoveItem,
-  onTapItem,
+  onEditQuantity,
+  onEditPrice,
   onClear,
 }: CartItemsListProps) {
   if (items.length === 0) {
@@ -48,37 +52,31 @@ export function CartItemsList({
         {items.map((item) => {
           const subtotal = item.Cantidad * item.PrecioVenta;
           return (
-            <div
-              key={item._tempId}
-              className="p-3 hover:bg-accent/30 transition-colors cursor-pointer"
-              onClick={() => onTapItem(item)}
-            >
-              {/* Fila superior: nombre + acciones */}
+            <div key={item._tempId} className="p-3">
+              {/* Fila superior: nombre + eliminar */}
               <div className="flex items-center gap-2">
                 <span className="flex-1 min-w-0 truncate text-sm font-semibold">
                   {item.Descripcion}
                 </span>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Pencil className="h-3.5 w-3.5 text-muted-foreground/50" />
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onRemoveItem(item._tempId); }}
-                    aria-label={`Eliminar ${item.Descripcion}`}
-                    className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemoveItem(item._tempId)}
+                  aria-label={`Eliminar ${item.Descripcion}`}
+                  className="h-7 w-7 shrink-0 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
 
-              {/* Fila inferior: controles · subtexto · total */}
+              {/* Fila inferior: cantidad (independiente) · precio (independiente) · total */}
               <div className="flex items-center justify-between gap-2 mt-2">
-                {/* Izquierda: controles de cantidad (botones 28px, cantidad ~32px) */}
+                {/* Cantidad: −/+ rápido + número tocable que abre el editor de cantidad */}
                 <div className="flex items-center shrink-0">
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item._tempId, -1); }}
+                    onClick={() => onUpdateQuantity(item._tempId, -1)}
                     disabled={item.Cantidad <= 1}
+                    aria-label="Disminuir cantidad"
                     className={cn(
                       "h-7 w-7 rounded-full flex items-center justify-center text-sm font-bold transition-colors",
                       item.Cantidad <= 1
@@ -88,24 +86,36 @@ export function CartItemsList({
                   >
                     −
                   </button>
-                  <span className="w-8 text-center text-sm font-bold tabular-nums">
-                    {cantidadString(item.Cantidad)}
-                  </span>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onUpdateQuantity(item._tempId, 1); }}
+                    onClick={() => onEditQuantity(item)}
+                    aria-label={`Editar cantidad de ${item.Descripcion}`}
+                    className="w-10 h-7 text-center text-sm font-bold tabular-nums rounded-md hover:bg-accent transition-colors"
+                  >
+                    {cantidadString(item.Cantidad)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateQuantity(item._tempId, 1)}
+                    aria-label="Aumentar cantidad"
                     className="h-7 w-7 rounded-full bg-muted hover:bg-accent flex items-center justify-center text-sm font-bold text-muted-foreground transition-colors"
                   >
                     +
                   </button>
                 </div>
 
-                {/* Centro: subtexto N × $Precio */}
-                <span className="flex-1 min-w-0 truncate text-center text-xs text-muted-foreground tabular-nums">
-                  {item.Cantidad} × {numToString(item.PrecioVenta)}
-                </span>
+                {/* Precio unitario: botón independiente que abre el editor de precio */}
+                <button
+                  type="button"
+                  onClick={() => onEditPrice(item)}
+                  aria-label={`Editar precio de ${item.Descripcion}`}
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1 text-xs text-muted-foreground tabular-nums rounded-md py-1 hover:bg-accent transition-colors"
+                >
+                  <span className="truncate">Precio U. {numToString(item.PrecioVenta)}</span>
+                  <Pencil className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                </button>
 
-                {/* Derecha: total */}
+                {/* Total */}
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-dark">
                   {numToString(subtotal)}
                 </span>

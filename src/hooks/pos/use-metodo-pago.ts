@@ -20,7 +20,10 @@ export function useMetodoPago({ defaultToFirst = true }: UseMetodoPagoOpts = {})
         if (cancelled) return;
         setList(data);
         if (defaultToFirst && data.length > 0) {
-          setSelectedId((prev) => prev ?? data[0].id);
+          // Por defecto, el método marcado como efectivo (bEfectivo); si no hay
+          // ninguno, cae al primero de la lista.
+          const efectivo = data.find((m) => m.bEfectivo) ?? data[0];
+          setSelectedId((prev) => prev ?? efectivo.id);
         }
       })
       .catch(() => {

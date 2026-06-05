@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import { Lock } from "lucide-react";
 import { MetodoPago } from "@/types/database";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
-import { CartItemDetailSheet } from "./CartItemDetailSheet";
+import { CartItemEditSheet, type CartEditField } from "./CartItemEditSheet";
 import { CartItemsList } from "./cart/CartItemsList";
 import { FormaVentaToggle } from "./cart/FormaVentaToggle";
 import { FormaPagoChips } from "./cart/FormaPagoChips";
@@ -68,8 +68,15 @@ export function CartSummary({
   children,
 }: CartSummaryProps) {
   const [editItem, setEditItem] = useState<BasketItemLocal | null>(null);
+  const [editField, setEditField] = useState<CartEditField | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const openEditor = (item: BasketItemLocal, field: CartEditField) => {
+    setEditItem(item);
+    setEditField(field);
+    setDetailOpen(true);
+  };
 
   const handleSave = () => {
     if (saving) return;
@@ -88,20 +95,21 @@ export function CartSummary({
           items={basket}
           onUpdateQuantity={onUpdateQuantity}
           onRemoveItem={onRemoveItem}
-          onTapItem={(item) => {
-            setEditItem(item);
-            setDetailOpen(true);
-          }}
+          onEditQuantity={(item) => openEditor(item, "cantidad")}
+          onEditPrice={(item) => openEditor(item, "precio")}
           onClear={handleVaciar}
         />
 
         <FormaVentaToggle isCredit={isCredit} onChange={onIsCreditChange} />
 
-        <FormaPagoChips
-          metodos={metodosPago}
-          selectedId={selectedIdMetodoPago}
-          onChange={onIdMetodoPagoChange}
-        />
+        {/* Forma de pago: solo aplica a ventas de contado; en crédito no se muestra. */}
+        {!isCredit && (
+          <FormaPagoChips
+            metodos={metodosPago}
+            selectedId={selectedIdMetodoPago}
+            onChange={onIdMetodoPagoChange}
+          />
+        )}
 
         {/* Cliente — siempre visible (no depende de forma de venta) */}
         <div className="space-y-2">
@@ -134,14 +142,13 @@ export function CartSummary({
         onSave={handleSave}
       />
 
-      <CartItemDetailSheet
+      <CartItemEditSheet
         item={editItem}
+        field={editField}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        onUpdateQuantity={onUpdateQuantity}
         onSetQuantity={onSetQuantity}
         onUpdatePrice={onUpdatePrice}
-        onRemoveItem={onRemoveItem}
       />
     </>
   );

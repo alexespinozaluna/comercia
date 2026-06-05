@@ -107,8 +107,7 @@ export const documentoService = {
 
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching ventas: ${error.message}`);
-    console.log("Fetched ventas:", data);
-    return (data ?? []) as Documento[];
+    return (data ?? []) as unknown as Documento[];
   },
 
   /** Get a single document with items, client and creator/modifier names. */

@@ -120,7 +120,7 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto flex flex-col">
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto flex flex-col">
         <SheetHeader>
           <SheetTitle>
             {mode === "search" ? "Seleccionar cliente" : "Nuevo cliente"}

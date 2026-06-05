@@ -8,7 +8,7 @@ import { toInputDate } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 import { useBasket, BasketItemLocal } from "./pos/use-basket";
-import { useClienteSeleccionado } from "./pos/use-cliente-seleccionado";
+import { useClienteSeleccionado, DEFAULT_CLIENT_ID } from "./pos/use-cliente-seleccionado";
 import { useMetodoPago } from "./pos/use-metodo-pago";
 import { useCajaGuard } from "./pos/use-caja-guard";
 import { useProductos } from "./pos/use-productos";
@@ -133,15 +133,19 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     }
   }, [isEdit, cajaGuard.isOpen, productos.items]);
 
-  const canSave = cajaGuard.isOpen === true && basket.items.length > 0;
+  // Las ventas a crédito exigen un cliente real (distinto del cliente común id 0).
+  const clienteCreditoOk =
+    !isCredit || (cliente.id != null && cliente.id !== DEFAULT_CLIENT_ID);
+  const canSave =
+    cajaGuard.isOpen === true && basket.items.length > 0 && clienteCreditoOk;
 
   const handleSave = useCallback(async () => {
     if (basket.items.length === 0) {
       toast.error("Agrega al menos un producto");
       return;
     }
-    if (isCredit && cliente.id == null) {
-      toast.error("Las ventas a credito requieren un cliente");
+    if (isCredit && (cliente.id == null || cliente.id === DEFAULT_CLIENT_ID)) {
+      toast.error("Las ventas a crédito requieren un cliente");
       return;
     }
 
@@ -174,7 +178,8 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         TotalAbono: 0,
         IdTipoDocumento: TIPO_DOCUMENTO_VENTA,
         Saldo: isCredit ? basket.total : 0,
-        IdMetodoPago: metodo.selectedId,
+        // En crédito no aplica forma de pago (no se muestra ni se exige).
+        IdMetodoPago: isCredit ? null : metodo.selectedId,
         IdCaja: null, // backend lo setea al crear
       };
 
