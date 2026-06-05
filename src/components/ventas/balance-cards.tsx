@@ -100,23 +100,23 @@ export function BalanceCards({
           <div
             key={key}
             className={cn(
-              "bg-white dark:bg-card rounded-md p-2.5 ring-1 shadow-sm",
+              "bg-white dark:bg-card rounded-md p-1.5 sm:p-2.5 ring-1 shadow-sm",
               isHighlighted ? "ring-warning/40 bg-warning/5" : "ring-border/50"
             )}
           >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className={cn("h-6 w-6 rounded-full flex items-center justify-center shrink-0", iconBg)}>
-                <Icon className={cn("h-3.5 w-3.5", iconColor)} />
+            <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1.5">
+              <div className={cn("h-4 w-4 sm:h-6 sm:w-6 rounded-full flex items-center justify-center shrink-0", iconBg)}>
+                <Icon className={cn("h-2.5 w-2.5 sm:h-3.5 sm:w-3.5", iconColor)} />
               </div>
-              <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground leading-tight">
+              <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground leading-tight truncate">
                 {title}
               </span>
             </div>
-            <div className={cn("text-[15px] font-extrabold leading-tight tracking-tight", valueColor)}>
+            <div className={cn("text-[13px] sm:text-[15px] font-extrabold leading-tight tracking-tight", valueColor)}>
               {numToString(value)}
             </div>
             {key === "ventas" && (
-              <div className="text-[10px] text-muted-foreground mt-0.5">
+              <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
                 {ventasCount} venta{ventasCount !== 1 ? "s" : ""}
               </div>
             )}

@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
-import { BookOpenText, CreditCard } from "lucide-react";
+import { BookOpenText, CreditCard, ChevronDown } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -41,6 +41,7 @@ function VentaAbonoContent() {
   // En edición: monto que este abono ya aportaba a la venta (se suma al disponible).
   const [extraDisponible, setExtraDisponible] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [deudasOpen, setDeudasOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -142,26 +143,53 @@ function VentaAbonoContent() {
         </div>
       )}
 
-      {/* Deudas list */}
+      {/* Deudas — acordeón colapsable */}
       {tipo === 2 && deudas.length > 0 && (
-        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden divide-y divide-border">
-          {deudas.map((d) => (
-            <div key={d.id} className="flex items-center justify-between px-3 py-2.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <BookOpenText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate">{d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}</p>
-                  <p className="text-[11px] text-muted-foreground">{fechaString(new Date(d.FechaEmision))}</p>
-                </div>
-              </div>
-              <div className="text-right shrink-0 ml-3">
-                <p className="text-sm font-bold text-destructive">{numToString(d.Saldo)}</p>
-                {d.Total > d.Saldo && (
-                  <p className="text-[11px] text-muted-foreground line-through">{numToString(d.Total)}</p>
-                )}
-              </div>
+        <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setDeudasOpen((o) => !o)}
+            aria-expanded={deudasOpen}
+            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-accent/40 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <BookOpenText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-xs font-semibold">
+                Detalle de deudas ({deudas.length})
+              </span>
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-destructive">{numToString(totalDeuda)}</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-muted-foreground transition-transform",
+                  deudasOpen && "rotate-180",
+                )}
+              />
+            </div>
+          </button>
+
+          {deudasOpen && (
+            <div className="divide-y divide-border border-t border-border">
+              {deudas.map((d) => (
+                <div key={d.id} className="flex items-center justify-between px-3 py-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <BookOpenText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold truncate">{d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}</p>
+                      <p className="text-[11px] text-muted-foreground">{fechaString(new Date(d.FechaEmision))}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="text-sm font-bold text-destructive">{numToString(d.Saldo)}</p>
+                    {d.Total > d.Saldo && (
+                      <p className="text-[11px] text-muted-foreground line-through">{numToString(d.Total)}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
