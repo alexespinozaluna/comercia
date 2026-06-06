@@ -48,7 +48,9 @@ function VentaAbonoContent() {
       try {
         const methods = await apiGet<MetodoPago[]>("/api/metodo-pago");
         setMetodoPago(methods);
-        if (methods.length > 0) setSelectedMetodo(methods[0].id);
+        // Por defecto, el método marcado como efectivo (bEfectivo); si no hay, el primero.
+        const efectivo = methods.find((m) => m.bEfectivo) ?? methods[0];
+        if (efectivo) setSelectedMetodo(efectivo.id);
 
         if (isEdit) {
           // Cargar el abono y la venta que referencia
