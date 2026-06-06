@@ -239,7 +239,13 @@ export const documentoService = {
     idTenant: number,
     idUsuario: number,
     idNegocio: number | null = null,
-  ): Promise<{ ok: boolean; abonos: number[]; no_distribuido: number }> {
+  ): Promise<{
+    ok: boolean;
+    abonos: number[];
+    saldo_favor_id: number | null;
+    saldo_favor: number;
+    no_distribuido: number;
+  }> {
     const { data, error } = await getSupabaseServer().rpc("registrar_abono", {
       p_tipo: tipo,
       p_id: id,
@@ -253,7 +259,13 @@ export const documentoService = {
     });
 
     if (error) throw new Error(error.message);
-    return data as { ok: boolean; abonos: number[]; no_distribuido: number };
+    return data as {
+      ok: boolean;
+      abonos: number[];
+      saldo_favor_id: number | null;
+      saldo_favor: number;
+      no_distribuido: number;
+    };
   },
 
   /**

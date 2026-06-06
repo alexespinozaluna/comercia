@@ -102,7 +102,9 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
 
   const isGasto = doc.IdTipoDocumento === 3;
   const isAbono = doc.IdTipoDocumento === 2;
-  const canEdit = doc.TotalAbono === 0;
+  const isSaldoFavor = doc.IdTipoDocumento === 4;
+  // El saldo a favor no se edita por el formulario de venta (no tiene items).
+  const canEdit = doc.TotalAbono === 0 && !isSaldoFavor;
   const canAbono = doc.bCredito && doc.Saldo > 0;
 
   return (

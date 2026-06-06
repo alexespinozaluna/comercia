@@ -19,6 +19,7 @@ function tiempoRelativo(fechaEmision: string): string {
 
 export function VentaListItem({ venta }: VentaListItemProps) {
   const isGasto = venta.IdTipoDocumento === 3;
+  const isSaldoFavor = venta.IdTipoDocumento === 4;
   const isCredito = venta.bCredito && !isGasto;
   const nombre = venta.Cliente?.Nombre ?? venta.Concepto ?? venta.Descripcion ?? "Sin nombre";
   const concepto = venta.Concepto ?? venta.Descripcion ?? "";
@@ -26,14 +27,18 @@ export function VentaListItem({ venta }: VentaListItemProps) {
   // Avatar styles by type
   const avatarBg = isGasto
     ? "bg-destructive/10 text-destructive"
+    : isSaldoFavor
+    ? "bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400"
     : isCredito
     ? "bg-brand-surface text-brand-dark"
     : "bg-success/10 text-success";
 
   // Badge
-  const badgeLabel = isGasto ? "Gasto" : isCredito ? "Crédito" : "Contado";
+  const badgeLabel = isGasto ? "Gasto" : isSaldoFavor ? "A favor" : isCredito ? "Crédito" : "Contado";
   const badgeClass = isGasto
     ? "bg-destructive/10 text-destructive"
+    : isSaldoFavor
+    ? "bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400"
     : isCredito
     ? "bg-brand-surface text-brand-dark"
     : "bg-success/10 text-success";

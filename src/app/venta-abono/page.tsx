@@ -89,9 +89,14 @@ function VentaAbonoContent() {
   const totalDeuda = deudas.reduce((sum, d) => sum + d.Saldo, 0) + extraDisponible;
   const clienteName = deudas[0]?.Cliente?.Nombre ?? "";
 
+  // Excedente que quedará como saldo a favor (solo en alta; la edición de un
+  // abono no genera saldo a favor — modificar_abono valida contra la venta).
+  const saldoFavor = !isEdit ? Math.max(0, total - totalDeuda) : 0;
+
   const handleSave = async () => {
     if (total <= 0) { toast.error("Ingrese un monto"); return; }
-    if (total > totalDeuda) { toast.error("El monto excede la deuda"); return; }
+    // En edición el monto no puede exceder la deuda; en alta el excedente va a saldo a favor.
+    if (isEdit && total > totalDeuda) { toast.error("El monto excede la deuda"); return; }
     try {
       if (isEdit) {
         await apiPut(`/api/abonos/${idAbono}`, {
@@ -112,7 +117,13 @@ function VentaAbonoContent() {
         });
       }
       useAppStore.getState().triggerRefresh();
-      toast.success(isEdit ? "Abono modificado" : "Abono registrado");
+      toast.success(
+        isEdit
+          ? "Abono modificado"
+          : saldoFavor > 0
+            ? `Abono registrado · Saldo a favor ${numToString(saldoFavor)}`
+            : "Abono registrado",
+      );
       router.push(pagina);
     } catch (err) {
       console.error(err);
@@ -216,6 +227,16 @@ function VentaAbonoContent() {
               Saldo restante: <span className="font-semibold text-destructive">{numToString(totalDeuda - total)}</span>
             </p>
           )}
+          {saldoFavor > 0 && (
+            <div className="text-xs mt-1 space-y-0.5">
+              <p className="text-muted-foreground">
+                Cancela deuda: <span className="font-semibold">{numToString(totalDeuda)}</span>
+              </p>
+              <p className="text-success font-semibold">
+                Saldo a favor: {numToString(saldoFavor)}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Concepto */}
@@ -268,7 +289,7 @@ function VentaAbonoContent() {
       <Button
         className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base gap-2"
         onClick={handleSave}
-        disabled={total <= 0 || total > totalDeuda}
+        disabled={total <= 0 || (isEdit && total > totalDeuda)}
       >
         <CreditCard className="h-5 w-5" />
         {isEdit ? "Guardar cambios" : "Confirmar abono"}
