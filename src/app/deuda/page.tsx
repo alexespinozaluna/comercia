@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DeudaResumen } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { numToString, fechaString } from "@/lib/format";
+import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchInput } from "@/components/shared/search-input";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -120,7 +120,7 @@ export default function DeudaPage() {
                   <div className="flex items-center gap-2 mt-1.5">
                     <div className="flex-1 min-w-0 text-xs text-muted-foreground">
                       {r.Cantidad} deuda{r.Cantidad !== 1 ? "s" : ""} ·{" "}
-                      {fechaString(new Date(r.MaxFechaEmision))}
+                      {fechaString(parseDateOnly(r.MaxFechaEmision))}
                     </div>
                     <div className="text-[16px] font-extrabold text-destructive leading-none tabular-nums shrink-0">
                       {numToString(Number(r.SumSaldo))}

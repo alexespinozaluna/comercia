@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DeudaDetalle, Negocio } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { numToString, fechaString } from "@/lib/format";
+import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -171,7 +171,7 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
                             {d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                            {fechaString(new Date(d.FechaEmision))} | {formatHora(d.FechaCreacion)} | {relTime}
+                            {fechaString(parseDateOnly(d.FechaEmision))} | {formatHora(d.FechaCreacion)} | {relTime}
                           </div>
                           {d.NomUsuarioCreacion && (
                             <div className="text-xs text-muted-foreground truncate">

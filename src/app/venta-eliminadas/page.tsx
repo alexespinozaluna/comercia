@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Documento } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
-import { numToString, fechaString } from "@/lib/format";
+import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -110,7 +110,7 @@ export default function VentaEliminadasPage() {
                   <TableCell className="text-sm">
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <CalendarDays className="h-3.5 w-3.5" />
-                      {fechaString(new Date(d.FechaEmision))}
+                      {fechaString(parseDateOnly(d.FechaEmision))}
                     </span>
                   </TableCell>
                   <TableCell className="text-sm font-semibold text-right">{numToString(d.Total)}</TableCell>

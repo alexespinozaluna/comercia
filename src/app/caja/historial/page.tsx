@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { numToString } from "@/lib/format";
+import { numToString, toInputDate } from "@/lib/format";
 import { format } from "date-fns";
 import { CheckCircle2, AlertTriangle, XCircle, Filter, History } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -66,13 +66,15 @@ const STYLE: Record<
   },
 };
 
+// Fecha LOCAL (no UTC) para los rangos por defecto: toInputDate evita el
+// salto de día de toISOString() en zonas negativas (es-CL).
 function todayIso(): string {
-  return new Date().toISOString().split("T")[0];
+  return toInputDate();
 }
 function isoDaysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().split("T")[0];
+  return toInputDate(d);
 }
 
 export default function CajaHistorialPage() {

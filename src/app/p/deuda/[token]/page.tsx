@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { DeudaDetalle, Negocio } from "@/types/database";
-import { numToString, fechaString, extraerIniciales } from "@/lib/format";
+import { numToString, fechaString, extraerIniciales, parseDateOnly } from "@/lib/format";
 
 // Dinámica: depende del token y de los headers del request.
 export const dynamic = "force-dynamic";
@@ -161,7 +161,7 @@ export default async function DeudaPublicaPage({
                       {d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {fechaString(new Date(d.FechaEmision))}
+                      {fechaString(parseDateOnly(d.FechaEmision))}
                     </div>
                   </div>
                   <div className="text-right shrink-0">

@@ -15,6 +15,32 @@ El agente debe trabajar SIEMPRE en las siguientes fases, en orden:
 5. **DOC** → Documentar en `docs/` según las reglas del proyecto (ver más abajo).
 6. **COMMIT** → Confirmar los cambios con un mensaje descriptivo.
 
+# Manejo de fechas (es-CL / Supabase en UTC)
+
+La BD (Supabase) está en **UTC**. El cliente está en zona negativa (es-CL,
+UTC-3/-4). Hay que distinguir dos tipos de fecha y nunca mezclarlos:
+
+- **Fecha de negocio — columnas `date`** (ej. `FechaEmision`): es un día de
+  calendario, sin hora ni zona.
+  - Al **escribir**: usar `toInputDate()` (fecha LOCAL). NUNCA
+    `new Date().toISOString().split("T")[0]` (da UTC → adelanta el día de noche
+    en es-CL).
+  - Al **mostrar/parsear**: usar `parseDateOnly(str)` (interpreta "YYYY-MM-DD"
+    como local). NUNCA `new Date("2026-06-06")` → JS lo lee como **UTC
+    medianoche** y en es-CL renderiza el **día anterior** (bug "-1 día").
+
+- **Timestamp de auditoría — columnas `timestamptz`** (ej. `FechaCreacion`,
+  `FechaModificacion`): es un instante.
+  - Al **escribir**: `nowIso()` (JS) o `NOW()` (dentro de un RPC). Ambos guardan
+    el instante UTC correcto; el helper `auditCreate` deja `FechaCreacion` al
+    DEFAULT `now()` de la columna.
+  - Al **mostrar**: `new Date(iso)` SÍ es correcto (el string trae zona y se
+    convierte a local).
+
+Regla rápida: `date` → `toInputDate` / `parseDateOnly`; `timestamptz` →
+`nowIso` / `new Date()`. Todos los helpers están en `src/lib/format.ts` y
+respetan `NEXT_PUBLIC_LOCALE` (def. `es-CL`).
+
 # Documentar siempre en `docs/`
 
 Toda propuesta, diseño, auditoría, plan de implementación o decisión técnica debe guardarse como `.md` en `docs/` sin que el usuario lo tenga que pedir.
