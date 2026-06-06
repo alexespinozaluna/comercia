@@ -26,15 +26,19 @@ function ClientePageInner() {
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [saldoMap, setSaldoMap] = useState<Map<number, number>>(new Map());
+  const [favorMap, setFavorMap] = useState<Map<number, number>>(new Map());
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [data, deudas] = await Promise.all([
+        const [data, deudas, favores] = await Promise.all([
           apiGet<Cliente[]>("/api/clientes"),
           apiGet<Documento[]>("/api/deudas").catch(() => [] as Documento[]),
+          apiGet<{ IdCliente: number | null; Saldo: number }[]>("/api/saldo-favor").catch(
+            () => [] as { IdCliente: number | null; Saldo: number }[],
+          ),
         ]);
         setClientes(data);
         const map = new Map<number, number>();
@@ -44,6 +48,14 @@ function ClientePageInner() {
           }
         });
         setSaldoMap(map);
+        // Saldo a favor por cliente (documentos tipo 4 con Saldo > 0)
+        const favorM = new Map<number, number>();
+        favores.forEach((f) => {
+          if (f.IdCliente != null && f.Saldo > 0) {
+            favorM.set(f.IdCliente, (favorM.get(f.IdCliente) ?? 0) + f.Saldo);
+          }
+        });
+        setFavorMap(favorM);
       } catch (err) {
         console.error(err);
       } finally {
@@ -113,6 +125,7 @@ function ClientePageInner() {
         <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 divide-y divide-border overflow-hidden">
           {filtered.map((c) => {
             const saldo = saldoMap.get(c.id) ?? 0;
+            const favor = favorMap.get(c.id) ?? 0;
             const dirs = c.ClienteDireccion ?? [];
             const principal = direccionPrincipal(c);
             const documento = c.NroDocumento
@@ -188,12 +201,21 @@ function ClientePageInner() {
                   )}
                 </div>
 
-                {/* Saldo badge + chevron */}
+                {/* Saldos (debe / a favor) + chevron */}
                 <div className="flex items-center gap-2 shrink-0 self-center">
-                  {saldo > 0 && (
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-sm bg-brand-surface text-brand-dark">
-                      Debe {numToString(saldo)}
-                    </span>
+                  {(saldo > 0 || favor > 0) && (
+                    <div className="flex flex-col items-end gap-1">
+                      {saldo > 0 && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-sm bg-brand-surface text-brand-dark whitespace-nowrap">
+                          Debe {numToString(saldo)}
+                        </span>
+                      )}
+                      {favor > 0 && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-sm bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400 whitespace-nowrap">
+                          A favor {numToString(favor)}
+                        </span>
+                      )}
+                    </div>
                   )}
                   {selectMode ? (
                     <span className="text-xs font-semibold text-brand">Seleccionar</span>

@@ -30,13 +30,18 @@ import { cn } from "@/lib/utils";
 export default function VentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [doc, setDoc] = useState<DocumentoDisplay | null>(null);
+  const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     params.then(async (p) => {
       try {
-        const data = await apiGet<Documento | null>(`/api/ventas/${p.id}`);
+        const [data, caja] = await Promise.all([
+          apiGet<Documento | null>(`/api/ventas/${p.id}`),
+          apiGet<{ id: number } | null>("/api/caja").catch(() => null),
+        ]);
         if (data) setDoc(toDisplayDocumento(data));
+        setCajaAbiertaId(caja?.id ?? null);
       } catch (err) {
         console.error(err);
         toast.error("Error al cargar documento");
@@ -48,9 +53,10 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
 
   const handleDelete = async () => {
     if (!doc) return;
-    // Abono (tipo 2): borrado físico vía /api/abonos para que la cascada + trigger
-    // restauren el Saldo de la venta. Venta/gasto: soft-delete vía /api/ventas.
-    const esAbono = doc.IdTipoDocumento === 2;
+    // Abono (tipo 2) y pago con saldo a favor (tipo 6): borrado físico vía
+    // /api/abonos para que la cascada + trigger restauren el Saldo de la deuda
+    // (y del crédito tipo 4, en el caso del tipo 6). Venta/gasto: soft-delete.
+    const esAbono = doc.IdTipoDocumento === 2 || doc.IdTipoDocumento === 6;
     try {
       await apiDelete(esAbono ? `/api/abonos/${doc.id}` : `/api/ventas/${doc.id}`);
       useAppStore.getState().triggerRefresh();
@@ -103,8 +109,17 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const isGasto = doc.IdTipoDocumento === 3;
   const isAbono = doc.IdTipoDocumento === 2;
   const isSaldoFavor = doc.IdTipoDocumento === 4;
-  // El saldo a favor no se edita por el formulario de venta (no tiene items).
-  const canEdit = doc.TotalAbono === 0 && !isSaldoFavor;
+  const isPagoFavor = doc.IdTipoDocumento === 6; // abono con saldo a favor
+  // Regla genérica: un movimiento solo se edita/elimina mientras su caja siga
+  // abierta (mismo día/sesión). El tipo 6 no tiene caja (IdCaja null) → exento.
+  const cajaOk = doc.IdCaja == null || (cajaAbiertaId != null && cajaAbiertaId === doc.IdCaja);
+  // Saldo a favor (4) y pago con saldo a favor (6) no se editan por el form de venta.
+  const canEdit = doc.TotalAbono === 0 && !isSaldoFavor && !isPagoFavor && cajaOk;
+  // El pago con saldo a favor SÍ se puede eliminar (= anular): el trigger
+  // restaura la deuda y el crédito. El resto, solo con su caja abierta.
+  const canDelete = isPagoFavor
+    ? true
+    : doc.TotalAbono === 0 && !isSaldoFavor && cajaOk;
   const canAbono = doc.bCredito && doc.Saldo > 0;
 
   return (
@@ -265,7 +280,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <Pencil className="h-4 w-4" /> Editar
           </Button>
         )}
-        {isAbono && doc.DocumentoItem?.length === 1 && (
+        {isAbono && cajaOk && doc.DocumentoItem?.length === 1 && (
           <Button
             variant="outline"
             size="sm"
@@ -286,7 +301,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <CreditCard className="h-4 w-4" /> Abono
           </Button>
         )}
-        {canEdit && (
+        {canDelete && (
           <AlertDialog>
             <AlertDialogTrigger
               className={cn(

@@ -179,6 +179,8 @@ export default function HomePage() {
   };
 
   // Computed values — identical to original
+  // tipo 6 = abono con saldo a favor: SÍ se ve en la lista, pero NO cuenta en
+  // los totales (es transferencia interna; el dinero ya se contó al capturarlo).
   const ingresos = ventas.filter((v) => v.IdTipoDocumento !== 3);
   const gastos = ventas.filter((v) => v.IdTipoDocumento === 3);
    // Búsqueda sobre los movimientos del rango (no afecta totales del Balance)
@@ -204,7 +206,12 @@ export default function HomePage() {
   const displayIngresos = filteredIngresos.filter((v) => pasaFiltro(v, filtros));
   const displayGastos = filteredGastos.filter((v) => pasaFiltro(v, filtros));
 
-  const totalEfectivo = filteredIngresos.filter((v) => !v.bCredito).reduce((sum, v) => sum + v.Total, 0);
+  // La captura de saldo a favor (tipo 4) SÍ cuenta como ingreso/efectivo (dinero
+  // recibido). El consumo (tipo 6) NO: se ve en la lista pero es transferencia
+  // interna (el dinero ya se contó al capturarlo).
+  const totalEfectivo = filteredIngresos
+    .filter((v) => !v.bCredito && v.IdTipoDocumento !== 6)
+    .reduce((sum, v) => sum + v.Total, 0);
   const totalAbono = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.TotalAbono, 0);
   const totalGastos = filteredGastos.reduce((sum, v) => sum + v.Total, 0);
   const balance = totalEfectivo + totalAbono - totalGastos;

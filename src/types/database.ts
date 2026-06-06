@@ -95,6 +95,17 @@ export interface Documento extends BaseEnty {
   UsuarioModificacion?: { Nombre: string } | null;
 }
 
+// Fila de saldo a favor (Documento tipo 4) para la lista / badges.
+export interface SaldoFavorRow {
+  id: number;
+  IdCliente: number | null;
+  Total: number;
+  Saldo: number;
+  FechaEmision: string;
+  IdCaja: number | null;
+  Cliente?: { Nombre: string } | null;
+}
+
 // Computed properties (not in DB, derived on client)
 export interface DocumentoDisplay extends Documento {
   FormaVenta: string; // "CREDITO" | "EFECTIVO"
@@ -148,7 +159,9 @@ export interface DeudaResumen {
   NroTelefono: string | null;
   Cantidad: number;
   SumSaldo: number;
-  MaxFechaEmision: Date;
+  // PostgREST devuelve la fecha como string ("YYYY-MM-DD" o ISO). Se parsea con
+  // parseDateOnly (local) para evitar el corrimiento de día por UTC.
+  MaxFechaEmision: string;
 }
 
 export interface Negocio extends BaseEnty {

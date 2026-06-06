@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Documento, MetodoPago } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
-import { numToString, fechaString, extraerIniciales, toInputDate } from "@/lib/format";
+import { numToString, fechaString, extraerIniciales, toInputDate, parseDateOnly } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
@@ -42,6 +42,9 @@ function VentaAbonoContent() {
   const [extraDisponible, setExtraDisponible] = useState(0);
   const [loading, setLoading] = useState(true);
   const [deudasOpen, setDeudasOpen] = useState(false);
+  // Saldo a favor disponible del cliente (solo en alta).
+  const [disponibleFavor, setDisponibleFavor] = useState(0);
+  const [aplicandoFavor, setAplicandoFavor] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -78,6 +81,21 @@ function VentaAbonoContent() {
         } else if (tipo === 2 && id > 0) {
           const docs = await apiGet<Documento[]>(`/api/ventas?bCredito=true&idCliente=${id}`);
           setDeudas(docs.filter((d) => d.Saldo > 0));
+        }
+
+        // Saldo a favor disponible del cliente (solo en alta)
+        if (!isEdit) {
+          let clientId = tipo === 2 ? id : 0;
+          if (tipo === 1 && id > 0) {
+            const doc = await apiGet<Documento | null>(`/api/ventas/${id}`).catch(() => null);
+            clientId = doc?.IdCliente ?? 0;
+          }
+          if (clientId > 0) {
+            const favores = await apiGet<{ IdCliente: number | null; Saldo: number }[]>(
+              `/api/saldo-favor?idCliente=${clientId}`,
+            ).catch(() => [] as { IdCliente: number | null; Saldo: number }[]);
+            setDisponibleFavor(favores.reduce((s, f) => s + (f.Saldo || 0), 0));
+          }
         }
       } catch (err) {
         console.error(err);
@@ -119,6 +137,30 @@ function VentaAbonoContent() {
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Error al guardar abono");
+    }
+  };
+
+  const aplicarFavor = Math.min(disponibleFavor, totalDeuda);
+
+  const handleUsarSaldoFavor = async () => {
+    if (aplicarFavor <= 0) return;
+    setAplicandoFavor(true);
+    try {
+      await apiPost("/api/saldo-favor/aplicar", {
+        tipo,
+        id,
+        FechaEmision: fecha,
+        Concepto: concepto || null,
+        Total: aplicarFavor,
+      });
+      useAppStore.getState().triggerRefresh();
+      toast.success(`Saldo a favor aplicado · ${numToString(aplicarFavor)}`);
+      router.push(pagina);
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Error al aplicar saldo a favor");
+    } finally {
+      setAplicandoFavor(false);
     }
   };
 
@@ -179,7 +221,7 @@ function VentaAbonoContent() {
                     <BookOpenText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate">{d.Concepto ?? d.Descripcion ?? `Venta #${d.id}`}</p>
-                      <p className="text-[11px] text-muted-foreground">{fechaString(new Date(d.FechaEmision))}</p>
+                      <p className="text-[11px] text-muted-foreground">{fechaString(parseDateOnly(d.FechaEmision))}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-3">
@@ -192,6 +234,28 @@ function VentaAbonoContent() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Saldo a favor disponible — botón para aplicarlo a la deuda */}
+      {!isEdit && disponibleFavor > 0 && totalDeuda > 0 && (
+        <div className="rounded-lg ring-1 ring-violet-200/70 dark:ring-violet-900/40 bg-violet-50 dark:bg-violet-950/20 p-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
+              Saldo a favor disponible
+            </p>
+            <p className="text-base font-extrabold text-violet-700 dark:text-violet-300 tabular-nums">
+              {numToString(disponibleFavor)}
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={handleUsarSaldoFavor}
+            disabled={aplicandoFavor}
+            className="h-10 bg-violet-600 hover:bg-violet-700 text-white shrink-0"
+          >
+            {aplicandoFavor ? "Aplicando..." : `Usar ${numToString(aplicarFavor)}`}
+          </Button>
         </div>
       )}
 

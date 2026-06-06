@@ -5,6 +5,7 @@ import {
   ClienteDireccion,
   DeudaDetalle,
   DeudaResumen,
+  SaldoFavorRow,
 } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { deleteItem } from "./supabase-service";
@@ -307,17 +308,20 @@ export const documentoService = {
       .single();
 
     if (fetchErr || !abono) throw new Error("Abono no encontrado");
-    if ((abono as { IdTipoDocumento: number }).IdTipoDocumento !== 2) {
+    // tipo 2 = abono normal · tipo 6 = abono con saldo a favor. Ambos se borran
+    // físicamente: la cascada elimina los items y el trigger restaura el Saldo
+    // de las deudas (y del crédito tipo 4, en el caso del tipo 6).
+    const tipo = (abono as { IdTipoDocumento: number }).IdTipoDocumento;
+    if (tipo !== 2 && tipo !== 6) {
       throw new Error("El documento no es un abono");
     }
 
-    // Borrado físico — la cascada borra los items y el trigger restaura el Saldo
     const { error } = await getSupabaseServer()
       .from(TABLE)
       .delete()
       .eq("id", idAbono)
       .eq("IdTenant", idTenant)
-      .eq("IdTipoDocumento", 2);
+      .eq("IdTipoDocumento", tipo);
 
     if (error) throw new Error(`Error eliminando abono: ${error.message}`);
   },
@@ -379,6 +383,130 @@ export const documentoService = {
     if (error)
       throw new Error(`Error fetching ClienteDireccion: ${error.message}`);
     return (data ?? []) as ClienteDireccion[];
+  },
+
+  /**
+   * Saldos a favor activos (Documento tipo 4 con Saldo > 0). Devuelve filas
+   * ligeras {IdCliente, Saldo} para agregar por cliente en el front.
+   */
+  async getSaldosFavor(
+    tenantId: number,
+    negocioId?: number | null,
+    idCliente?: number,
+  ): Promise<SaldoFavorRow[]> {
+    let query = getSupabaseServer()
+      .from(TABLE)
+      .select("id, IdCliente, Total, Saldo, FechaEmision, IdCaja, Cliente(Nombre)")
+      .eq("IdTipoDocumento", 4)
+      .eq("Estado", 1)
+      .gt("Saldo", 0)
+      .eq("IdTenant", tenantId)
+      .order("FechaEmision", { ascending: false })
+      .order("id", { ascending: false });
+
+    if (negocioId != null) {
+      query = query.eq("IdNegocio", negocioId);
+    }
+    if (idCliente != null && idCliente > 0) {
+      query = query.eq("IdCliente", idCliente);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Error fetching saldos a favor: ${error.message}`);
+    return (data ?? []) as unknown as SaldoFavorRow[];
+  },
+
+  /**
+   * Edita el MONTO de un saldo a favor (tipo 4). Solo si NO fue utilizado
+   * (Saldo == Total). El trigger trg_bloquear_caja_cerrada impide hacerlo si su
+   * caja está cerrada. Al no estar usado, Saldo = Total.
+   */
+  async editarSaldoFavor(
+    id: number,
+    monto: number,
+    idTenant: number,
+    idUsuario: number,
+  ): Promise<void> {
+    const { data: doc, error: fetchErr } = await getSupabaseServer()
+      .from(TABLE)
+      .select("id, IdTipoDocumento, Total, Saldo")
+      .eq("id", id)
+      .eq("IdTenant", idTenant)
+      .single();
+
+    if (fetchErr || !doc) throw new Error("Saldo a favor no encontrado");
+    const d = doc as { IdTipoDocumento: number; Total: number; Saldo: number };
+    if (d.IdTipoDocumento !== 4) throw new Error("El documento no es un saldo a favor");
+    if (Math.abs(d.Total - d.Saldo) >= 0.01) {
+      throw new Error("No se puede editar: el saldo a favor ya fue utilizado");
+    }
+
+    const { error } = await getSupabaseServer()
+      .from(TABLE)
+      .update(auditUpdate(idUsuario, { Total: monto, Saldo: monto }))
+      .eq("id", id)
+      .eq("IdTenant", idTenant)
+      .eq("IdTipoDocumento", 4);
+
+    if (error) throw new Error(`Error editando saldo a favor: ${error.message}`);
+  },
+
+  /**
+   * Elimina (borrado físico) un saldo a favor (tipo 4). Solo si NO fue utilizado.
+   * El trigger trg_bloquear_caja_cerrada impide hacerlo si su caja está cerrada.
+   */
+  async eliminarSaldoFavor(id: number, idTenant: number): Promise<void> {
+    const { data: doc, error: fetchErr } = await getSupabaseServer()
+      .from(TABLE)
+      .select("id, IdTipoDocumento, Total, Saldo")
+      .eq("id", id)
+      .eq("IdTenant", idTenant)
+      .single();
+
+    if (fetchErr || !doc) throw new Error("Saldo a favor no encontrado");
+    const d = doc as { IdTipoDocumento: number; Total: number; Saldo: number };
+    if (d.IdTipoDocumento !== 4) throw new Error("El documento no es un saldo a favor");
+    if (Math.abs(d.Total - d.Saldo) >= 0.01) {
+      throw new Error("No se puede eliminar: el saldo a favor ya fue utilizado");
+    }
+
+    const { error } = await getSupabaseServer()
+      .from(TABLE)
+      .delete()
+      .eq("id", id)
+      .eq("IdTenant", idTenant)
+      .eq("IdTipoDocumento", 4);
+
+    if (error) throw new Error(`Error eliminando saldo a favor: ${error.message}`);
+  },
+
+  /**
+   * Consume saldo a favor de un cliente para pagar sus deudas (FIFO). Crea un
+   * Documento tipo 6 (sin caja/ingreso) y decrementa el crédito disponible.
+   */
+  async aplicarSaldoFavor(
+    tipo: number,
+    id: number,
+    monto: number,
+    fecha: string,
+    concepto: string | null,
+    idTenant: number,
+    idUsuario: number,
+    idNegocio: number | null = null,
+  ): Promise<{ ok: boolean; doc_id: number | null; aplicado: number }> {
+    const { data, error } = await getSupabaseServer().rpc("aplicar_saldo_favor", {
+      p_tipo: tipo,
+      p_id: id,
+      p_monto: monto,
+      p_fecha: fecha,
+      p_concepto: concepto,
+      p_id_tenant: idTenant,
+      p_id_usuario: idUsuario,
+      p_id_negocio: idNegocio,
+    });
+
+    if (error) throw new Error(error.message);
+    return data as { ok: boolean; doc_id: number | null; aplicado: number };
   },
 
   /** Get payment methods */

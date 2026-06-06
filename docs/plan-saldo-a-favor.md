@@ -28,7 +28,10 @@ Se revirtieron los cambios en `venta-abono`, `api/abonos`, `registrarAbono` y se
 1. **Modelo**: documento `IdTipoDocumento = 4` (reusa `Documento`).
 2. **Módulo**: anticipo puro (cliente + monto → crédito; no toca deudas), en
    **página propia** `/saldo-favor`.
-3. **Balance**: cuenta como ingreso del día (doc tipo 4 con `bCredito = false`).
+3. **Balance**: la **captura (tipo 4)** SÍ cuenta como ingreso/efectivo en la
+   home y en el arqueo de caja (es dinero recibido). El **consumo (tipo 6)** NO
+   suma: se ve en la lista (badge violeta) pero se excluye de `totalEfectivo`
+   (transferencia interna, el dinero ya se contó al capturarlo).
 
 ## Modelo de datos
 
@@ -58,8 +61,15 @@ Saldo a favor disponible de un cliente = `SUM(Saldo)` de sus docs tipo 4 con
   (anulación = Fase 2).
 - `venta-abono` queda **sin cambios**.
 
+## Visibilidad en el módulo de cliente (hecho)
+
+- `GET /api/saldo-favor` + `documentoService.getSaldosFavor` devuelven los docs
+  tipo 4 con `Saldo > 0` (filas ligeras `{IdCliente, Saldo}`).
+- La lista de clientes (`/cliente`) muestra un badge **"A favor {monto}"**
+  (violeta) junto al de **"Debe"**, agregando el saldo a favor por cliente.
+
 ## Pendientes / Fase 2 (consumir)
 
 1. Aplicar el saldo a favor a deudas/ventas futuras sin volver a mover caja.
-2. Mostrar "este cliente tiene X a favor" en su ficha / en `venta-abono`.
+2. Mostrarlo también en `venta-abono` (al cobrar a un cliente con crédito).
 3. UX para anular/editar un saldo a favor (hoy el doc tipo 4 no es editable).

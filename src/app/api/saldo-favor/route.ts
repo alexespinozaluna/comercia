@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { cajaService } from "@/services/caja-service";
+import { documentoService } from "@/services/documento-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate } from "@/lib/audit";
+
+// Lista de saldos a favor activos (tipo 4 con Saldo > 0) para agregar por cliente.
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getCurrentUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+
+    const idCliente = Number(req.nextUrl.searchParams.get("idCliente")) || undefined;
+    const data = await documentoService.getSaldosFavor(user.idTenant, undefined, idCliente);
+    return NextResponse.json({ data });
+  } catch (err) {
+    console.error("GET /api/saldo-favor error:", err);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
+}
 
 // Registra un saldo a favor (anticipo) de un cliente: un Documento tipo 4 con
 // Saldo = Total (= crédito disponible). No toca deudas. Es dinero recibido →
