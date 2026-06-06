@@ -46,14 +46,9 @@ export async function POST(req: NextRequest) {
       user.idNegocio,
     );
 
-    // Vincular con la caja activa (para arqueo) tanto los abonos (1..N) como el
-    // documento de saldo a favor si hubo excedente — ambos son dinero recibido.
-    const docsCaja = [
-      ...(result?.abonos ?? []),
-      ...(result?.saldo_favor_id ? [result.saldo_favor_id] : []),
-    ];
-    if (docsCaja.length) {
-      await documentoService.setIdCaja(docsCaja, caja.id, user.idTenant, user.id);
+    // Vincular los abonos creados (1..N) con la caja activa, para arqueo.
+    if (result?.abonos?.length) {
+      await documentoService.setIdCaja(result.abonos, caja.id, user.idTenant, user.id);
     }
 
     return NextResponse.json({ data: result });

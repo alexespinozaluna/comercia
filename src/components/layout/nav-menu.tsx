@@ -12,6 +12,7 @@ import {
   Landmark,
   Trash2,
   ArrowDownRight,
+  PiggyBank,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthUser } from "@/lib/auth-client";
@@ -27,6 +28,7 @@ interface NavItem {
 const ALL_NAV: NavItem[] = [
   { href: "/", label: "Ventas", icon: LayoutDashboard, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"], group: "principal" },
   { href: "/deuda", label: "Deudas", icon: CreditCard, roles: ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"], group: "principal" },
+  { href: "/saldo-favor", label: "Saldo a favor", icon: PiggyBank, roles: ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"], group: "principal" },
   { href: "/cliente", label: "Clientes", icon: Users, roles: ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"], group: "gestion" },
   { href: "/producto", label: "Inventario", icon: Package, roles: ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"], group: "gestion" },
   { href: "/producto/ajustes", label: "Ajustes", icon: ArrowDownRight, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },
