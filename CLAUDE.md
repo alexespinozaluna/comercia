@@ -41,7 +41,13 @@ No test projects exist.
 - `src/hooks/` - Custom React hooks
 
 ### Domain
-- **Documento** (IdTipoDocumento: 1=sale, 2=payment, 3=expense) with DocumentoItem
+- **Documento** with DocumentoItem. `IdTipoDocumento`:
+  - `1` = Venta (sale; `bCredito=true` + `Saldo>0` = debt)
+  - `2` = Abono (payment to a debt; item references the sale → trigger lowers its `Saldo`)
+  - `3` = Gasto (expense)
+  - `4` = Saldo a favor (customer credit/anticipo capture; `Saldo` = credit available)
+  - `5` = Ajuste/Baja (inventory adjustment / loss — kardex)
+  - `6` = Abono con saldo a favor (consumes credit to pay a debt; no cash, not income)
 - **Cliente** with ClienteDireccion (master-detail save)
 - **Producto** - simple CRUD with Kardex (ProductoMovimiento)
 - **MetodoPago** - read-only reference
