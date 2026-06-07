@@ -4,6 +4,8 @@
 
 > ⚠️ La tabla de flags en `lib/tipo-documento.ts` es un **espejo** de la semilla de la BD; mantener ambas en sync.
 
+> 🔄 **Revisión 2026-06-06 (auditoría):** ver `docs/auditoria-tipo-documento-2026-06-06.md`. Decisión: la BD queda como **catálogo** (con flags) + FK, **TS sigue mandando** el comportamiento por ahora; en el futuro mandará la BD. La Fase 3 "BD-driven" se reduce a 2 predicados en TS (`esEgreso`/`esAbono` con checks explícitos) y se **descarta** la tabla `FLAGS` en TS + los helpers sin uso + `NOMBRE_TIPO_DOC` (limpieza **pendiente** de implementar). Se **conserva** el seam (`/api/tipo-documento`, `getTipoDocumento`, `interface TipoDocumento`) para el futuro.
+
 ## 1. Situación actual
 
 `Documento."IdTipoDocumento"` es un `bigint` **sin FK ni catálogo**. Los 6
