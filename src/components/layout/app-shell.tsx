@@ -15,6 +15,7 @@ import {
 import { NavMenu } from "./nav-menu";
 import { MobileNav } from "./mobile-nav";
 import { NegocioSelector } from "./negocio-selector";
+import { ThemeToggle } from "./theme-toggle";
 import { getCurrentUser, logout, type AuthUser } from "@/lib/auth-client";
 import { useAppStore } from "@/stores/app-store";
 import { extraerIniciales, numToString } from "@/lib/format";
@@ -329,6 +330,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Caja status */}
           <CajaStatusBadge caja={caja} />
+
+          {/* Modo claro / oscuro */}
+          <ThemeToggle />
 
           {/* User dropdown */}
           {authUser && <UserMenu authUser={authUser} caja={caja} onLogout={handleLogout} />}
