@@ -136,8 +136,13 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
   // Las ventas a crédito exigen un cliente real (distinto del cliente común id 0).
   const clienteCreditoOk =
     !isCredit || (cliente.id != null && cliente.id !== DEFAULT_CLIENT_ID);
+  // Las ventas de contado exigen una forma de pago.
+  const metodoPagoOk = isCredit || metodo.selectedId != null;
   const canSave =
-    cajaGuard.isOpen === true && basket.items.length > 0 && clienteCreditoOk;
+    cajaGuard.isOpen === true &&
+    basket.items.length > 0 &&
+    clienteCreditoOk &&
+    metodoPagoOk;
 
   const handleSave = useCallback(async () => {
     if (basket.items.length === 0) {
@@ -146,6 +151,10 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     }
     if (isCredit && (cliente.id == null || cliente.id === DEFAULT_CLIENT_ID)) {
       toast.error("Las ventas a crédito requieren un cliente");
+      return;
+    }
+    if (!isCredit && metodo.selectedId == null) {
+      toast.error("Seleccione una forma de pago");
       return;
     }
 

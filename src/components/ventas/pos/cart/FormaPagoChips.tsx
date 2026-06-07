@@ -16,7 +16,7 @@ export function FormaPagoChips({ metodos, selectedId, onChange }: FormaPagoChips
 
   return (
     <div className="space-y-2">
-      <SectionLabel icon={<Wallet className="h-3.5 w-3.5" />}>Forma de pago</SectionLabel>
+      <SectionLabel icon={<Wallet className="h-3.5 w-3.5" />}>Forma de pago *</SectionLabel>
       <div className="flex flex-wrap gap-1.5">
         {metodos.map((m) => {
           const active = selectedId === m.id;
@@ -24,7 +24,8 @@ export function FormaPagoChips({ metodos, selectedId, onChange }: FormaPagoChips
             <button
               key={m.id}
               type="button"
-              onClick={() => onChange(active ? null : m.id)}
+              // Requerido en contado: seleccionar siempre (no se puede deseleccionar).
+              onClick={() => onChange(m.id)}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ring-1",
                 active
@@ -37,6 +38,9 @@ export function FormaPagoChips({ metodos, selectedId, onChange }: FormaPagoChips
           );
         })}
       </div>
+      {selectedId == null && (
+        <p className="text-xs text-destructive">Seleccione una forma de pago.</p>
+      )}
     </div>
   );
 }
