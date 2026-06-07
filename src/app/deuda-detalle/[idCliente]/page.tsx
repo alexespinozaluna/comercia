@@ -65,7 +65,12 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
   );
 
   const grupos = useMemo<DeudaGrupo[]>(() => {
-    const sorted = [...deudas].sort((a, b) => (a.FechaEmision < b.FechaEmision ? 1 : -1));
+    // Más reciente → más antiguo: por FechaHora desc (fecha + hora del mismo día)
+    // y, a igualdad, por id desc (el id mayor es el más reciente).
+    const sorted = [...deudas].sort((a, b) => {
+      if (a.FechaHora !== b.FechaHora) return a.FechaHora < b.FechaHora ? 1 : -1;
+      return (b.id ?? 0) - (a.id ?? 0);
+    });
     const map = new Map<string, DeudaGrupo>();
     for (const d of sorted) {
       const dir = d.DireccionEntrega?.trim() || SIN_DIRECCION;

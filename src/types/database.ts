@@ -140,6 +140,8 @@ export interface DeudaDetalle {
   Descripcion: string | null;
   FechaEmision: string;
   FechaCreacion: string;
+  // Derivado en la vista: FechaCreacion si es el mismo día que FechaEmision, si no FechaEmision.
+  FechaHora: string;
   DireccionEntrega: string | null;
   Total: number;
   Saldo: number;

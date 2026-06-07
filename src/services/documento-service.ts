@@ -535,7 +535,7 @@ export const documentoService = {
       .from("v_deuda_detalle")
       .select("*")
       .eq("IdTenant", tenantId)
-      .order("FechaEmision", { ascending: false })
+      .order("FechaHora", { ascending: false })
       .order("id", { ascending: false });
 
     if (idCliente != null) {
