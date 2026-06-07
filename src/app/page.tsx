@@ -27,6 +27,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { da } from "date-fns/locale";
 
 /* ── Caja banner ───────────────────────────────────────────── */
 function CajaBanner() {
@@ -154,6 +155,7 @@ export default function HomePage() {
         `/api/ventas?fechaIni=${filterFechaInicio}&fechaFin=${filterFechaFin}`
       );
       setVentas(data);
+      console.log("Data",data)
     } catch (err) {
       console.error("Error loading ventas:", err);
     } finally {
@@ -206,13 +208,16 @@ export default function HomePage() {
   const displayIngresos = filteredIngresos.filter((v) => pasaFiltro(v, filtros));
   const displayGastos = filteredGastos.filter((v) => pasaFiltro(v, filtros));
 
-  // La captura de saldo a favor (tipo 4) SÍ cuenta como ingreso/efectivo (dinero
-  // recibido). El consumo (tipo 6) NO: se ve en la lista pero es transferencia
-  // interna (el dinero ya se contó al capturarlo).
+  // Efectivo = venta de contado (tipo 1) + captura de saldo a favor (tipo 4).
+  // NO incluye abonos (tipo 2, tienen su propia card) ni el consumo de saldo a
+  // favor (tipo 6, transferencia interna ya contada al capturar).
   const totalEfectivo = filteredIngresos
-    .filter((v) => !v.bCredito && v.IdTipoDocumento !== 6)
+    .filter((v) => !v.bCredito && (v.IdTipoDocumento === 1 || v.IdTipoDocumento === 4))
     .reduce((sum, v) => sum + v.Total, 0);
-  const totalAbono = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.TotalAbono, 0);
+  // Abono = documentos de abono (tipo 2). Excluye por construcción el tipo 6.
+  const totalAbono = filteredIngresos
+    .filter((v) => v.IdTipoDocumento === 2)
+    .reduce((sum, v) => sum + v.Total, 0);
   const totalGastos = filteredGastos.reduce((sum, v) => sum + v.Total, 0);
   const balance = totalEfectivo + totalAbono - totalGastos;
   const totalCredito = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.Saldo, 0);
