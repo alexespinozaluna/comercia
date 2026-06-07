@@ -34,11 +34,26 @@ export function NegocioSelector() {
       .catch(() => setNegocios([]));
   }, [tenantId]);
 
-  // Solo ADMIN navega entre sucursales; no-ADMIN tiene su sucursal fija.
-  // También se oculta si hay una sola sucursal.
-  if (!authUser || authUser.rol !== "ADMIN" || negocios.length <= 1) return null;
+  if (!authUser) return null;
 
   const activo = negocios.find((n) => n.id === authUser.idNegocio) ?? negocios[0];
+  if (!activo) return null; // aún no cargó la lista / sin sucursales
+
+  // Solo ADMIN con más de una sucursal puede cambiar; el resto ve un badge fijo.
+  const canSwitch = authUser.rol === "ADMIN" && negocios.length > 1;
+
+  if (!canSwitch) {
+    return (
+      <div
+        className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs max-w-[170px]"
+        title={activo.Nombre ?? "Sucursal"}
+        aria-label={`Sucursal: ${activo.Nombre ?? ""}`}
+      >
+        <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="font-medium truncate">{activo.Nombre ?? "Sucursal"}</span>
+      </div>
+    );
+  }
 
   const cambiar = async (n: Negocio) => {
     if (n.id === authUser.idNegocio || switching) return;

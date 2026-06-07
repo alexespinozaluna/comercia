@@ -21,7 +21,6 @@ import { useAppStore } from "@/stores/app-store";
 import { extraerIniciales, numToString } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 import type { Caja } from "@/types/database";
 
 /* ── Hook compartido: estado de caja ───────────────────────── */
@@ -45,35 +44,6 @@ function useCajaAbierta(authUserId: number | null) {
   return caja;
 }
 
-/* ── Caja status badge (recibe caja como prop) ─────────────── */
-function CajaStatusBadge({ caja }: { caja: Caja | null | undefined }) {
-  if (caja === undefined) {
-    return <div className="h-6 w-32 rounded-md animate-pulse bg-muted" />;
-  }
-
-  if (caja) {
-    return (
-      <Link
-        href="/caja"
-        className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs bg-success/10 hover:bg-success/15 transition-colors"
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-        <span className="font-medium text-success">Caja abierta</span>
-        <span className="font-bold text-success">{numToString(caja.MontoInicial)}</span>
-      </Link>
-    );
-  }
-
-  return (
-    <Link
-      href="/caja"
-      className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs bg-destructive/10 hover:bg-destructive/15 transition-colors"
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
-      <span className="font-medium text-destructive">Sin caja</span>
-    </Link>
-  );
-}
 
 /* ── User dropdown menu ────────────────────────────────────── */
 function UserMenu({
@@ -327,9 +297,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Selector de sucursal */}
           <NegocioSelector />
-
-          {/* Caja status */}
-          <CajaStatusBadge caja={caja} />
 
           {/* Modo claro / oscuro */}
           <ThemeToggle />
