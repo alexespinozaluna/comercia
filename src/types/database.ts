@@ -89,6 +89,8 @@ export interface Documento extends BaseEnty {
   Saldo: number;
   IdMetodoPago: number | null;
   IdCaja: number | null;
+  // Lo asigna el backend; opcional al construir payloads en el frontend.
+  IdNegocio?: number | null;
   // Embeds PostgREST opcionales (los pobla el select del service).
   MetodoPago?: { Nombre: string } | null;
   UsuarioCreacion?: { Nombre: string } | null;

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck, Package } from "lucide-react";
 import { toast } from "sonner";
+import { TicketShareSheet } from "@/components/ventas/ticket-share-sheet";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const [doc, setDoc] = useState<DocumentoDisplay | null>(null);
   const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     params.then(async (p) => {
@@ -64,42 +66,6 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       router.push("/");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al eliminar");
-    }
-  };
-
-  const handleShare = async () => {
-    if (!doc) return;
-    try {
-      const text = await apiGet<string>(`/api/ticket/${doc.id}?width=384`);
-      const canvas = document.createElement("canvas");
-      canvas.width = 384;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      const lines = text.split("\n");
-      canvas.height = lines.length * 16 + 32;
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.font = "12px monospace";
-      ctx.fillStyle = "black";
-      lines.forEach((line: string, i: number) => {
-        ctx.fillText(line, 8, 20 + i * 16);
-      });
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        if (navigator.share) {
-          const file = new File([blob], `ticket-${doc.id}.png`, { type: "image/png" });
-          await navigator.share({ files: [file], title: `Ticket ${doc.NroVenta}` });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `ticket-${doc.id}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-      }, "image/png");
-    } catch {
-      toast.error("Error al generar ticket");
     }
   };
 
@@ -255,7 +221,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           variant="outline"
           size="sm"
           className="gap-1.5 h-10"
-          onClick={handleShare}
+          onClick={() => setShareOpen(true)}
           aria-label="Compartir ticket"
         >
           <Share2 className="h-4 w-4" /> Compartir
@@ -326,6 +292,8 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           </AlertDialog>
         )}
       </div>
+
+      <TicketShareSheet doc={doc} open={shareOpen} onOpenChange={setShareOpen} />
     </div>
   );
 }
