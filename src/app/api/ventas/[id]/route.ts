@@ -4,6 +4,7 @@ import { documentoService } from "@/services/documento-service";
 import { cajaService } from "@/services/caja-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditUpdate } from "@/lib/audit";
+import { TipoDoc } from "@/lib/tipo-documento";
 
 const MAX_FIELD_LEN = 500;
 
@@ -94,7 +95,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const result = await documentoService.guardarVentaConItems(
       isNew ? 0 : idDoc,
-      { ...doc, IdTipoDocumento: 1 },
+      { ...doc, IdTipoDocumento: TipoDoc.VENTA },
       items ?? [],
       originalItemIds ?? [],
       user.idTenant,

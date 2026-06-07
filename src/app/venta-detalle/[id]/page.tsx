@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Documento, toDisplayDocumento, DocumentoDisplay } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
 import { numToString, fechaCortaHora, cantidadString } from "@/lib/format";
+import { TipoDoc, esEgreso, esAbono } from "@/lib/tipo-documento";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -58,11 +59,11 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
     // Abono (tipo 2) y pago con saldo a favor (tipo 6): borrado físico vía
     // /api/abonos para que la cascada + trigger restauren el Saldo de la deuda
     // (y del crédito tipo 4, en el caso del tipo 6). Venta/gasto: soft-delete.
-    const esAbono = doc.IdTipoDocumento === 2 || doc.IdTipoDocumento === 6;
+    const esAbonoDoc = esAbono(doc.IdTipoDocumento);
     try {
-      await apiDelete(esAbono ? `/api/abonos/${doc.id}` : `/api/ventas/${doc.id}`);
+      await apiDelete(esAbonoDoc ? `/api/abonos/${doc.id}` : `/api/ventas/${doc.id}`);
       useAppStore.getState().triggerRefresh();
-      toast.success(esAbono ? "Abono eliminado" : "Documento eliminado");
+      toast.success(esAbonoDoc ? "Abono eliminado" : "Documento eliminado");
       router.push("/");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al eliminar");
@@ -72,10 +73,10 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   if (loading) return <LoadingState variant="skeleton-detail" count={5} />;
   if (!doc) return <EmptyState title="Documento no encontrado" description="El documento solicitado no existe o fue eliminado." />;
 
-  const isGasto = doc.IdTipoDocumento === 3;
-  const isAbono = doc.IdTipoDocumento === 2;
-  const isSaldoFavor = doc.IdTipoDocumento === 4;
-  const isPagoFavor = doc.IdTipoDocumento === 6; // abono con saldo a favor
+  const isGasto = esEgreso(doc.IdTipoDocumento);
+  const isAbono = doc.IdTipoDocumento === TipoDoc.ABONO;
+  const isSaldoFavor = doc.IdTipoDocumento === TipoDoc.SALDO_FAVOR;
+  const isPagoFavor = doc.IdTipoDocumento === TipoDoc.ABONO_FAVOR; // abono con saldo a favor
   // Regla genérica: un movimiento solo se edita/elimina mientras su caja siga
   // abierta (mismo día/sesión). El tipo 6 no tiene caja (IdCaja null) → exento.
   const cajaOk = doc.IdCaja == null || (cajaAbiertaId != null && cajaAbiertaId === doc.IdCaja);

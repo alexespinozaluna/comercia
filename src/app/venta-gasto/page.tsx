@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MetodoPago, Documento } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { toInputDate } from "@/lib/format";
+import { TipoDoc } from "@/lib/tipo-documento";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,7 +75,7 @@ function VentaGastoContent() {
         IdClienteDireccion: null,
         DireccionEntrega: null,
         TotalAbono: 0,
-        IdTipoDocumento: 3,
+        IdTipoDocumento: TipoDoc.GASTO,
         Saldo: 0,
         IdMetodoPago: selectedMetodo,
       };

@@ -59,6 +59,18 @@ export interface MetodoPago extends BaseEnty {
   bEfectivo: boolean;
 }
 
+export interface TipoDocumento extends BaseEnty {
+  Nombre: string;
+  Codigo: string;
+  bIngreso: boolean;
+  bEgreso: boolean;
+  bAfectaCaja: boolean;
+  bAfectaKardex: boolean;
+  bGeneraDeuda: boolean;
+  bEsAbono: boolean;
+  Signo: number;
+}
+
 export interface DocumentoItem {
   id: number;
   IdProducto: number;

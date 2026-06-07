@@ -4,6 +4,7 @@ import { cajaService } from "@/services/caja-service";
 import { productoService } from "@/services/producto-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate, auditUpdate } from "@/lib/audit";
+import { TipoDoc } from "@/lib/tipo-documento";
 import { TIPO_MOVIMIENTO } from "@/types/database";
 import type { OperacionTipo, TipoMovimiento } from "@/types/database";
 
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseServer();
 
-    // 1. Create Documento (IdTipoDocumento = 5 for Ajuste)
+    // 1. Create Documento (IdTipoDocumento = TipoDoc.AJUSTE)
     const { data: docData, error: docError } = await supabase
       .from("Documento")
       .insert(
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
           IdClienteDireccion: null,
           DireccionEntrega: null,
           TotalAbono: 0,
-          IdTipoDocumento: 5,
+          IdTipoDocumento: TipoDoc.AJUSTE,
           Saldo: 0,
           IdMetodoPago: null,
           IdTenant: user.idTenant,

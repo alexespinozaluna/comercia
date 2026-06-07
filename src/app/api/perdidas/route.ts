@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/api-auth";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { TipoDoc } from "@/lib/tipo-documento";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,11 +15,11 @@ export async function GET(req: NextRequest) {
     const fechaInicio = url.searchParams.get("fechaInicio");
     const fechaFin = url.searchParams.get("fechaFin");
 
-    // Get losses: Documento where IdTipoDocumento = 5 (Ajuste/Baja)
+    // Get losses: Documento where IdTipoDocumento = AJUSTE (Ajuste/Baja)
     let docQuery = supabase
       .from("Documento")
       .select("id, Concepto, Total, FechaEmision, DocumentoItem(Cantidad, PrecioVenta, Descripcion, IdProducto)")
-      .eq("IdTipoDocumento", 5)
+      .eq("IdTipoDocumento", TipoDoc.AJUSTE)
       .eq("IdTenant", user.idTenant)
       .eq("Estado", 1);
 

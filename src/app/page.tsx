@@ -7,6 +7,7 @@ import type { Caja } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
 import { numToString, extraerIniciales } from "@/lib/format";
+import { TipoDoc, esEgreso } from "@/lib/tipo-documento";
 import { obtenerRangosDeFechas } from "@/lib/date-utils";
 import { DateFilterBar } from "@/components/ventas/date-filter-bar";
 import { BalanceCards } from "@/components/ventas/balance-cards";
@@ -27,7 +28,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { da } from "date-fns/locale";
 
 /* ── Caja banner ───────────────────────────────────────────── */
 function CajaBanner() {
@@ -155,7 +155,6 @@ export default function HomePage() {
         `/api/ventas?fechaIni=${filterFechaInicio}&fechaFin=${filterFechaFin}`
       );
       setVentas(data);
-      console.log("Data",data)
     } catch (err) {
       console.error("Error loading ventas:", err);
     } finally {
@@ -183,8 +182,8 @@ export default function HomePage() {
   // Computed values — identical to original
   // tipo 6 = abono con saldo a favor: SÍ se ve en la lista, pero NO cuenta en
   // los totales (es transferencia interna; el dinero ya se contó al capturarlo).
-  const ingresos = ventas.filter((v) => v.IdTipoDocumento !== 3);
-  const gastos = ventas.filter((v) => v.IdTipoDocumento === 3);
+  const ingresos = ventas.filter((v) => !esEgreso(v.IdTipoDocumento));
+  const gastos = ventas.filter((v) => esEgreso(v.IdTipoDocumento));
    // Búsqueda sobre los movimientos del rango (no afecta totales del Balance)
   const term = search.toLowerCase();
   const filteredIngresos = search
@@ -212,16 +211,16 @@ export default function HomePage() {
   // NO incluye abonos (tipo 2, tienen su propia card) ni el consumo de saldo a
   // favor (tipo 6, transferencia interna ya contada al capturar).
   const totalEfectivo = filteredIngresos
-    .filter((v) => !v.bCredito && (v.IdTipoDocumento === 1 || v.IdTipoDocumento === 4))
+    .filter((v) => !v.bCredito && (v.IdTipoDocumento === TipoDoc.VENTA || v.IdTipoDocumento === TipoDoc.SALDO_FAVOR))
     .reduce((sum, v) => sum + v.Total, 0);
   // Abono = documentos de abono (tipo 2). Excluye por construcción el tipo 6.
   const totalAbono = filteredIngresos
-    .filter((v) => v.IdTipoDocumento === 2)
+    .filter((v) => v.IdTipoDocumento === TipoDoc.ABONO)
     .reduce((sum, v) => sum + v.Total, 0);
   const totalGastos = filteredGastos.reduce((sum, v) => sum + v.Total, 0);
   const balance = totalEfectivo + totalAbono - totalGastos;
   const totalCredito = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.Saldo, 0);
-  const ventasOnly = filteredIngresos.filter((v) => v.IdTipoDocumento === 1);
+  const ventasOnly = filteredIngresos.filter((v) => v.IdTipoDocumento === TipoDoc.VENTA);
   const ventasCount = ventasOnly.length;
   const ventasTotal = ventasOnly.reduce((sum, v) => sum + v.Total, 0); 
 

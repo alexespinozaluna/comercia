@@ -3,6 +3,7 @@ import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { cajaService } from "@/services/caja-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate } from "@/lib/audit";
+import { TipoDoc } from "@/lib/tipo-documento";
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
           IdClienteDireccion: null,
           DireccionEntrega: null,
           TotalAbono: 0,
-          IdTipoDocumento: 3,
+          IdTipoDocumento: TipoDoc.GASTO,
           Saldo: 0,
           IdMetodoPago: IdMetodoPago ?? null,
           IdCaja: caja.id,

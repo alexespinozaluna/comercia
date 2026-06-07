@@ -4,6 +4,7 @@ import { cajaService } from "@/services/caja-service";
 import { documentoService } from "@/services/documento-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate } from "@/lib/audit";
+import { TipoDoc } from "@/lib/tipo-documento";
 
 // Lista de saldos a favor activos (tipo 4 con Saldo > 0) para agregar por cliente.
 export async function GET(req: NextRequest) {
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
           IdClienteDireccion: null,
           DireccionEntrega: null,
           TotalAbono: 0,
-          IdTipoDocumento: 4, // saldo a favor
+          IdTipoDocumento: TipoDoc.SALDO_FAVOR, // saldo a favor
           Saldo: Total, // crédito disponible (Fase 2: se consume)
           IdMetodoPago: IdMetodoPago ?? null,
           IdCaja: caja.id,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Documento, Cliente } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { toInputDate } from "@/lib/format";
+import { TipoDoc } from "@/lib/tipo-documento";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 import { useBasket, BasketItemLocal } from "./pos/use-basket";
@@ -15,8 +16,6 @@ import { useProductos } from "./pos/use-productos";
 import { useConcepto } from "./pos/use-concepto";
 
 export type { BasketItemLocal } from "./pos/use-basket";
-
-const TIPO_DOCUMENTO_VENTA = 1;
 
 /**
  * POS transaction hook — composes focused sub-hooks (basket, cliente, metodo de pago,
@@ -185,7 +184,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         })),
         Cliente: undefined,
         TotalAbono: 0,
-        IdTipoDocumento: TIPO_DOCUMENTO_VENTA,
+        IdTipoDocumento: TipoDoc.VENTA,
         Saldo: isCredit ? basket.total : 0,
         // En crédito no aplica forma de pago (no se muestra ni se exige).
         IdMetodoPago: isCredit ? null : metodo.selectedId,

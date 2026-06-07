@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { documentoService } from "@/services/documento-service";
 import { cajaService } from "@/services/caja-service";
+import { TipoDoc } from "@/lib/tipo-documento";
 
 const MAX_FIELD_LEN = 500;
 
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       IdCliente: IdCliente && IdCliente !== 0 ? IdCliente : null,
       IdClienteDireccion: IdClienteDireccion ?? null,
       DireccionEntrega: DireccionEntrega ?? null,
-      IdTipoDocumento: 1,
+      IdTipoDocumento: TipoDoc.VENTA,
       Saldo: bCredito ? Total : 0,
       IdMetodoPago: IdMetodoPago ?? null,
     };

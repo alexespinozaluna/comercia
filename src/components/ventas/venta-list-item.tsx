@@ -1,5 +1,6 @@
 import { Documento } from "@/types/database";
 import { numToString, fechaString, extraerIniciales, sbsLeft } from "@/lib/format";
+import { TipoDoc, esEgreso } from "@/lib/tipo-documento";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +19,9 @@ function tiempoRelativo(fechaEmision: string): string {
 }
 
 export function VentaListItem({ venta }: VentaListItemProps) {
-  const isGasto = venta.IdTipoDocumento === 3;
-  const isSaldoFavor = venta.IdTipoDocumento === 4; // captura
-  const isPagoFavor = venta.IdTipoDocumento === 6; // consumo (no cuenta)
+  const isGasto = esEgreso(venta.IdTipoDocumento);
+  const isSaldoFavor = venta.IdTipoDocumento === TipoDoc.SALDO_FAVOR; // captura
+  const isPagoFavor = venta.IdTipoDocumento === TipoDoc.ABONO_FAVOR; // consumo (no cuenta)
   const violeta = "bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400";
   const isCredito = venta.bCredito && !isGasto;
   const nombre = venta.Cliente?.Nombre ?? venta.Concepto ?? venta.Descripcion ?? "Sin nombre";

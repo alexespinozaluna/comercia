@@ -2,6 +2,7 @@ import {
   Documento,
   DocumentoItem,
   MetodoPago,
+  TipoDocumento,
   ClienteDireccion,
   DeudaDetalle,
   DeudaResumen,
@@ -10,6 +11,7 @@ import {
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { deleteItem } from "./supabase-service";
 import { auditCreate, auditUpdate } from "@/lib/audit";
+import { TipoDoc } from "@/lib/tipo-documento";
 
 const TABLE = "Documento";
 const MAX_FIELD_LEN = 500;
@@ -41,7 +43,7 @@ function buildDocumentoJson(
     IdCliente: doc.IdCliente && doc.IdCliente !== 0 ? doc.IdCliente : null,
     IdClienteDireccion: doc.IdClienteDireccion ?? null,
     DireccionEntrega: doc.DireccionEntrega ?? null,
-    IdTipoDocumento: doc.IdTipoDocumento ?? 1,
+    IdTipoDocumento: doc.IdTipoDocumento ?? TipoDoc.VENTA,
     Saldo: doc.bCredito ? doc.Total : 0,
     IdMetodoPago: doc.IdMetodoPago ?? null,
   };
@@ -397,7 +399,7 @@ export const documentoService = {
     let query = getSupabaseServer()
       .from(TABLE)
       .select("id, IdCliente, Total, Saldo, FechaEmision, IdCaja, Cliente(Nombre)")
-      .eq("IdTipoDocumento", 4)
+      .eq("IdTipoDocumento", TipoDoc.SALDO_FAVOR)
       .eq("Estado", 1)
       .gt("Saldo", 0)
       .eq("IdTenant", tenantId)
@@ -436,7 +438,7 @@ export const documentoService = {
 
     if (fetchErr || !doc) throw new Error("Saldo a favor no encontrado");
     const d = doc as { IdTipoDocumento: number; Total: number; Saldo: number };
-    if (d.IdTipoDocumento !== 4) throw new Error("El documento no es un saldo a favor");
+    if (d.IdTipoDocumento !== TipoDoc.SALDO_FAVOR) throw new Error("El documento no es un saldo a favor");
     if (Math.abs(d.Total - d.Saldo) >= 0.01) {
       throw new Error("No se puede editar: el saldo a favor ya fue utilizado");
     }
@@ -446,7 +448,7 @@ export const documentoService = {
       .update(auditUpdate(idUsuario, { Total: monto, Saldo: monto }))
       .eq("id", id)
       .eq("IdTenant", idTenant)
-      .eq("IdTipoDocumento", 4);
+      .eq("IdTipoDocumento", TipoDoc.SALDO_FAVOR);
 
     if (error) throw new Error(`Error editando saldo a favor: ${error.message}`);
   },
@@ -465,7 +467,7 @@ export const documentoService = {
 
     if (fetchErr || !doc) throw new Error("Saldo a favor no encontrado");
     const d = doc as { IdTipoDocumento: number; Total: number; Saldo: number };
-    if (d.IdTipoDocumento !== 4) throw new Error("El documento no es un saldo a favor");
+    if (d.IdTipoDocumento !== TipoDoc.SALDO_FAVOR) throw new Error("El documento no es un saldo a favor");
     if (Math.abs(d.Total - d.Saldo) >= 0.01) {
       throw new Error("No se puede eliminar: el saldo a favor ya fue utilizado");
     }
@@ -475,7 +477,7 @@ export const documentoService = {
       .delete()
       .eq("id", id)
       .eq("IdTenant", idTenant)
-      .eq("IdTipoDocumento", 4);
+      .eq("IdTipoDocumento", TipoDoc.SALDO_FAVOR);
 
     if (error) throw new Error(`Error eliminando saldo a favor: ${error.message}`);
   },
@@ -520,6 +522,17 @@ export const documentoService = {
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching MetodoPago: ${error.message}`);
     return (data ?? []) as MetodoPago[];
+  },
+
+  /** Catálogo global de tipos de documento (no depende de tenant). */
+  async getTipoDocumento(): Promise<TipoDocumento[]> {
+    const { data, error } = await getSupabaseServer()
+      .from("TipoDocumento")
+      .select("*")
+      .eq("Estado", 1)
+      .order("Orden");
+    if (error) throw new Error(`Error fetching TipoDocumento: ${error.message}`);
+    return (data ?? []) as TipoDocumento[];
   },
 
   /**

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditUpdate } from "@/lib/audit";
+import { TipoDoc } from "@/lib/tipo-documento";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -29,7 +30,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       )
       .eq("id", idDoc)
       .eq("IdTenant", user.idTenant)
-      .eq("IdTipoDocumento", 3)
+      .eq("IdTipoDocumento", TipoDoc.GASTO)
       .eq("Estado", 1);
 
     if (error) {
