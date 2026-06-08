@@ -6,6 +6,10 @@ import { formatNumero } from "@/lib/format";
 
 export interface BasketItemLocal {
   _tempId: string;
+  /** Id del DocumentoItem original al editar una venta; undefined/0 = item nuevo.
+   *  Imprescindible para que el diff de modificación (toUpdate vs toAdd) reconozca
+   *  los items existentes y NO los reinserte (evita duplicar movimientos de stock). */
+  id?: number;
   IdProducto: number;
   Descripcion: string;
   Cantidad: number;

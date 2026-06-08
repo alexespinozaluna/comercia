@@ -100,6 +100,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
           basket.hydrate(
             venta.DocumentoItem.map((item) => ({
               _tempId: `item-${item.id}`,
+              id: item.id, // preserva el id real → el diff lo trata como UPDATE, no re-INSERT
               IdProducto: item.IdProducto,
               Descripcion: item.Descripcion,
               Cantidad: item.Cantidad,
@@ -172,7 +173,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         IdClienteDireccion: cliente.direccionId,
         DireccionEntrega: null,
         DocumentoItem: basket.items.map((b) => ({
-          id: 0,
+          id: b.id ?? 0, // id real al editar (→ UPDATE); 0 para items nuevos (→ INSERT)
           IdProducto: b.IdProducto,
           Descripcion: b.Descripcion,
           Cantidad: b.Cantidad,

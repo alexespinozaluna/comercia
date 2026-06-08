@@ -301,6 +301,7 @@ export const TIPO_MOVIMIENTO = {
   MERMA_DANO: 4,
   VENCIMIENTO: 5,
   INVENTARIO_FISICO: 6,
+  ANULACION_VENTA: 7, // devolución a stock al borrar/anular una venta (INGRESO)
 } as const;
 
 export type TipoMovimientoKey = keyof typeof TIPO_MOVIMIENTO;

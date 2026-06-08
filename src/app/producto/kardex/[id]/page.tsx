@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Producto, ProductoMovimiento, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { toInputDate, cantidadString } from "@/lib/format";
@@ -13,7 +14,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowUpRight, ArrowDownRight, ArrowUpDown, TrendingUp, TrendingDown, History, Package } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, ArrowUpDown, TrendingUp, TrendingDown, History, Package, ChevronRight, RotateCcw } from "lucide-react";
 
 const TIPO_OPTIONS = [
   { value: "Todos", label: "Todos" },
@@ -40,6 +41,7 @@ const MOV_STYLE: Record<number, Omit<MovimientoInfo, "label">> = {
   4: { icon: <TrendingDown className="h-4 w-4" />, bgColor: "bg-red-500/10", textColor: "text-red-600 dark:text-red-400", ringColor: "ring-red-500/25", sign: "-" },
   5: { icon: <ArrowDownRight className="h-4 w-4" />, bgColor: "bg-orange-500/10", textColor: "text-orange-600 dark:text-orange-400", ringColor: "ring-orange-500/25", sign: "-" },
   6: { icon: <ArrowUpDown className="h-4 w-4" />, bgColor: "bg-sky-500/10", textColor: "text-sky-600 dark:text-sky-400", ringColor: "ring-sky-500/25", sign: "±" },
+  7: { icon: <RotateCcw className="h-4 w-4" />, bgColor: "bg-emerald-500/10", textColor: "text-emerald-600 dark:text-emerald-400", ringColor: "ring-emerald-500/25", sign: "+" },
 };
 
 function getMovInfo(tipo: number, tipos: TipoMovimiento[]): MovimientoInfo {
@@ -205,6 +207,15 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(m.Fecha), "dd MMM yyyy · HH:mm", { locale: es })}
                     </span>
+                    {m.IdDocumento != null && (
+                      <Link
+                        href={`/venta-detalle/${m.IdDocumento}`}
+                        className="ml-auto shrink-0 inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        #{String(m.IdDocumento).padStart(5, "0")}
+                        <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    )}
                   </div>
                   {m.Observacion && (
                     <div className="text-xs text-muted-foreground mt-0.5 truncate">{m.Observacion}</div>
