@@ -43,7 +43,7 @@ const MOV_STYLE: Record<number, Omit<MovimientoInfo, "label">> = {
 };
 
 function getMovInfo(tipo: number, tipos: TipoMovimiento[]): MovimientoInfo {
-  const meta = tipos.find((t) => t.Id === tipo);
+  const meta = tipos?.find((t) => t.Id === tipo);
   const style = MOV_STYLE[tipo] ?? { icon: <History className="h-4 w-4" />, bgColor: "bg-muted", textColor: "text-muted-foreground", ringColor: "ring-border", sign: "" };
   return { label: meta?.Descripcion ?? "Otro", ...style };
 }
@@ -80,8 +80,8 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
         apiGet<TipoMovimiento[]>("/api/tipo-movimiento"),
       ]);
       setProducto(prodData);
-      setMovimientos(movData);
-      setTiposMovimiento(tiposData);
+      setMovimientos(movData ?? []);
+      setTiposMovimiento(tiposData ?? []);
     } catch (err) {
       console.error(err);
     } finally {

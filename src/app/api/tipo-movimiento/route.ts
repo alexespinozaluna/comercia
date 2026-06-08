@@ -23,5 +23,5 @@ export async function GET() {
     Efecto: row.Efecto as TipoMovimiento["Efecto"],
   }));
 
-  return NextResponse.json(result);
+  return NextResponse.json({ data: result });
 }
