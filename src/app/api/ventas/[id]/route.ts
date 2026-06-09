@@ -72,12 +72,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       // Verify document exists, is active, belongs to tenant, and has no payments
       const { data: existing, error: fetchErr } = await getSupabaseServer()
         .from("Documento")
-        .select("id, Estado, IdTenant, TotalAbono")
+        .select("id, Estado, IdTenant, TotalAbono, IdTipoDocumento")
         .eq("id", idDoc)
         .single();
 
       if (fetchErr || !existing) {
         return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+      }
+
+      // Solo se editan ventas por esta vía. Editar otro tipo (p. ej. un ajuste,
+      // tipo 5) lo reescribiría como venta — bloquear.
+      if ((existing as { IdTipoDocumento: number }).IdTipoDocumento !== TipoDoc.VENTA) {
+        return NextResponse.json({ error: "Este documento no es una venta y no se puede editar aquí" }, { status: 403 });
       }
 
       if ((existing as { Estado: number }).Estado !== 1) {
@@ -190,7 +196,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     // Verify no payments
     const { data: doc, error: docErr } = await getSupabaseServer()
       .from("Documento")
-      .select("TotalAbono")
+      .select("TotalAbono, IdTipoDocumento")
       .eq("id", idDoc)
       .eq("IdTenant", user.idTenant)
       .eq("Estado", 1)
@@ -198,6 +204,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     if (docErr || !doc) {
       return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+    }
+
+    // Los ajustes (tipo 5) se anulan desde el módulo de Stock, no aquí: por esta
+    // vía no se devolvería el stock correctamente.
+    if ((doc as { IdTipoDocumento: number }).IdTipoDocumento === TipoDoc.AJUSTE) {
+      return NextResponse.json({ error: "Los ajustes de inventario se anulan desde Stock → Ajustes" }, { status: 400 });
     }
 
     if ((doc as { TotalAbono: number }).TotalAbono > 0) {

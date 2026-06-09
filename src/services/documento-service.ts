@@ -86,6 +86,10 @@ export const documentoService = {
       query = query.eq("IdTenant", tenantId).eq("Estado", 1);
     }
 
+    // Los ajustes (tipo 5: Baja/Inventario) son movimientos de inventario, no de
+    // caja: viven en /producto/ajustes y NO deben listarse ni editarse aquí.
+    query = query.neq("IdTipoDocumento", TipoDoc.AJUSTE);
+
     // Sucursal activa (si el token la trae); null → nivel cuenta.
     if (negocioId != null) {
       query = query.eq("IdNegocio", negocioId);

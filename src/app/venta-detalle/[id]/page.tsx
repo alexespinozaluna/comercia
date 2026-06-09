@@ -77,16 +77,18 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const isAbono = doc.IdTipoDocumento === TipoDoc.ABONO;
   const isSaldoFavor = doc.IdTipoDocumento === TipoDoc.SALDO_FAVOR;
   const isPagoFavor = doc.IdTipoDocumento === TipoDoc.ABONO_FAVOR; // abono con saldo a favor
+  const isAjuste = doc.IdTipoDocumento === TipoDoc.AJUSTE; // Baja/Inventario → se gestiona en Stock
   // Regla genérica: un movimiento solo se edita/elimina mientras su caja siga
   // abierta (mismo día/sesión). El tipo 6 no tiene caja (IdCaja null) → exento.
   const cajaOk = doc.IdCaja == null || (cajaAbiertaId != null && cajaAbiertaId === doc.IdCaja);
   // Saldo a favor (4) y pago con saldo a favor (6) no se editan por el form de venta.
-  const canEdit = doc.TotalAbono === 0 && !isSaldoFavor && !isPagoFavor && cajaOk;
+  // Los ajustes (5) se gestionan solo desde Stock → Ajustes, no aquí.
+  const canEdit = doc.TotalAbono === 0 && !isSaldoFavor && !isPagoFavor && !isAjuste && cajaOk;
   // El pago con saldo a favor SÍ se puede eliminar (= anular): el trigger
   // restaura la deuda y el crédito. El resto, solo con su caja abierta.
   const canDelete = isPagoFavor
     ? true
-    : doc.TotalAbono === 0 && !isSaldoFavor && cajaOk;
+    : doc.TotalAbono === 0 && !isSaldoFavor && !isAjuste && cajaOk;
   const canAbono = doc.bCredito && doc.Saldo > 0;
 
   return (

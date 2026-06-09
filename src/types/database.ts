@@ -291,6 +291,11 @@ export interface ProductoMovimiento {
   Fecha: string;
 }
 
+// Movimiento de ajuste con el nombre del producto resuelto (kardexService.getAjustes).
+export interface ProductoMovimientoAjuste extends ProductoMovimiento {
+  ProductoNombre: string | null;
+}
+
 // TipoMovimiento — reference table (Supabase: "TipoMovimiento")
 // Operacion: Ingreso (adds stock), Salida (removes stock), Ajuste (calculated difference)
 // Efecto:   Suma (add), Resta (subtract), Suma o Resta (depends on sign)

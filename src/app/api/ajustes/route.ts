@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { cajaService } from "@/services/caja-service";
 import { productoService } from "@/services/producto-service";
+import { kardexService } from "@/services/kardex-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate, auditUpdate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
@@ -36,6 +37,39 @@ async function getOperacion(tipoMovimiento: number): Promise<OperacionTipo> {
     .eq("Id", tipoMovimiento)
     .single();
   return (data?.Operacion as OperacionTipo) ?? "SALIDA";
+}
+
+// Listado de ajustes de inventario (tipos 3-6) del tenant/sucursal activos,
+// filtrado por rango de fechas. Solo ADMIN/SUPERVISOR (igual que el POST).
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getCurrentUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+    requireRole(user, ["ADMIN", "SUPERVISOR"]);
+
+    const { searchParams } = new URL(req.url);
+    const fechaInicio = searchParams.get("fechaInicio") ?? undefined;
+    const fechaFin = searchParams.get("fechaFin") ?? undefined;
+    const tipo = searchParams.get("tipo");
+    const tipos = tipo ? [parseInt(tipo, 10)] : undefined;
+
+    const data = await kardexService.getAjustes(
+      user.idTenant,
+      user.idNegocio,
+      fechaInicio,
+      fechaFin,
+      tipos,
+    );
+    return NextResponse.json({ data });
+  } catch (err) {
+    if (err instanceof Error && err.message === "Forbidden") {
+      return NextResponse.json({ error: "No tiene permisos para esta accion" }, { status: 403 });
+    }
+    console.error("GET /api/ajustes error:", err);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {

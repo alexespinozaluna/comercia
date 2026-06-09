@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ProductoMovimiento, TipoMovimiento } from "@/types/database";
+import { ProductoMovimientoAjuste, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { cantidadString } from "@/lib/format";
+import { cantidadString, toInputDate } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
 import { AuthUser } from "@/lib/auth-client";
 import { getCurrentUser } from "@/lib/auth-client";
@@ -13,10 +13,11 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { RegistroBajaForm } from "@/components/kardex/registro-baja-form";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowDownRight, ArrowUpDown, TrendingDown, TrendingUp, History, Plus } from "lucide-react";
+import { ArrowDownRight, ArrowUpDown, TrendingDown, TrendingUp, History, Plus, Search } from "lucide-react";
 
 const ALLOWED_ROLES = ["ADMIN", "SUPERVISOR"];
 
@@ -36,52 +37,74 @@ function getMovInfo(tipo: number, tipos: TipoMovimiento[]) {
 export default function AjustesPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [movimientos, setMovimientos] = useState<ProductoMovimiento[]>([]);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [movimientos, setMovimientos] = useState<ProductoMovimientoAjuste[]>([]);
   const [tiposMovimiento, setTiposMovimiento] = useState<TipoMovimiento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"baja" | "inventario">("baja");
   const [initialProductId, setInitialProductId] = useState<number | undefined>(undefined);
   const { refreshCounter } = useAppStore();
 
+  const [fechaInicio, setFechaInicio] = useState(() => {
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    return toInputDate(monthAgo);
+  });
+  const [fechaFin, setFechaFin] = useState(() => toInputDate());
+
+  // Auth + ?producto= (botón "Ajustar Stock" del detalle) — una sola vez.
   useEffect(() => {
-    getCurrentUser().then(async (u) => {
+    getCurrentUser().then((u) => {
       setUser(u);
-      if (!u || !ALLOWED_ROLES.includes(u.rol)) {
-        setLoading(false);
-        return;
-      }
-      // Si llega ?producto=<id> (botón "Ajustar Stock" del detalle), abrir
-      // el formulario con ese producto preseleccionado.
+      setAuthChecked(true);
+      if (!u || !ALLOWED_ROLES.includes(u.rol)) return;
       const pid = parseInt(new URLSearchParams(window.location.search).get("producto") ?? "", 10);
       if (Number.isFinite(pid) && pid > 0) {
         setInitialProductId(pid);
         setSheetMode("baja");
         setSheetOpen(true);
       }
-      setLoading(true);
-      try {
-        const [allData, tiposData] = await Promise.all([
-          apiGet<ProductoMovimiento[]>("/api/kardex"),
-          apiGet<TipoMovimiento[]>("/api/tipo-movimiento"),
-        ]);
-        setMovimientos(allData.filter((m) => m.TipoMovimiento >= 3));
-        setTiposMovimiento(tiposData);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
     });
-  }, [refreshCounter]);
+  }, []);
+
+  const loadAjustes = useCallback(async () => {
+    if (!user || !ALLOWED_ROLES.includes(user.rol)) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [data, tiposData] = await Promise.all([
+        apiGet<ProductoMovimientoAjuste[]>(`/api/ajustes?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
+        apiGet<TipoMovimiento[]>("/api/tipo-movimiento"),
+      ]);
+      setMovimientos(data ?? []);
+      setTiposMovimiento(tiposData ?? []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, fechaInicio, fechaFin]);
+
+  useEffect(() => {
+    loadAjustes();
+  }, [loadAjustes, refreshCounter]);
 
   const openSheet = (mode: "baja" | "inventario") => {
     setSheetMode(mode);
     setSheetOpen(true);
   };
 
+  const term = search.trim().toLowerCase();
+  const filtered = term
+    ? movimientos.filter((m) => (m.ProductoNombre ?? "").toLowerCase().includes(term))
+    : movimientos;
+
   // Access check
-  if (user && !ALLOWED_ROLES.includes(user.rol)) {
+  if (authChecked && user && !ALLOWED_ROLES.includes(user.rol)) {
     return (
       <div className="space-y-2">
         <PageHeader title="Ajustes de Inventario" onBack={() => router.back()} breadcrumbs={[{ label: "Stock", href: "/producto" }, { label: "Ajustes" }]} />
@@ -108,17 +131,54 @@ export default function AjustesPage() {
         }
       />
 
+      {/* Date range filter */}
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Input
+            type="date"
+            value={fechaInicio}
+            onChange={(e) => setFechaInicio(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
+        <div className="flex-1">
+          <Input
+            type="date"
+            value={fechaFin}
+            onChange={(e) => setFechaFin(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Product search */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por producto..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-9 text-sm pl-8"
+        />
+      </div>
+
+      {/* Count */}
+      <div className="text-xs text-muted-foreground">
+        {filtered.length} ajuste{filtered.length !== 1 ? "s" : ""}
+        {term && ` · "${search.trim()}"`}
+      </div>
+
       {loading ? (
         <LoadingState variant="skeleton-list" count={5} />
-      ) : movimientos.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={History}
           title="Sin ajustes"
-          description="No se encontraron registros de ajustes de inventario."
+          description={term ? "Ningún ajuste coincide con la búsqueda." : "No se encontraron ajustes en el rango seleccionado."}
         />
       ) : (
         <div className="space-y-2">
-          {movimientos.map((m) => {
+          {filtered.map((m) => {
             const info = getMovInfo(m.TipoMovimiento, tiposMovimiento);
             return (
               <div
@@ -133,7 +193,8 @@ export default function AjustesPage() {
                   <span className={info.text}>{info.icon}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
+                  <div className="text-sm font-semibold truncate">{m.ProductoNombre ?? "Producto"}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
                     <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", info.bg, info.text)}>
                       {info.label}
                     </span>
