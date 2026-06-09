@@ -347,6 +347,9 @@ export const documentoService = {
       query = query.eq("IdTenant", tenantId).eq("Estado", 0);
     }
 
+    // Igual que getVentas: los ajustes (tipo 5) no pertenecen al flujo de ventas.
+    query = query.neq("IdTipoDocumento", TipoDoc.AJUSTE);
+
     if (negocioId != null) {
       query = query.eq("IdNegocio", negocioId);
     }
