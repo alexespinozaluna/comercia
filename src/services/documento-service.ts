@@ -12,6 +12,7 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import { deleteItem } from "./supabase-service";
 import { auditCreate, auditUpdate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
+import { toInputDate } from "@/lib/format";
 
 const TABLE = "Documento";
 const MAX_FIELD_LEN = 500;
@@ -106,7 +107,7 @@ export const documentoService = {
     } else {
       const fechaFinEnd = new Date(fechaFin + "T00:00:00");
       fechaFinEnd.setDate(fechaFinEnd.getDate() + 1);
-      const fechaFinNext = fechaFinEnd.toISOString().split("T")[0];
+      const fechaFinNext = toInputDate(fechaFinEnd);
       query = query
         .gte("FechaEmision", fechaIni)
         .lt("FechaEmision", fechaFinNext);

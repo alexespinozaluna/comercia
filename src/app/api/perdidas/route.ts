@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/api-auth";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { TipoDoc } from "@/lib/tipo-documento";
+import { toInputDate } from "@/lib/format";
 
 export async function GET(req: NextRequest) {
   try {
@@ -87,8 +88,8 @@ export async function GET(req: NextRequest) {
     const today = new Date();
     const sevenDaysFromNow = new Date(today);
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-    const todayStr = today.toISOString().split("T")[0];
-    const futureStr = sevenDaysFromNow.toISOString().split("T")[0];
+    const todayStr = toInputDate(today);
+    const futureStr = toInputDate(sevenDaysFromNow);
 
     const { data: proxVencer, error: vencerError } = await supabase
       .from("Producto")

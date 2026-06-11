@@ -1,5 +1,6 @@
 import { DocumentoAudit, DocumentoItemAudit } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { toInputDate } from "@/lib/format";
 
 const TABLE_DOC = "DocumentoAudit";
 const TABLE_ITEM = "DocumentoItemAudit";
@@ -21,7 +22,7 @@ export const auditoriaService = {
     if (fechaFin) {
       const fechaFinEnd = new Date(fechaFin + "T00:00:00");
       fechaFinEnd.setDate(fechaFinEnd.getDate() + 1);
-      const fechaFinNext = fechaFinEnd.toISOString().split("T")[0];
+      const fechaFinNext = toInputDate(fechaFinEnd);
       query = query.lt("FechaAudit", fechaFinNext);
     }
     if (operacion) query = query.eq("Operacion", operacion);
@@ -47,7 +48,7 @@ export const auditoriaService = {
     if (fechaFin) {
       const fechaFinEnd = new Date(fechaFin + "T00:00:00");
       fechaFinEnd.setDate(fechaFinEnd.getDate() + 1);
-      const fechaFinNext = fechaFinEnd.toISOString().split("T")[0];
+      const fechaFinNext = toInputDate(fechaFinEnd);
       query = query.lt("FechaAudit", fechaFinNext);
     }
     if (operacion) query = query.eq("Operacion", operacion);

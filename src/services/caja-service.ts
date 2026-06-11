@@ -1,5 +1,6 @@
 import { Caja, CajaArqueo, CajaHistorialItem } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import { toInputDate } from "@/lib/format";
 
 const TABLE = "Caja";
 
@@ -129,7 +130,7 @@ export const cajaService = {
       // hasta inclusivo: avanzar 1 día y usar lt
       const next = new Date(hasta + "T00:00:00");
       next.setDate(next.getDate() + 1);
-      query = query.lt("FechaApertura", next.toISOString().split("T")[0]);
+      query = query.lt("FechaApertura", toInputDate(next));
     }
     if (idUsuario && idUsuario > 0) {
       query = query.or(
