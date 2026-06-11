@@ -147,7 +147,7 @@ export function CartItemEditSheet({
           <div className="flex justify-between items-center rounded-md bg-brand-surface px-4 py-3">
             <span className="text-sm font-medium text-brand-dark">Subtotal</span>
             <span className="text-lg font-extrabold text-brand-dark tabular-nums">
-              {numToString(subtotal, "N2")}
+              {numToString(subtotal)}
             </span>
           </div>
 

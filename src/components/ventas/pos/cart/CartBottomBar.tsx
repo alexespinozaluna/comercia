@@ -20,7 +20,7 @@ export function CartBottomBar({ total, saving, canSave, isEdit, onSave }: CartBo
         <div className="flex justify-between items-baseline">
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="text-[28px] font-extrabold tabular-nums leading-none text-brand-dark">
-            {numToString(total, "N2")}
+            {numToString(total)}
           </span>
         </div>
         <Button

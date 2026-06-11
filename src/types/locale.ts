@@ -27,3 +27,18 @@ export const DEFAULT_LOCALE: LocaleValido = "es-CL";
 export function esLocaleValido(l: unknown): l is LocaleValido {
   return typeof l === "string" && (LOCALES_VALIDOS as readonly string[]).includes(l);
 }
+
+// Decimales de montos por negocio: 0 (enteros, estilo CLP) o 2 (centavos).
+export const DECIMALES_VALIDOS = [0, 2] as const;
+export type DecimalesValidos = (typeof DECIMALES_VALIDOS)[number];
+
+export const DECIMALES_LABELS: Record<DecimalesValidos, string> = {
+  0: "Sin decimales — $ 37.500",
+  2: "Con decimales — $ 37.500,00",
+};
+
+export const DEFAULT_DECIMALES: DecimalesValidos = 0;
+
+export function esDecimalesValido(d: unknown): d is DecimalesValidos {
+  return d === 0 || d === 2;
+}

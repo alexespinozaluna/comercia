@@ -21,7 +21,7 @@ export function NegocioSelector() {
   const authUser = useAppStore((s) => s.authUser);
   const setAuthUser = useAppStore((s) => s.setAuthUser);
   const triggerRefresh = useAppStore((s) => s.triggerRefresh);
-  const setLocale = useAppStore((s) => s.setLocale);
+  const setFormato = useAppStore((s) => s.setFormato);
   const router = useRouter();
 
   const [negocios, setNegocios] = useState<Negocio[]>([]);
@@ -36,13 +36,14 @@ export function NegocioSelector() {
       .catch(() => setNegocios([]));
   }, [tenantId]);
 
-  // Aplica el locale del negocio activo al formateo global. Cubre también
-  // el cambio de sucursal: setAuthUser actualiza idNegocio y re-dispara.
+  // Aplica el formato regional (locale + decimales) del negocio activo al
+  // formateo global. Cubre también el cambio de sucursal: setAuthUser
+  // actualiza idNegocio y re-dispara.
   useEffect(() => {
     if (!negocios.length) return;
     const activo = negocios.find((n) => n.id === idNegocioActivo) ?? negocios[0];
-    if (activo?.Locale) setLocale(activo.Locale);
-  }, [negocios, idNegocioActivo, setLocale]);
+    if (activo?.Locale) setFormato(activo.Locale, activo.Decimales ?? 0);
+  }, [negocios, idNegocioActivo, setFormato]);
 
   if (!authUser) return null;
 

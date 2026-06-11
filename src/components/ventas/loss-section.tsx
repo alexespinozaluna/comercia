@@ -280,7 +280,7 @@ export function LossSection({ fechaInicio, fechaFin }: { fechaInicio: string; fe
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium truncate">{item.producto}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        {item.cantidad} u · {numToString(item.precioUnitario, "N2")}
+                        {item.cantidad} u · {numToString(item.precioUnitario)}
                       </div>
                     </div>
                     <div className="text-right shrink-0">

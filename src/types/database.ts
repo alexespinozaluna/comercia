@@ -188,6 +188,8 @@ export interface Negocio extends BaseEnty {
   Logo: string | null;
   // Formato regional de fechas/números (es-CL, es-PE, …). Ver src/types/locale.ts.
   Locale: string;
+  // Decimales de los montos: 0 (enteros, CLP) o 2 (centavos, PEN).
+  Decimales: number;
   Estado: number;
 }
 

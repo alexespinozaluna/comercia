@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { Negocio } from "@/types/database";
-import { LOCALES_VALIDOS, LOCALE_LABELS, DEFAULT_LOCALE, esLocaleValido } from "@/types/locale";
+import {
+  LOCALES_VALIDOS,
+  LOCALE_LABELS,
+  DEFAULT_LOCALE,
+  esLocaleValido,
+  DECIMALES_VALIDOS,
+  DECIMALES_LABELS,
+  DEFAULT_DECIMALES,
+  esDecimalesValido,
+} from "@/types/locale";
 import { apiGet, apiPut } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
 import { Input } from "@/components/ui/input";
@@ -18,7 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
-import { Building2, Phone, MapPin, ImageIcon, Globe } from "lucide-react";
+import { Building2, Phone, MapPin, ImageIcon, Globe, Hash } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -35,10 +44,11 @@ export default function ConfiguracionPage() {
   const [telefono, setTelefono] = useState("");
   const [logo, setLogo] = useState("");
   const [locale, setLocaleField] = useState<string>(DEFAULT_LOCALE);
+  const [decimales, setDecimalesField] = useState<number>(DEFAULT_DECIMALES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
-  const setLocaleGlobal = useAppStore((s) => s.setLocale);
+  const setFormatoGlobal = useAppStore((s) => s.setFormato);
 
   useEffect(() => {
     async function load() {
@@ -53,6 +63,7 @@ export default function ConfiguracionPage() {
           setTelefono(activo.Telefono ?? "");
           setLogo(activo.Logo ?? "");
           setLocaleField(esLocaleValido(activo.Locale) ? activo.Locale : DEFAULT_LOCALE);
+          setDecimalesField(esDecimalesValido(activo.Decimales) ? activo.Decimales : DEFAULT_DECIMALES);
         }
       } catch (err) {
         console.error(err);
@@ -75,9 +86,10 @@ export default function ConfiguracionPage() {
         Telefono: telefono || null,
         Logo: logo || null,
         Locale: locale,
+        Decimales: decimales,
       });
       // Aplica el nuevo formato de inmediato (sin esperar recarga).
-      setLocaleGlobal(locale);
+      setFormatoGlobal(locale, decimales);
       toast.success("Configuración guardada");
     } catch (err) {
       console.error(err);
@@ -176,6 +188,28 @@ export default function ConfiguracionPage() {
                 {LOCALES_VALIDOS.map((l) => (
                   <SelectItem key={l} value={l}>
                     {LOCALE_LABELS[l]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Decimales en los montos</FieldLabel>
+          <div className="relative">
+            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+            <Select
+              value={String(decimales)}
+              onValueChange={(v) => v != null && setDecimalesField(parseInt(v))}
+            >
+              <SelectTrigger className="h-11 rounded-md pl-9 w-full">
+                <SelectValue placeholder="Selecciona los decimales" />
+              </SelectTrigger>
+              <SelectContent>
+                {DECIMALES_VALIDOS.map((d) => (
+                  <SelectItem key={d} value={String(d)}>
+                    {DECIMALES_LABELS[d]}
                   </SelectItem>
                 ))}
               </SelectContent>

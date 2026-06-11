@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
 import { negocioService } from "@/services/negocio-service";
-import { esLocaleValido, DEFAULT_LOCALE } from "@/types/locale";
+import { esLocaleValido, DEFAULT_LOCALE, esDecimalesValido, DEFAULT_DECIMALES } from "@/types/locale";
 
 // GET: lista de negocios (sucursales) del tenant. Accesible a cualquier
 // usuario autenticado (el selector de sucursal lo necesita).
@@ -29,12 +29,15 @@ export async function PUT(req: NextRequest) {
     requireRole(user, ["ADMIN", "SUPERVISOR"]);
 
     const body = await req.json();
-    const { id, Nombre, Direccion, Telefono, Logo, Locale } = body;
+    const { id, Nombre, Direccion, Telefono, Logo, Locale, Decimales } = body;
     if (!id) {
       return NextResponse.json({ error: "id requerido" }, { status: 400 });
     }
     if (Locale != null && !esLocaleValido(Locale)) {
       return NextResponse.json({ error: "Locale inválido" }, { status: 400 });
+    }
+    if (Decimales != null && !esDecimalesValido(Decimales)) {
+      return NextResponse.json({ error: "Decimales inválido (0 o 2)" }, { status: 400 });
     }
     const ok = await negocioService.update(
       id,
@@ -45,6 +48,7 @@ export async function PUT(req: NextRequest) {
         Telefono: Telefono ?? null,
         Logo: Logo ?? null,
         Locale: Locale ?? DEFAULT_LOCALE,
+        Decimales: Decimales ?? DEFAULT_DECIMALES,
       },
       user.id,
     );

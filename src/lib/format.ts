@@ -1,14 +1,20 @@
 const FALLBACK_LOCALE = process.env.NEXT_PUBLIC_LOCALE ?? "es-CL";
 const LOCALE_STORAGE_KEY = "app-locale";
+const DECIMALES_STORAGE_KEY = "app-decimales";
 
-// Locale activo del formateo. En el cliente lo fija el Negocio activo de la
-// sesión (setLocale desde negocio-selector / configuración); se cachea en
-// localStorage para evitar el flash con el fallback en recargas. En el
-// servidor NUNCA se llama setLocale (estado de módulo compartido entre
-// requests): los server components pasan el locale explícito como argumento.
+// Formato regional activo (locale + decimales de montos). En el cliente lo
+// fija el Negocio activo de la sesión (negocio-selector / configuración); se
+// cachea en localStorage para evitar el flash con el fallback en recargas.
+// En el servidor NUNCA se llaman los setters (estado de módulo compartido
+// entre requests): los server components pasan el formato explícito (`fmt`).
 let currentLocale =
   (typeof window !== "undefined" && window.localStorage.getItem(LOCALE_STORAGE_KEY)) ||
   FALLBACK_LOCALE;
+
+let currentDecimales =
+  typeof window !== "undefined" && window.localStorage.getItem(DECIMALES_STORAGE_KEY) === "2"
+    ? 2
+    : 0;
 
 export function setLocale(locale: string): void {
   currentLocale = locale;
@@ -21,27 +27,47 @@ export function getLocale(): string {
   return currentLocale;
 }
 
-/** Número formateado SIN símbolo de moneda: 37.500 (N0) / 37.500,00 (N2). */
+export function setDecimales(decimales: number): void {
+  currentDecimales = decimales === 2 ? 2 : 0;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(DECIMALES_STORAGE_KEY, String(currentDecimales));
+  }
+}
+
+export function getDecimales(): number {
+  return currentDecimales;
+}
+
+/** Override explícito de formato para server components (link público). */
+export interface FormatoNegocio {
+  locale?: string;
+  decimales?: number;
+}
+
+/** Número formateado SIN símbolo de moneda: 37.500 / 37.500,00.
+ * Sin `format` explícito, los decimales salen de la configuración del
+ * negocio (Negocio.Decimales); "N0"/"N2" fuerzan 0/2. */
 export function formatNumero(
   value: number | null | undefined,
-  format: "N0" | "N2" = "N0",
-  locale?: string,
+  format?: "N0" | "N2",
+  fmt?: FormatoNegocio,
 ): string {
   const safe = value ?? 0;
-  const decimals = format === "N2" ? 2 : 0;
-  return safe.toLocaleString(locale ?? currentLocale, {
+  const decimals =
+    format === "N2" ? 2 : format === "N0" ? 0 : fmt?.decimales ?? currentDecimales;
+  return safe.toLocaleString(fmt?.locale ?? currentLocale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
-/** Formato de moneda: $ 37.500 (separadores según el locale del negocio). */
+/** Formato de moneda: $ 37.500 (separadores y decimales según el negocio). */
 export function numToString(
   value: number | null | undefined,
-  format: "N0" | "N2" = "N0",
-  locale?: string,
+  format?: "N0" | "N2",
+  fmt?: FormatoNegocio,
 ): string {
-  return `$ ${formatNumero(value, format, locale)}`;
+  return `$ ${formatNumero(value, format, fmt)}`;
 }
 
 const formatDatePart = (date: Date) =>
