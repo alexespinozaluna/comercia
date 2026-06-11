@@ -6,6 +6,7 @@ const TABLE_ITEM = "DocumentoItemAudit";
 
 export const auditoriaService = {
   async getDocumentoAudits(
+    tenantId: number,
     fechaInicio?: string,
     fechaFin?: string,
     operacion?: string
@@ -13,6 +14,7 @@ export const auditoriaService = {
     let query = getSupabaseServer()
       .from(TABLE_DOC)
       .select("*")
+      .eq("IdTenant", tenantId)
       .order("FechaAudit", { ascending: false });
 
     if (fechaInicio) query = query.gte("FechaAudit", fechaInicio);
@@ -30,6 +32,7 @@ export const auditoriaService = {
   },
 
   async getDocumentoItemAudits(
+    tenantId: number,
     fechaInicio?: string,
     fechaFin?: string,
     operacion?: string
@@ -37,6 +40,7 @@ export const auditoriaService = {
     let query = getSupabaseServer()
       .from(TABLE_ITEM)
       .select("*")
+      .eq("IdTenant", tenantId)
       .order("FechaAudit", { ascending: false });
 
     if (fechaInicio) query = query.gte("FechaAudit", fechaInicio);

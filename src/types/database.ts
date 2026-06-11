@@ -197,6 +197,8 @@ export interface DocumentoAudit {
   UsuarioAudit: string | null;
   DataOld: Record<string, unknown> | null;
   DataNew: Record<string, unknown> | null;
+  // null solo en filas históricas sin backfill o DELETE en cascada
+  IdTenant: number | null;
 }
 
 // Link público para compartir un recurso (deuda, venta, etc.) sin login.
@@ -221,6 +223,8 @@ export interface DocumentoItemAudit {
   UsuarioAudit: string | null;
   DataOld: Record<string, unknown> | null;
   DataNew: Record<string, unknown> | null;
+  // null solo en filas históricas sin backfill o DELETE en cascada
+  IdTenant: number | null;
 }
 
 export interface SistemaTenant {

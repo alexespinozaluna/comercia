@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { DocumentoAudit, DocumentoItemAudit } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { AuthUser, getCurrentUser } from "@/lib/auth-client";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const OPERACIONES = ["INSERT", "UPDATE", "DELETE"];
+const ALLOWED_ROLES = ["ADMIN", "SUPERVISOR"];
 
 function diffBadgeColor(op: string) {
   switch (op) {
@@ -58,6 +61,7 @@ function DiffView({ oldData, newData }: { oldData: Record<string, unknown> | nul
 }
 
 export default function AuditoriaPage() {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [docs, setDocs] = useState<DocumentoAudit[]>([]);
   const [items, setItems] = useState<DocumentoItemAudit[]>([]);
   const [tab, setTab] = useState<"doc" | "item">("doc");
@@ -68,6 +72,16 @@ export default function AuditoriaPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
+    getCurrentUser().then((u) => {
+      setUser(u);
+      if (!u || !ALLOWED_ROLES.includes(u.rol)) {
+        setLoading(false);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!user || !ALLOWED_ROLES.includes(user.rol)) return;
     async function load() {
       try {
         const params = new URLSearchParams();
@@ -89,7 +103,7 @@ export default function AuditoriaPage() {
       }
     }
     load();
-  }, [fechaInicio, fechaFin, operacion]);
+  }, [user, fechaInicio, fechaFin, operacion]);
 
   const filteredDocs = search
     ? docs.filter((d) =>
@@ -108,6 +122,18 @@ export default function AuditoriaPage() {
     : items;
 
   const data = tab === "doc" ? filteredDocs : filteredItems;
+
+  // Access control (espejo del guard del API: ADMIN / SUPERVISOR)
+  if (user && !ALLOWED_ROLES.includes(user.rol)) {
+    return (
+      <div className="max-w-lg">
+        <EmptyState
+          title="Acceso restringido"
+          description="Solo administradores y supervisores pueden ver la auditoría."
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
