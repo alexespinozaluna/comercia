@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-06-10
 **Base:** [auditoria-cumplimiento-reglas-2026-06-10.md](auditoria-cumplimiento-reglas-2026-06-10.md)
-**Estado:** propuesto, pendiente de validación
+**Estado:** ejecutado 2026-06-10 (commits `b5e2f2b` Fase A, `dccfa66` Fase B, `c5fec2d` Fase C). Decisiones tomadas: roles ADMIN+SUPERVISOR; JSDoc en genéricos (sin refactor); housekeeping de docs pospuesto. La migración `20260610000000_audit_idtenant.sql` queda pendiente de aplicar en Supabase.
 **Alcance:** corregir los hallazgos §2.1–§2.6 de la auditoría. El §2.7 (housekeeping de docs) queda como decisión abierta.
 
 ---
@@ -77,6 +77,25 @@ Un commit por fase (mensajes descriptivos, regla COMMIT de AGENTS.md):
 3. `chore(lint): ignorar sw.js generado, borrar codigo muerto y limpiar warnings` (Fase C)
 
 La migración `20260610000000` queda **pendiente de aplicar** en Supabase junto con las ya pendientes (`20260606*`–`20260609*`).
+
+## Aclaración: visualización de fechas según locale configurado
+
+Requisito del usuario (2026-06-10): la fecha debe mostrarse según el locale de
+configuración (`es-CL`, `es-PE`, u otros) y **la fecha de negocio debe verse tal
+como está guardada, sin importar la hora del día**.
+
+Estado tras la Fase B:
+
+- Las columnas `date` (`FechaEmision`, `FechaVencimiento`) se escriben con
+  `toInputDate` y se muestran con `parseDateOnly` → el valor se ve **idéntico al
+  guardado** en cualquier zona horaria y a cualquier hora. Cumplido.
+- Todo el formateo de `src/lib/format.ts` usa `NEXT_PUBLIC_LOCALE`
+  (default `es-CL`); cambiar a `es-PE` u otro solo requiere la variable de
+  entorno. Cumplido a nivel deployment.
+- **Decisión abierta:** si el locale debe salir de la configuración del
+  `Negocio` en BD (per-tenant, para cuentas en distintos países) en vez de la
+  variable de entorno (per-deployment), es una feature nueva: columna
+  `Locale` en `Negocio` + contexto en el cliente. No se implementó en este ciclo.
 
 ## Pendientes / próximas decisiones
 
