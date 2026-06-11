@@ -17,11 +17,19 @@ import { SearchInput } from "@/components/shared/search-input";
 import { FilterSheet, EMPTY_FILTER, pasaFiltro, type VentaFilter } from "@/components/ventas/filter-sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Receipt, TrendingDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { useIsDesktop } from "@/hooks/use-is-desktop";
+import { Receipt, TrendingDown, ChevronDown, Monitor, Smartphone } from "lucide-react";
 
 /* ── HomePage ──────────────────────────────────────────────── */
 export default function HomePage() {
   const router = useRouter();
+  const isDesktop = useIsDesktop();
   const [ventas, setVentas] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -141,13 +149,35 @@ export default function HomePage() {
           <p className="text-xs text-muted-foreground capitalize mt-0.5">{periodoLabel}</p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <Button
-            className="h-8 text-xs px-3 bg-brand hover:bg-brand-dark text-white shadow-sm gap-1.5"
-            onClick={() => router.push("/venta/nueva")}
-          >
-            <Receipt className="h-4 w-4" />
-            <span className="hidden sm:inline">Nueva venta</span>
-          </Button>
+          {/* Móvil: directo al wizard de 3 pasos. Desktop: elegir entre los
+              dos modos de venta. */}
+          {isDesktop ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex items-center gap-1.5 h-8 text-xs px-3 rounded-md bg-brand hover:bg-brand-dark text-white shadow-sm font-medium transition-colors cursor-pointer outline-none">
+                <Receipt className="h-4 w-4" />
+                Nueva venta
+                <ChevronDown className="h-3.5 w-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-48">
+                <DropdownMenuItem onClick={() => router.push("/venta/nueva")} className="gap-2">
+                  <Monitor className="h-4 w-4 text-muted-foreground" />
+                  Venta clásica
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/venta/nueva-movil")} className="gap-2">
+                  <Smartphone className="h-4 w-4 text-muted-foreground" />
+                  Venta móvil (3 pasos)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              className="h-8 text-xs px-3 bg-brand hover:bg-brand-dark text-white shadow-sm gap-1.5"
+              onClick={() => router.push("/venta/nueva-movil")}
+            >
+              <Receipt className="h-4 w-4" />
+              <span className="hidden sm:inline">Nueva venta</span>
+            </Button>
+          )}
           <Button
             variant="outline"
             className="h-8 text-xs px-3 gap-1.5 text-destructive border-destructive/20 hover:bg-destructive/5 hover:text-destructive"
