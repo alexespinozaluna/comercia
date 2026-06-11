@@ -42,7 +42,8 @@ export async function generateMetadata({
   const nombreNegocio = negocio?.Nombre ?? "Comercia";
 
   const title = `Deuda pendiente — ${nombreCliente}`;
-  const description = `${numToString(totalDeuda)} · ${nombreNegocio}`;
+  // Server component: el locale va explícito (no usar setLocale en servidor).
+  const description = `${numToString(totalDeuda, "N0", negocio?.Locale)} · ${nombreNegocio}`;
 
   return {
     title,
@@ -85,6 +86,8 @@ export default async function DeudaPublicaPage({
 
   const totalDeuda = deudas.reduce((s, d) => s + Number(d.Saldo), 0);
   const cliente = deudas[0];
+  // Server component: formatear con el locale del negocio dueño del link.
+  const locale = negocio?.Locale;
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
@@ -126,7 +129,7 @@ export default async function DeudaPublicaPage({
         <div className="text-right shrink-0">
           <p className="text-red-600 text-[10px] uppercase font-semibold">Debe</p>
           <p className="text-red-600 font-extrabold text-lg tabular-nums">
-            {numToString(totalDeuda)}
+            {numToString(totalDeuda, "N0", locale)}
           </p>
         </div>
       </div>
@@ -145,7 +148,7 @@ export default async function DeudaPublicaPage({
                 {direccion}
               </span>
               <span className="text-sm font-bold text-orange-800 tabular-nums shrink-0 ml-3">
-                {numToString(subtotal)}
+                {numToString(subtotal, "N0", locale)}
               </span>
             </div>
 
@@ -166,11 +169,11 @@ export default async function DeudaPublicaPage({
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-sm font-bold text-red-600 tabular-nums">
-                      {numToString(Number(d.Saldo))}
+                      {numToString(Number(d.Saldo), "N0", locale)}
                     </div>
                     {Number(d.TotalAbono) > 0 && (
                       <div className="text-xs text-muted-foreground line-through tabular-nums">
-                        {numToString(Number(d.Total))}
+                        {numToString(Number(d.Total), "N0", locale)}
                       </div>
                     )}
                   </div>

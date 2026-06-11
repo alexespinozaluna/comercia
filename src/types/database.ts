@@ -186,6 +186,8 @@ export interface Negocio extends BaseEnty {
   Telefono: string | null;
   Direccion: string | null;
   Logo: string | null;
+  // Formato regional de fechas/números (es-CL, es-PE, …). Ver src/types/locale.ts.
+  Locale: string;
   Estado: number;
 }
 

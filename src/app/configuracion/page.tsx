@@ -2,15 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { Negocio } from "@/types/database";
+import { LOCALES_VALIDOS, LOCALE_LABELS, DEFAULT_LOCALE, esLocaleValido } from "@/types/locale";
 import { apiGet, apiPut } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
-import { Building2, Phone, MapPin, ImageIcon } from "lucide-react";
+import { Building2, Phone, MapPin, ImageIcon, Globe } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -26,9 +34,11 @@ export default function ConfiguracionPage() {
   const [direccion, setDireccion] = useState("");
   const [telefono, setTelefono] = useState("");
   const [logo, setLogo] = useState("");
+  const [locale, setLocaleField] = useState<string>(DEFAULT_LOCALE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
+  const setLocaleGlobal = useAppStore((s) => s.setLocale);
 
   useEffect(() => {
     async function load() {
@@ -42,6 +52,7 @@ export default function ConfiguracionPage() {
           setDireccion(activo.Direccion ?? "");
           setTelefono(activo.Telefono ?? "");
           setLogo(activo.Logo ?? "");
+          setLocaleField(esLocaleValido(activo.Locale) ? activo.Locale : DEFAULT_LOCALE);
         }
       } catch (err) {
         console.error(err);
@@ -63,7 +74,10 @@ export default function ConfiguracionPage() {
         Direccion: direccion || null,
         Telefono: telefono || null,
         Logo: logo || null,
+        Locale: locale,
       });
+      // Aplica el nuevo formato de inmediato (sin esperar recarga).
+      setLocaleGlobal(locale);
       toast.success("Configuración guardada");
     } catch (err) {
       console.error(err);
@@ -147,6 +161,25 @@ export default function ConfiguracionPage() {
               placeholder="https://..."
               className="h-11 rounded-md pl-9"
             />
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>País / formato de fechas y números</FieldLabel>
+          <div className="relative">
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+            <Select value={locale} onValueChange={(v) => v && setLocaleField(v)}>
+              <SelectTrigger className="h-11 rounded-md pl-9 w-full">
+                <SelectValue placeholder="Selecciona el país" />
+              </SelectTrigger>
+              <SelectContent>
+                {LOCALES_VALIDOS.map((l) => (
+                  <SelectItem key={l} value={l}>
+                    {LOCALE_LABELS[l]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

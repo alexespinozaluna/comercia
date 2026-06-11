@@ -1,31 +1,54 @@
-const localInfo = process.env.NEXT_PUBLIC_LOCALE ?? "es-CL";
+const FALLBACK_LOCALE = process.env.NEXT_PUBLIC_LOCALE ?? "es-CL";
+const LOCALE_STORAGE_KEY = "app-locale";
+
+// Locale activo del formateo. En el cliente lo fija el Negocio activo de la
+// sesión (setLocale desde negocio-selector / configuración); se cachea en
+// localStorage para evitar el flash con el fallback en recargas. En el
+// servidor NUNCA se llama setLocale (estado de módulo compartido entre
+// requests): los server components pasan el locale explícito como argumento.
+let currentLocale =
+  (typeof window !== "undefined" && window.localStorage.getItem(LOCALE_STORAGE_KEY)) ||
+  FALLBACK_LOCALE;
+
+export function setLocale(locale: string): void {
+  currentLocale = locale;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  }
+}
+
+export function getLocale(): string {
+  return currentLocale;
+}
 
 /** Número formateado SIN símbolo de moneda: 37.500 (N0) / 37.500,00 (N2). */
 export function formatNumero(
   value: number | null | undefined,
   format: "N0" | "N2" = "N0",
+  locale?: string,
 ): string {
   const safe = value ?? 0;
   const decimals = format === "N2" ? 2 : 0;
-  return safe.toLocaleString(localInfo, {
+  return safe.toLocaleString(locale ?? currentLocale, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
-/** Formato de moneda chilena: $ 37.500 */
+/** Formato de moneda: $ 37.500 (separadores según el locale del negocio). */
 export function numToString(
   value: number | null | undefined,
   format: "N0" | "N2" = "N0",
+  locale?: string,
 ): string {
-  return `$ ${formatNumero(value, format)}`;
+  return `$ ${formatNumero(value, format, locale)}`;
 }
 
 const formatDatePart = (date: Date) =>
-  date.toLocaleDateString(localInfo, { day: "2-digit", month: "short" });
+  date.toLocaleDateString(currentLocale, { day: "2-digit", month: "short" });
 
 const formatTimePart = (date: Date) =>
-  date.toLocaleTimeString(localInfo, {
+  date.toLocaleTimeString(currentLocale, {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
@@ -88,7 +111,7 @@ export function sbsLeft(value: string, cant: number): string {
 
 /** Format a number for an editable text input (es-CL: "1.234,56"). No currency prefix. */
 export function formatN2(value: number): string {
-  return value.toLocaleString(localInfo, {
+  return value.toLocaleString(currentLocale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -97,15 +120,19 @@ export function formatN2(value: number): string {
 /** Cantidad: hasta 3 decimales, sin ceros sobrantes ("5", "5,5", "5,567"). */
 export function cantidadString(value: number | null | undefined): string {
   const safe = value ?? 0;
-  return safe.toLocaleString(localInfo, {
+  return safe.toLocaleString(currentLocale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });
 }
 
-/** Parse a user-typed es-CL formatted string back to a number ("1.234,56" → 1234.56). */
+/** Parse a user-typed formatted string back to a number, según el locale
+ * activo: "1.234,56" (es-CL) o "1,234.56" (es-PE/es-MX) → 1234.56. */
 export function parseFormatted(raw: string): number {
-  const cleaned = raw.replace(/\./g, "").replace(",", ".");
+  const parts = new Intl.NumberFormat(currentLocale).formatToParts(1234.5);
+  const group = parts.find((p) => p.type === "group")?.value ?? ".";
+  const decimal = parts.find((p) => p.type === "decimal")?.value ?? ",";
+  const cleaned = raw.split(group).join("").replace(decimal, ".");
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
 }

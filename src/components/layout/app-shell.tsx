@@ -228,6 +228,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { authUser, setAuthUser } = useAppStore();
+  const locale = useAppStore((s) => s.locale);
   const caja = useCajaAbierta(authUser?.id ?? null);
 
   useEffect(() => {
@@ -305,9 +306,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {authUser && <UserMenu authUser={authUser} caja={caja} onLogout={handleLogout} />}
         </header>
 
-        {/* Content */}
+        {/* Content — keyed por locale: si el negocio activo trae otro formato
+            (es-PE vs es-CL), remonta la página para re-formatear montos/fechas. */}
         <main className="flex-1 overflow-auto p-4 pb-20 md:pb-4 bg-page-bg">
-          {children}
+          <div key={locale} className="contents">
+            {children}
+          </div>
         </main>
       </div>
 
