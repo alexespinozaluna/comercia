@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Producto } from "@/types/database";
 import { apiPost } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import {
   Sheet,
   SheetContent,
@@ -29,7 +30,7 @@ export function ProductQuickCreate({ open, onOpenChange, onProductCreated }: Pro
   const [precioCosto, setPrecioCosto] = useState("");
   const [precioVenta, setPrecioVenta] = useState("");
   const [cantidad, setCantidad] = useState("");
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   const resetForm = () => {
     setNombre("");
@@ -38,7 +39,7 @@ export function ProductQuickCreate({ open, onOpenChange, onProductCreated }: Pro
     setCantidad("");
   };
 
-  const handleSave = async () => {
+  const handleSave = () => guardar(async () => {
     if (!nombre.trim()) {
       toast.error("Nombre es requerido");
       return;
@@ -48,7 +49,6 @@ export function ProductQuickCreate({ open, onOpenChange, onProductCreated }: Pro
       return;
     }
 
-    setSaving(true);
     try {
       const product = await apiPost<Producto>("/api/productos", {
         id: 0,
@@ -68,10 +68,8 @@ export function ProductQuickCreate({ open, onOpenChange, onProductCreated }: Pro
       resetForm();
     } catch {
       toast.error("Error al crear producto");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   return (
     <Sheet open={open} onOpenChange={(value) => { if (!value) resetForm(); onOpenChange(value); }}>

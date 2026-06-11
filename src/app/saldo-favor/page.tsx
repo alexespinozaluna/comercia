@@ -30,6 +30,7 @@ import {
 import { ClienteSelectorSheet } from "@/components/ventas/cliente-selector-sheet";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import { cn } from "@/lib/utils";
 import { PiggyBank, Plus, UserPlus, X, Pencil, Trash2 } from "lucide-react";
 
@@ -56,7 +57,7 @@ export default function SaldoFavorPage() {
   const [concepto, setConcepto] = useState("");
   const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
   const [selectedMetodo, setSelectedMetodo] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   // Editar (sheet) / eliminar
   const [editTarget, setEditTarget] = useState<SaldoFavorRow | null>(null);
@@ -102,10 +103,9 @@ export default function SaldoFavorPage() {
     setFecha(toInputDate());
   };
 
-  const handleCreate = async () => {
+  const handleCreate = () => guardar(async () => {
     if (!cliente) { toast.error("Seleccione un cliente"); return; }
     if (monto <= 0) { toast.error("Ingrese un monto"); return; }
-    setSaving(true);
     try {
       await apiPost("/api/saldo-favor", {
         IdCliente: cliente.id,
@@ -121,15 +121,12 @@ export default function SaldoFavorPage() {
       load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al registrar");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
-  const handleEdit = async () => {
+  const handleEdit = () => guardar(async () => {
     if (!editTarget) return;
     if (editMonto <= 0) { toast.error("Ingrese un monto"); return; }
-    setSaving(true);
     try {
       await apiPut(`/api/saldo-favor/${editTarget.id}`, { Total: editMonto });
       useAppStore.getState().triggerRefresh();
@@ -138,10 +135,8 @@ export default function SaldoFavorPage() {
       load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al editar");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   const handleDelete = async () => {
     if (!deleteTarget) return;

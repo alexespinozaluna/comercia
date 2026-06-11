@@ -5,6 +5,7 @@ import { Cliente, ClienteDireccion } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { extraerIniciales } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import {
   Sheet,
   SheetContent,
@@ -43,7 +44,7 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
   const [direccion, setDireccion] = useState("");
   const [contacto, setContacto] = useState("");
   const [bPrincipal, setBPrincipal] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   const loadClientes = useCallback(async () => {
     setLoading(true);
@@ -72,9 +73,8 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
     }, 120);
   };
 
-  const handleCreateNew = async () => {
+  const handleCreateNew = () => guardar(async () => {
     if (!nombre.trim()) { toast.error("Nombre es requerido"); return; }
-    setSaving(true);
     try {
       const dirs: ClienteDireccion[] = direccion.trim()
         ? [{ id: 0, Direccion: direccion.trim(), Telefono: null, Contacto: contacto.trim(), IdCliente: 0, bPrincipal }]
@@ -98,10 +98,8 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
       resetForm();
     } catch {
       toast.error("Error al crear cliente");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   const resetForm = () => {
     setMode("search");

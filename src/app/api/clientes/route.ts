@@ -34,51 +34,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
     }
 
-    // Insert cliente
-    const { data: clienteData, error: clienteErr } = await getSupabaseServer()
-      .from("Cliente")
-      .insert(
-        auditCreate(user.id, {
-          Nombre,
-          NroTelefono: NroTelefono ?? null,
-          TipoDocumento: TipoDocumento ?? null,
-          NroDocumento: NroDocumento ?? null,
-          Comentario: Comentario ?? null,
-          IdTenant: user.idTenant,
-          Estado: 1,
-        }),
-      )
-      .select()
-      .single();
-
-    if (clienteErr || !clienteData) {
-      console.error("POST /api/clientes insert error:", clienteErr);
-      return NextResponse.json({ error: clienteErr?.message || "Error creando cliente" }, { status: 500 });
-    }
-
-    const idCliente = (clienteData as { id: number }).id;
-
-    // Insert direcciones
-    if (direcciones && direcciones.length > 0) {
-      const addData = direcciones.map((d: ClienteDireccion) =>
+    // Cliente + direcciones en una sola transacción (RPC).
+    const { data, error } = await getSupabaseServer().rpc("guardar_cliente_con_direcciones", {
+      p_id_cliente: 0,
+      p_cliente: auditCreate(user.id, {
+        Nombre,
+        NroTelefono: NroTelefono ?? null,
+        TipoDocumento: TipoDocumento ?? null,
+        NroDocumento: NroDocumento ?? null,
+        Comentario: Comentario ?? null,
+      }),
+      p_direcciones: ((direcciones ?? []) as ClienteDireccion[]).map((d) =>
         auditCreate(user.id, {
           Direccion: d.Direccion,
           Telefono: d.Telefono ?? null,
           Contacto: d.Contacto,
           bPrincipal: d.bPrincipal ?? false,
-          IdCliente: idCliente,
-          IdTenant: user.idTenant,
-          Estado: 1,
         }),
-      );
-      const { error: dirErr } = await getSupabaseServer().from("ClienteDireccion").insert(addData);
-      if (dirErr) {
-        console.error("POST /api/clientes direcciones error:", dirErr);
-        // No hacemos rollback; log para debugging
-      }
+      ),
+      p_id_tenant: user.idTenant,
+    });
+
+    if (error) {
+      console.error("POST /api/clientes rpc error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data: clienteData });
+    return NextResponse.json({ data });
   } catch (err) {
     console.error("POST /api/clientes error:", err);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });

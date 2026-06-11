@@ -27,6 +27,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
+import { useGuardar } from "@/hooks/use-guardar";
 import { Building2, Phone, MapPin, ImageIcon, Globe, Hash } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -46,7 +47,7 @@ export default function ConfiguracionPage() {
   const [locale, setLocaleField] = useState<string>(DEFAULT_LOCALE);
   const [decimales, setDecimalesField] = useState<number>(DEFAULT_DECIMALES);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
   const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
   const setFormatoGlobal = useAppStore((s) => s.setFormato);
 
@@ -75,9 +76,8 @@ export default function ConfiguracionPage() {
     load();
   }, [idNegocioActivo]);
 
-  const handleSave = async () => {
+  const handleSave = () => guardar(async () => {
     if (!negocio) { toast.error("No hay registro de negocio"); return; }
-    setSaving(true);
     try {
       await apiPut("/api/negocio", {
         id: negocio.id,
@@ -94,10 +94,8 @@ export default function ConfiguracionPage() {
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar configuración");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   if (loading) return <LoadingState variant="skeleton-form" count={4} />;
   if (!negocio) return <EmptyState title="Sin configuración" description="No se encontró información del negocio." />;

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useGuardar } from "@/hooks/use-guardar";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -41,7 +42,7 @@ export default function UsuarioDatosPage({
   const [id, setId] = useState<number | null>(null);
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   const [codigo, setCodigo] = useState("");
   const [nombre, setNombre] = useState("");
@@ -106,7 +107,7 @@ export default function UsuarioDatosPage({
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => guardar(async () => {
     if (!nombre.trim()) {
       toast.error("Nombre requerido");
       return;
@@ -124,7 +125,6 @@ export default function UsuarioDatosPage({
       return;
     }
 
-    setSaving(true);
     try {
       if (isEdit && id != null) {
         await apiPut(`/api/usuarios/${id}`, {
@@ -148,10 +148,8 @@ export default function UsuarioDatosPage({
       router.push("/configuracion/usuarios");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al guardar");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   if (authUser && authUser.rol !== "ADMIN") {
     return (

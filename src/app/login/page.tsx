@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Lock, User, LogIn } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 
 const REMEMBER_KEY = "comercia_remember";
 
@@ -16,7 +17,7 @@ export default function LoginPage() {
   const setAuthUser = useAppStore((s) => s.setAuthUser);
   const [codigo, setCodigo] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { saving: loading, guardar } = useGuardar();
   const [error, setError] = useState("");
   const [remember, setRemember] = useState(false);
 
@@ -28,39 +29,38 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    if (!codigo || !password) {
-      setError("Ingrese usuario y contraseña");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo, password, remember }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Credenciales inválidas");
+    return guardar(async () => {
+      setError("");
+      if (!codigo || !password) {
+        setError("Ingrese usuario y contraseña");
         return;
       }
-      if (remember) {
-        localStorage.setItem(REMEMBER_KEY, codigo);
-      } else {
-        localStorage.removeItem(REMEMBER_KEY);
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codigo, password, remember }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Credenciales inválidas");
+          return;
+        }
+        if (remember) {
+          localStorage.setItem(REMEMBER_KEY, codigo);
+        } else {
+          localStorage.removeItem(REMEMBER_KEY);
+        }
+        setAuthUser(data.user);
+        toast.success(`Bienvenido, ${data.user.nombre}`);
+        router.push("/");
+        router.refresh();
+      } catch {
+        setError("Error al iniciar sesión");
       }
-      setAuthUser(data.user);
-      toast.success(`Bienvenido, ${data.user.nombre}`);
-      router.push("/");
-      router.refresh();
-    } catch {
-      setError("Error al iniciar sesión");
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   return (

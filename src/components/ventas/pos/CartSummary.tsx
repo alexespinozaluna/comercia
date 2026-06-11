@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import { Lock } from "lucide-react";
+import { useGuardar } from "@/hooks/use-guardar";
 import { MetodoPago } from "@/types/database";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
 import { CartItemEditSheet, type CartEditField } from "./CartItemEditSheet";
@@ -34,7 +35,7 @@ interface CartSummaryProps {
   onRemoveItem: (tempId: string) => void;
   onConceptoChange: (value: string) => void;
   onClearConcepto: () => void;
-  onSave: () => void;
+  onSave: () => Promise<void> | void;
   /** ClientSelector (passed in by PosShell since it needs router hooks). */
   children: ReactNode;
 }
@@ -70,7 +71,7 @@ export function CartSummary({
   const [editItem, setEditItem] = useState<BasketItemLocal | null>(null);
   const [editField, setEditField] = useState<CartEditField | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   const openEditor = (item: BasketItemLocal, field: CartEditField) => {
     setEditItem(item);
@@ -78,11 +79,11 @@ export function CartSummary({
     setDetailOpen(true);
   };
 
-  const handleSave = () => {
-    if (saving) return;
-    setSaving(true);
-    onSave();
-  };
+  // Si el guardado falla (stock, caja cerrada), el finally del hook libera el
+  // botón; antes `saving` quedaba en true y el botón inutilizado.
+  const handleSave = () => guardar(async () => {
+    await onSave();
+  });
 
   const handleVaciar = () => {
     basket.forEach((item) => onRemoveItem(item._tempId));

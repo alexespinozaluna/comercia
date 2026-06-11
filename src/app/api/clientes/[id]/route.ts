@@ -38,91 +38,46 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
     }
 
-    // Update cliente
-    const { error: updErr } = await getSupabaseServer()
-      .from("Cliente")
-      .update(
-        auditUpdate(user.id, {
-          Nombre,
-          NroTelefono: NroTelefono ?? null,
-          TipoDocumento: TipoDocumento ?? null,
-          NroDocumento: NroDocumento ?? null,
-          Comentario: Comentario ?? null,
-        }),
-      )
-      .eq("id", idCliente)
-      .eq("IdTenant", user.idTenant)
-      .eq("Estado", 1);
+    // Cliente + diff de direcciones en una sola transacción (RPC).
+    // El RPC soft-borra las activas ausentes, actualiza las de id > 0 e
+    // inserta las de id 0.
+    const { data, error } = await getSupabaseServer().rpc("guardar_cliente_con_direcciones", {
+      p_id_cliente: idCliente,
+      p_cliente: auditUpdate(user.id, {
+        Nombre,
+        NroTelefono: NroTelefono ?? null,
+        TipoDocumento: TipoDocumento ?? null,
+        NroDocumento: NroDocumento ?? null,
+        Comentario: Comentario ?? null,
+      }),
+      p_direcciones: ((direcciones ?? []) as ClienteDireccion[]).map((d) =>
+        d.id > 0
+          ? auditUpdate(user.id, {
+              id: d.id,
+              Direccion: d.Direccion,
+              Telefono: d.Telefono ?? null,
+              Contacto: d.Contacto,
+              bPrincipal: d.bPrincipal ?? false,
+            })
+          : auditCreate(user.id, {
+              id: 0,
+              Direccion: d.Direccion,
+              Telefono: d.Telefono ?? null,
+              Contacto: d.Contacto,
+              bPrincipal: d.bPrincipal ?? false,
+            }),
+      ),
+      p_id_tenant: user.idTenant,
+    });
 
-    if (updErr) {
-      console.error("PUT /api/clientes/[id] update error:", updErr);
-      return NextResponse.json({ error: updErr.message }, { status: 500 });
+    if (error) {
+      console.error("PUT /api/clientes/[id] rpc error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Fetch current direcciones
-    const { data: currentDirecciones, error: fetchErr } = await getSupabaseServer()
-      .from("ClienteDireccion")
-      .select("*")
-      .eq("IdCliente", idCliente)
-      .eq("IdTenant", user.idTenant)
-      .eq("Estado", 1);
-
-    if (fetchErr) {
-      console.error("PUT /api/clientes/[id] fetch direcciones error:", fetchErr);
-      return NextResponse.json({ error: fetchErr.message }, { status: 500 });
-    }
-
-    const current = (currentDirecciones ?? []) as ClienteDireccion[];
-    const newDirecciones = (direcciones ?? []) as ClienteDireccion[];
-
-    const toDelete = current.filter((c) => !newDirecciones.some((n) => n.id === c.id));
-    const toUpdate = newDirecciones.filter((n) => current.some((c) => c.id === n.id));
-    const toAdd = newDirecciones.filter((n) => !current.some((c) => c.id === n.id));
-
-    // Batch delete (soft)
-    if (toDelete.length > 0) {
-      const idsToDelete = toDelete.map((d) => d.id);
-      const { error: delErr } = await getSupabaseServer()
-        .from("ClienteDireccion")
-        .update(auditUpdate(user.id, { Estado: 0 }))
-        .in("id", idsToDelete)
-        .eq("IdTenant", user.idTenant);
-      if (delErr) console.error("PUT /api/clientes/[id] delete direcciones error:", delErr);
-    }
-
-    // Individual updates
-    for (const item of toUpdate) {
-      const { id: _id, FechaCreacion, ...updateData } = item as ClienteDireccion & { FechaCreacion?: string };
-      const { error: updItemErr } = await getSupabaseServer()
-        .from("ClienteDireccion")
-        .update(
-          auditUpdate(user.id, {
-            Direccion: updateData.Direccion,
-            Telefono: updateData.Telefono ?? null,
-            Contacto: updateData.Contacto,
-            bPrincipal: updateData.bPrincipal,
-          }),
-        )
-        .eq("id", item.id)
-        .eq("IdTenant", user.idTenant);
-      if (updItemErr) console.error("PUT /api/clientes/[id] update direccion error:", updItemErr);
-    }
-
-    // Batch insert
-    if (toAdd.length > 0) {
-      const addData = toAdd.map((d) =>
-        auditCreate(user.id, {
-          Direccion: d.Direccion,
-          Telefono: d.Telefono ?? null,
-          Contacto: d.Contacto,
-          bPrincipal: d.bPrincipal ?? false,
-          IdCliente: idCliente,
-          IdTenant: user.idTenant,
-          Estado: 1,
-        }),
-      );
-      const { error: addErr } = await getSupabaseServer().from("ClienteDireccion").insert(addData);
-      if (addErr) console.error("PUT /api/clientes/[id] insert direcciones error:", addErr);
+    const result = data as { ok?: boolean; error?: string } | null;
+    if (result && result.ok === false) {
+      return NextResponse.json({ error: result.error ?? "Cliente no encontrado" }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true });

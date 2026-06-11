@@ -13,6 +13,7 @@ import { CategoriaSelect } from "@/components/producto/categoria-select";
 import { SIN_CATEGORIA_ID } from "@/types/database";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import { SlidersHorizontal } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -36,7 +37,7 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
   const [idCategoria, setIdCategoria] = useState<number>(SIN_CATEGORIA_ID);
   const [activoVenta, setActivoVenta] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   useEffect(() => {
     params.then(async (p) => {
@@ -63,11 +64,9 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
     });
   }, [params]);
 
-  const handleSave = async () => {
-    if (saving) return;
+  const handleSave = () => guardar(async () => {
     if (!nombre) { toast.error("Nombre es requerido"); return; }
     if (precioVenta <= 0) { toast.error("Precio de venta es requerido"); return; }
-    setSaving(true);
     try {
       const data = {
         Nombre: nombre,
@@ -90,10 +89,8 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar producto");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   if (loading) return <LoadingState variant="skeleton-form" count={4} />;
 

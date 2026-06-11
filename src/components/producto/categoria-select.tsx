@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useGuardar } from "@/hooks/use-guardar";
 import { toast } from "sonner";
 import { ChevronsUpDown, Check, Pencil, Trash2, Plus, X } from "lucide-react";
 
@@ -22,7 +23,7 @@ export function CategoriaSelect({ value, onChange, className }: CategoriaSelectP
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editNombre, setEditNombre] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { saving: busy, guardar } = useGuardar();
 
   const load = useCallback(async () => {
     try {
@@ -39,10 +40,9 @@ export function CategoriaSelect({ value, onChange, className }: CategoriaSelectP
 
   const selected = categorias.find((c) => c.id === value);
 
-  const handleCrear = async () => {
+  const handleCrear = () => guardar(async () => {
     const nombre = nuevoNombre.trim();
-    if (!nombre || busy) return;
-    setBusy(true);
+    if (!nombre) return;
     try {
       const nueva = await apiPost<Categoria>("/api/categorias", { Nombre: nombre });
       setNuevoNombre("");
@@ -51,15 +51,12 @@ export function CategoriaSelect({ value, onChange, className }: CategoriaSelectP
       toast.success("Categoría creada");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al crear");
-    } finally {
-      setBusy(false);
     }
-  };
+  });
 
-  const handleRenombrar = async (id: number) => {
+  const handleRenombrar = (id: number) => guardar(async () => {
     const nombre = editNombre.trim();
-    if (!nombre || busy) return;
-    setBusy(true);
+    if (!nombre) return;
     try {
       await apiPut(`/api/categorias/${id}`, { Nombre: nombre });
       setEditingId(null);
@@ -67,14 +64,10 @@ export function CategoriaSelect({ value, onChange, className }: CategoriaSelectP
       toast.success("Categoría actualizada");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al renombrar");
-    } finally {
-      setBusy(false);
     }
-  };
+  });
 
-  const handleBorrar = async (id: number) => {
-    if (busy) return;
-    setBusy(true);
+  const handleBorrar = (id: number) => guardar(async () => {
     try {
       await apiDelete(`/api/categorias/${id}`);
       await load();
@@ -82,10 +75,8 @@ export function CategoriaSelect({ value, onChange, className }: CategoriaSelectP
       toast.success("Categoría borrada");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al borrar");
-    } finally {
-      setBusy(false);
     }
-  };
+  });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

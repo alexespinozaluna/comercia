@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import { cn } from "@/lib/utils";
 import { BookOpenText, CreditCard, ChevronDown } from "lucide-react";
 
@@ -43,8 +44,8 @@ function VentaAbonoContent() {
   const [deudasOpen, setDeudasOpen] = useState(false);
   // Saldo a favor disponible del cliente (solo en alta).
   const [disponibleFavor, setDisponibleFavor] = useState(0);
-  const [aplicandoFavor, setAplicandoFavor] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const { saving: aplicandoFavor, guardar: guardarFavor } = useGuardar();
+  const { saving, guardar } = useGuardar();
 
   useEffect(() => {
     async function load() {
@@ -109,11 +110,9 @@ function VentaAbonoContent() {
   const totalDeuda = deudas.reduce((sum, d) => sum + d.Saldo, 0) + extraDisponible;
   const clienteName = deudas[0]?.Cliente?.Nombre ?? "";
 
-  const handleSave = async () => {
-    if (saving) return;
+  const handleSave = () => guardar(async () => {
     if (total <= 0) { toast.error("Ingrese un monto"); return; }
     if (total > totalDeuda) { toast.error("El monto excede la deuda"); return; }
-    setSaving(true);
     try {
       if (isEdit) {
         await apiPut(`/api/abonos/${idAbono}`, {
@@ -139,16 +138,13 @@ function VentaAbonoContent() {
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Error al guardar abono");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   const aplicarFavor = Math.min(disponibleFavor, totalDeuda);
 
-  const handleUsarSaldoFavor = async () => {
+  const handleUsarSaldoFavor = () => guardarFavor(async () => {
     if (aplicarFavor <= 0) return;
-    setAplicandoFavor(true);
     try {
       await apiPost("/api/saldo-favor/aplicar", {
         tipo,
@@ -163,10 +159,8 @@ function VentaAbonoContent() {
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Error al aplicar saldo a favor");
-    } finally {
-      setAplicandoFavor(false);
     }
-  };
+  });
 
   if (loading) return <LoadingState variant="skeleton-form" count={3} />;
 

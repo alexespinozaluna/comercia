@@ -14,6 +14,7 @@ import { numToString } from "@/lib/format";
 import { format } from "date-fns";
 import { Landmark, Lock, Unlock, AlertCircle, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGuardar } from "@/hooks/use-guardar";
 
 const ROLES_HISTORIAL = ["ADMIN", "SUPERVISOR"];
 
@@ -63,7 +64,7 @@ export default function CajaPage() {
   const [montoInicial, setMontoInicial] = useState("");
   const [montoFinal, setMontoFinal] = useState("");
   const [observacion, setObservacion] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
+  const { saving: actionLoading, guardar } = useGuardar();
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
@@ -104,13 +105,12 @@ export default function CajaPage() {
     return +(m - arqueo.MontoEsperado).toFixed(2);
   }, [montoFinal, arqueo]);
 
-  const handleAbrir = async () => {
+  const handleAbrir = () => guardar(async () => {
     const monto = parseFloat(montoInicial);
     if (!Number.isFinite(monto) || monto < 0) {
       toast.error("Ingrese un monto inicial válido");
       return;
     }
-    setActionLoading(true);
     try {
       await apiPost("/api/caja/apertura", { montoInicial: monto });
       toast.success("Caja abierta");
@@ -118,10 +118,8 @@ export default function CajaPage() {
       await load();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setActionLoading(false);
     }
-  };
+  });
 
   const handleCerrar = async () => {
     if (!caja) return;
@@ -141,22 +139,21 @@ export default function CajaPage() {
       if (!ok) return;
     }
 
-    setActionLoading(true);
-    try {
-      await apiPost("/api/caja/cierre", {
-        id: caja.id,
-        montoFinal: monto,
-        observacion: observacion || null,
-      });
-      toast.success("Caja cerrada");
-      setMontoFinal("");
-      setObservacion("");
-      await load();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Error");
-    } finally {
-      setActionLoading(false);
-    }
+    await guardar(async () => {
+      try {
+        await apiPost("/api/caja/cierre", {
+          id: caja.id,
+          montoFinal: monto,
+          observacion: observacion || null,
+        });
+        toast.success("Caja cerrada");
+        setMontoFinal("");
+        setObservacion("");
+        await load();
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Error");
+      }
+    });
   };
 
   if (loading) return <LoadingState variant="skeleton-detail" count={4} />;

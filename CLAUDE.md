@@ -29,6 +29,8 @@ No test projects exist.
 - **Service layer** (`src/services/`) - mirrors C# service pattern with master-detail CRUD (diff-based saves for Documento+DocumentoItem and Cliente+ClienteDireccion)
 - **Zustand store** (`src/stores/app-store.ts`) - replaces MAUI RefreshService, holds basket state and filter state
 - **shadcn/ui with Base UI** - latest shadcn uses Base UI, NOT Radix. **Do NOT use `asChild` prop** on any component (SheetTrigger, DropdownMenuTrigger, etc.)
+- **Save buttons MUST use `useGuardar`** (`src/hooks/use-guardar.ts`) - wraps the async save with a re-entry guard (anti double-submit) and exposes `saving` for `disabled`/label. Never hand-roll a `useState` saving flag.
+- **Master-detail writes are transactional via Postgres RPCs** (e.g. `guardar_venta_con_items`, `guardar_cliente_con_direcciones`, `guardar_producto_con_kardex`) - PostgREST can't span transactions across calls, so multi-table saves go in a plpgsql function; API routes stay thin (auth + validation + `.rpc()`)
 - **Entity naming**: PascalCase matching Supabase column names (e.g., `IdCliente`, `bCredito`)
 
 ### Directory Structure

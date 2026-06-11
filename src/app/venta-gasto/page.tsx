@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import { cn } from "@/lib/utils";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -36,7 +37,7 @@ function VentaGastoContent() {
   const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
   const [selectedMetodo, setSelectedMetodo] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   useEffect(() => {
     async function load() {
@@ -62,11 +63,9 @@ function VentaGastoContent() {
     load();
   }, [id, isEdit]);
 
-  const handleSave = async () => {
-    if (saving) return;
+  const handleSave = () => guardar(async () => {
     if (valor <= 0) { toast.error("Ingrese un valor"); return; }
     if (!concepto) { toast.error("Ingrese un concepto"); return; }
-    setSaving(true);
     try {
       const gastoData = {
         FechaEmision: fecha,
@@ -94,10 +93,8 @@ function VentaGastoContent() {
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar gasto");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   if (loading) return <LoadingState variant="skeleton-form" count={3} />;
 

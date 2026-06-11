@@ -63,7 +63,7 @@ export function PosShell({ paramsPromise }: PosShellProps) {
       onClearConcepto={pos.clearConceptoManual}
       onSave={() => {
         if (!isDesktop) setCartOpen(false);
-        pos.handleSave();
+        return pos.handleSave();
       }}
     >
       <ClientSelector

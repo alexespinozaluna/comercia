@@ -32,6 +32,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { Trash2, Plus, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import { cn } from "@/lib/utils";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -47,7 +48,7 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
   const [id, setId] = useState(0);
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   const [nombre, setNombre] = useState("");
   const [nroTelefono, setNroTelefono] = useState("");
@@ -100,10 +101,8 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
     setDirecciones(direcciones.filter((_, i) => i !== index));
   };
 
-  const handleSave = async () => {
-    if (saving) return;
+  const handleSave = () => guardar(async () => {
     if (!nombre) { toast.error("Nombre es requerido"); return; }
-    setSaving(true);
     try {
       const cliente: Cliente = {
         id,
@@ -127,10 +126,8 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar cliente");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   const handleDelete = async () => {
     try {

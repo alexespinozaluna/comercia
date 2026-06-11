@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Producto } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import { numToString, cantidadString } from "@/lib/format";
 import {
   Command,
@@ -57,7 +58,7 @@ export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja", ini
   const [cantidad, setCantidad] = useState<number>(0);
   const [motivo, setMotivo] = useState<string>("");
   const [observacion, setObservacion] = useState("");
-  const [saving, setSaving] = useState(false);
+  const { saving, guardar } = useGuardar();
 
   // Sync mode when initialMode changes (e.g., user clicks different buttons)
   useEffect(() => {
@@ -124,12 +125,10 @@ export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja", ini
     return false;
   })();
 
-  const handleSave = async () => {
+  const handleSave = () => guardar(async () => {
     if (!selectedProduct) { toast.error("Seleccione un producto"); return; }
     if (!motivo) { toast.error("Seleccione un motivo"); return; }
-    if (saving) return;
 
-    setSaving(true);
     try {
       const res = await fetch("/api/ajustes", {
         method: "POST",
@@ -160,10 +159,8 @@ export function RegistroBajaForm({ open, onOpenChange, initialMode = "baja", ini
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al registrar");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   const validMotivos = mode === "inventario" ? MOTIVOS_INVENTARIO : MOTIVOS_BAJA;
 

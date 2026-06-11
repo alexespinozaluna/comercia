@@ -10,8 +10,10 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useAppStore } from "@/stores/app-store";
+import { useGuardar } from "@/hooks/use-guardar";
 import { apiGet, apiPost } from "@/lib/api-client";
 import type { Negocio } from "@/types/database";
+import { simboloEfectivo } from "@/types/locale";
 import type { AuthUser } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -25,7 +27,7 @@ export function NegocioSelector() {
   const router = useRouter();
 
   const [negocios, setNegocios] = useState<Negocio[]>([]);
-  const [switching, setSwitching] = useState(false);
+  const { saving: switching, guardar } = useGuardar();
   const tenantId = authUser?.idTenant ?? null;
   const idNegocioActivo = authUser?.idNegocio ?? null;
 
@@ -36,13 +38,19 @@ export function NegocioSelector() {
       .catch(() => setNegocios([]));
   }, [tenantId]);
 
-  // Aplica el formato regional (locale + decimales) del negocio activo al
-  // formateo global. Cubre también el cambio de sucursal: setAuthUser
-  // actualiza idNegocio y re-dispara.
+  // Aplica el formato regional (locale + decimales + símbolo) del negocio
+  // activo al formateo global. Cubre también el cambio de sucursal:
+  // setAuthUser actualiza idNegocio y re-dispara.
   useEffect(() => {
     if (!negocios.length) return;
     const activo = negocios.find((n) => n.id === idNegocioActivo) ?? negocios[0];
-    if (activo?.Locale) setFormato(activo.Locale, activo.Decimales ?? 0);
+    if (activo?.Locale) {
+      setFormato(
+        activo.Locale,
+        activo.Decimales ?? 0,
+        simboloEfectivo(activo.SimboloMoneda, activo.Locale),
+      );
+    }
   }, [negocios, idNegocioActivo, setFormato]);
 
   if (!authUser) return null;
@@ -66,9 +74,8 @@ export function NegocioSelector() {
     );
   }
 
-  const cambiar = async (n: Negocio) => {
-    if (n.id === authUser.idNegocio || switching) return;
-    setSwitching(true);
+  const cambiar = (n: Negocio) => guardar(async () => {
+    if (n.id === authUser.idNegocio) return;
     try {
       const updated = await apiPost<AuthUser>("/api/sesion/negocio", { idNegocio: n.id });
       setAuthUser(updated);
@@ -79,10 +86,8 @@ export function NegocioSelector() {
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al cambiar de sucursal");
-    } finally {
-      setSwitching(false);
     }
-  };
+  });
 
   return (
     <DropdownMenu>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { numToString, fechaString } from "@/lib/format";
 import { apiPost } from "@/lib/api-client";
+import { useGuardar } from "@/hooks/use-guardar";
 
 interface BotonCompartirDeudaProps {
   idCliente: number;
@@ -21,7 +21,7 @@ export function BotonCompartirDeuda({
   totalDeuda,
   nroTelefono,
 }: BotonCompartirDeudaProps) {
-  const [loading, setLoading] = useState(false);
+  const { saving: loading, guardar } = useGuardar();
 
   // Normaliza a formato wa.me: solo dígitos, con código de país 56.
   // "+56937392804" → "56937392804" (quita +); "937392804" → "56937392804" (antepone 56).
@@ -43,8 +43,7 @@ Le informamos que tiene una deuda pendiente:
 Ver detalle:
 ${link}`;
 
-  const handleWhatsApp = async () => {
-    setLoading(true);
+  const handleWhatsApp = () => guardar(async () => {
     try {
       const { url } = await apiPost<{ token: string; url: string }>("/api/link-publico", {
         tipoRecurso: "deuda_cliente",
@@ -57,10 +56,8 @@ ${link}`;
       window.open(`${destino}?text=${encodeURIComponent(mensaje)}`, "_blank");
     } catch {
       toast.error("Error al generar link");
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   return (
     <Button
