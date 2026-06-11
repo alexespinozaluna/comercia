@@ -78,5 +78,5 @@ Sin trabajo extra: `numToString`/`cantidadString` ya leen Locale/Decimales/Simbo
 ## 4. Pendientes / próximas decisiones
 
 1. ¿Confirmas el rename a **`/venta/nueva-movil`** (kebab-case) en lugar de `nueva_movil`?
-2. ¿Cómo llega el usuario? El prompt no lo dice. Opciones: enlace/botón en el bottom nav móvil, redirect automático por viewport en `/venta/nueva`, o solo URL directa por ahora. Propongo **solo URL directa** en este ciclo y decidir el acceso al validar el UX.
+2. ~~¿Cómo llega el usuario?~~ **Resuelto 2026-06-11** (commit `3eb3c0e`): el botón "Nueva venta" del home (Ventas) detecta el dispositivo con `useIsDesktop` — en móvil va directo a `/venta/nueva-movil`; en desktop despliega las dos opciones ("Venta clásica" → `/venta/nueva`, "Venta móvil (3 pasos)" → `/venta/nueva-movil`).
 3. Actualizar `prompt-venta-nueva-movil.md` con una nota "auditado, ver plan" o dejarlo intacto como artefacto original (propongo dejarlo intacto; este plan es la fuente).
