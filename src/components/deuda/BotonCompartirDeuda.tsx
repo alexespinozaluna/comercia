@@ -10,7 +10,6 @@ import { apiPost } from "@/lib/api-client";
 interface BotonCompartirDeudaProps {
   idCliente: number;
   nombreCliente: string;
-  nombreNegocio: string;
   totalDeuda: number;
   /** Teléfono del cliente (campo NroTelefono); se usa como destinatario. */
   nroTelefono?: string | null;
@@ -19,7 +18,6 @@ interface BotonCompartirDeudaProps {
 export function BotonCompartirDeuda({
   idCliente,
   nombreCliente,
-  nombreNegocio,
   totalDeuda,
   nroTelefono,
 }: BotonCompartirDeudaProps) {

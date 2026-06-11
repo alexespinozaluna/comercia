@@ -7,7 +7,7 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate, auditUpdate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { TIPO_MOVIMIENTO } from "@/types/database";
-import type { OperacionTipo, TipoMovimiento } from "@/types/database";
+import type { OperacionTipo } from "@/types/database";
 
 const MOTIVOS_BAJA = ["Merma", "Vencimiento", "Daño", "Robo", "Ajuste de Inventario"] as const;
 const MOTIVOS_INVENTARIO = ["Inventario Fisico", "Reconteo"] as const;

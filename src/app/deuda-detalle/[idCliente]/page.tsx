@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { DeudaDetalle, Negocio } from "@/types/database";
+import { DeudaDetalle } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -33,7 +33,6 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
   const router = useRouter();
   const [idCliente, setIdCliente] = useState<number>(0);
   const [deudas, setDeudas] = useState<DeudaDetalle[]>([]);
-  const [negocioNombre, setNegocioNombre] = useState("");
   const [loading, setLoading] = useState(true);
 
   // Carga: pide al backend solo las deudas de este cliente (filtrado en la BD).
@@ -43,12 +42,8 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
       const cid = parseInt(p.idCliente);
       setIdCliente(cid);
       try {
-        const [data, negocio] = await Promise.all([
-          apiGet<DeudaDetalle[]>(`/api/deudas/detalle?idCliente=${cid}`),
-          apiGet<Negocio | null>("/api/negocio").catch(() => null),
-        ]);
+        const data = await apiGet<DeudaDetalle[]>(`/api/deudas/detalle?idCliente=${cid}`);
         setDeudas(data);
-        setNegocioNombre(negocio?.Nombre ?? "");
       } catch (err) {
         console.error(err);
       } finally {
@@ -107,7 +102,6 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
           <BotonCompartirDeuda
             idCliente={idCliente}
             nombreCliente={nomCliente}
-            nombreNegocio={negocioNombre}
             totalDeuda={totalSaldo}
             nroTelefono={deudas[0]?.NroTelefono}
           />

@@ -1,6 +1,5 @@
 import { Cliente, ClienteDireccion } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
-import { getAll, add, deleteItem } from "./supabase-service";
 
 const TABLE = "Cliente";
 
@@ -123,6 +122,4 @@ export const clienteService = {
 
     return idCliente;
   },
-
-  delete: (id: number) => deleteItem(TABLE, id),
 };

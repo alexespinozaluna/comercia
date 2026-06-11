@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
 import { cn } from "@/lib/utils";

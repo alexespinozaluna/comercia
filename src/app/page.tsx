@@ -3,126 +3,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Documento } from "@/types/database";
-import type { Caja } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
-import { numToString, extraerIniciales } from "@/lib/format";
+import { numToString } from "@/lib/format";
 import { TipoDoc, esEgreso } from "@/lib/tipo-documento";
 import { obtenerRangosDeFechas } from "@/lib/date-utils";
 import { DateFilterBar } from "@/components/ventas/date-filter-bar";
 import { BalanceCards } from "@/components/ventas/balance-cards";
 import { VentaListItem } from "@/components/ventas/venta-list-item";
-import { LossSection } from "@/components/ventas/loss-section";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchInput } from "@/components/shared/search-input";
 import { FilterSheet, EMPTY_FILTER, pasaFiltro, type VentaFilter } from "@/components/ventas/filter-sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import {
-  Receipt,
-  TrendingDown,
-  CreditCard,
-  BookOpenText,
-  Store,
-  ArrowRight,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-/* ── Caja banner ───────────────────────────────────────────── */
-function CajaBanner() {
-  const [caja, setCaja] = useState<Caja | null | undefined>(undefined);
-  const authUser = useAppStore((s) => s.authUser);
-  const router = useRouter();
-
-  useEffect(() => {
-    fetch("/api/caja")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setCaja(d ?? null))
-      .catch(() => setCaja(null));
-  }, []);
-
-  if (caja === undefined) {
-    return <div className="h-14 rounded-lg animate-pulse bg-muted" />;
-  }
-
-  if (caja) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg bg-brand-surface border border-brand/20 px-4 py-3">
-        <div className="h-9 w-9 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-          <Store className="h-4 w-4 text-brand" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-brand-dark leading-tight">Caja abierta</div>
-          {authUser && (
-            <div className="text-[11px] text-brand/70">Cajero: {authUser.nombre}</div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-base font-extrabold text-brand-dark">{numToString(caja.MontoInicial)}</span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs border-brand/30 text-brand-dark hover:bg-brand/10"
-            onClick={() => router.push("/caja")}
-          >
-            Cerrar caja
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border px-4 py-3">
-      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-        <Store className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <div className="flex-1">
-        <div className="text-sm font-semibold text-muted-foreground">Sin caja abierta</div>
-        <div className="text-[11px] text-muted-foreground/70">Abre la caja para registrar ventas</div>
-      </div>
-      <Button
-        size="sm"
-        className="h-7 text-xs bg-brand hover:bg-brand-dark text-white shrink-0"
-        onClick={() => router.push("/caja")}
-      >
-        Abrir caja
-      </Button>
-    </div>
-  );
-}
-
-/* ── Acciones rápidas (mobile only) ──────────────────────────── */
-function AccionesRapidas() {
-  const router = useRouter();
-  const acciones = [
-    { label: "Nueva venta", icon: Receipt, href: "/venta/nueva", variant: "brand" as const },
-    { label: "Registrar abono", icon: CreditCard, href: "/venta-abono", variant: "secondary" as const },
-    { label: "Registrar gasto", icon: TrendingDown, href: "/venta-gasto?id=0", variant: "destructive-outline" as const },
-    { label: "Ver deudas", icon: BookOpenText, href: "/deuda", variant: "secondary" as const },
-  ];
-
-  return (
-    <div className="grid grid-cols-2 gap-2 md:hidden">
-      {acciones.map(({ label, icon: Icon, href, variant }) => (
-        <button
-          key={href}
-          onClick={() => router.push(href)}
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-            variant === "brand" && "bg-brand text-white hover:bg-brand-dark",
-            variant === "secondary" && "bg-white dark:bg-card text-foreground ring-1 ring-border hover:bg-accent",
-            variant === "destructive-outline" && "bg-white dark:bg-card text-destructive ring-1 ring-destructive/20 hover:bg-destructive/5"
-          )}
-        >
-          <Icon className="h-4 w-4 shrink-0" />
-          <span className="text-left leading-tight">{label}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
+import { Receipt, TrendingDown } from "lucide-react";
 
 /* ── HomePage ──────────────────────────────────────────────── */
 export default function HomePage() {

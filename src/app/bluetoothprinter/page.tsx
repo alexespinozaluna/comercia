@@ -21,7 +21,7 @@ export default function BluetoothPrinterPage() {
     try {
       await print(text);
       toast.success("Impresion enviada");
-    } catch (err) {
+    } catch {
       toast.error("Error al imprimir");
     }
   };
@@ -33,7 +33,7 @@ export default function BluetoothPrinterPage() {
       const ticketText = await apiGet<string>(`/api/ticket/${id}?width=${printWidth}`);
       await print(ticketText);
       toast.success("Ticket impreso");
-    } catch (err) {
+    } catch {
       toast.error("Error al imprimir ticket");
     }
   };

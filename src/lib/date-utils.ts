@@ -1,4 +1,4 @@
-import { format, subDays, startOfWeek, subWeeks, startOfMonth, subMonths, endOfMonth, startOfYear, endOfYear, subYears } from "date-fns";
+import { format, subDays, startOfWeek, subWeeks, startOfMonth, subMonths, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { es } from "date-fns/locale";
 
 export interface FiltroFecha {

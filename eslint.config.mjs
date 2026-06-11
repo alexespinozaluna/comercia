@@ -10,6 +10,9 @@ const eslintConfig = defineConfig([
       // Data fetching in useEffect is a standard React pattern.
       // Disabling until the app migrates to React 19 `use()` or Suspense boundaries.
       "react-hooks/set-state-in-effect": "off",
+      // `const { id, ...rest } = obj` para omitir campos es intencional
+      // (CleanJsonId, diffs master-detail): no marcar esos como sin uso.
+      "@typescript-eslint/no-unused-vars": ["warn", { ignoreRestSiblings: true }],
     },
   },
   // Override default ignores of eslint-config-next.
@@ -19,6 +22,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Service worker generado por Serwist en el build.
+    "public/sw.js",
   ]),
 ]);
 

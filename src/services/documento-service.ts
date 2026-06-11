@@ -9,7 +9,6 @@ import {
   SaldoFavorRow,
 } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
-import { deleteItem } from "./supabase-service";
 import { auditCreate, auditUpdate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { toInputDate } from "@/lib/format";
@@ -608,6 +607,4 @@ export const documentoService = {
       .eq("Estado", 1);
     if (error) throw new Error(`Error vinculando IdCaja: ${error.message}`);
   },
-
-  delete: (id: number) => deleteItem(TABLE, id),
 };

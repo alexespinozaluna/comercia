@@ -3,24 +3,14 @@ import { getSupabaseServer } from "@/lib/supabase-server";
 import { verifyPassword, hashPassword } from "@/lib/password";
 import { negocioService } from "@/services/negocio-service";
 import { auditCreate, auditUpdate } from "@/lib/audit";
+import { ROLES_VALIDOS, Rol, UsuarioSinPassword } from "@/types/usuario";
 
 const TABLE = "SistemaUsuario";
-
-export type UsuarioSinPassword = Omit<SistemaUsuario, "PasswordHash">;
 
 const SELECT_PUBLIC =
   "id, Codigo, Nombre, Rol, IdTenant, IdNegocio, Estado, FechaCreacion";
 const SELECT_AUTH =
   "id, Codigo, Nombre, PasswordHash, Rol, IdTenant, IdNegocio, Estado, FechaCreacion";
-
-export const ROLES_VALIDOS = [
-  "ADMIN",
-  "CAJERO",
-  "VENDEDOR",
-  "SUPERVISOR",
-  "COBRANZA",
-] as const;
-export type Rol = (typeof ROLES_VALIDOS)[number];
 
 export interface CreateUsuarioInput {
   Codigo: string;

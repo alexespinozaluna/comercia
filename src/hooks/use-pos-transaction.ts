@@ -8,7 +8,7 @@ import { toInputDate } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
-import { useBasket, BasketItemLocal } from "./pos/use-basket";
+import { useBasket } from "./pos/use-basket";
 import { useClienteSeleccionado, DEFAULT_CLIENT_ID } from "./pos/use-cliente-seleccionado";
 import { useMetodoPago } from "./pos/use-metodo-pago";
 import { useCajaGuard } from "./pos/use-caja-guard";

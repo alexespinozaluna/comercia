@@ -16,7 +16,13 @@ function cleanJsonIdArray(items: Record<string, unknown>[]): Record<string, unkn
   return items.map(cleanJsonId);
 }
 
-/** Generic Supabase REST service (port of SupabaseService<T>) */
+/**
+ * Generic Supabase REST service (port of SupabaseService<T>).
+ *
+ * ADVERTENCIA multi-tenant: estas funciones operan solo por `id` y NO
+ * filtran por IdTenant. El llamador (route/servicio) DEBE validar que el
+ * registro pertenece al tenant del usuario antes de mutar o exponer datos.
+ */
 export async function getAll<T>(table: string, select = "*"): Promise<T[]> {
   const { data, error } = await getSupabaseServer()
     .from(table)

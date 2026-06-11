@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Negocio } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
-import type { UsuarioSinPassword } from "@/services/usuario-service";
+import type { UsuarioSinPassword } from "@/types/usuario";
 import { useAppStore } from "@/stores/app-store";
 import { extraerIniciales } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
