@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-06-10
 **Base:** [plan-locale-por-negocio.md](plan-locale-por-negocio.md)
-**Estado:** propuesto, pendiente de validación
+**Estado:** ejecutado 2026-06-11 (commit `4432763`). Decisión confirmada por el usuario: el carrito POS deja de forzar 2 decimales y sigue la configuración del negocio. Migraciones `20260611000000` (Locale) y `20260611010000` (Decimales) **pendientes de aplicar** en Supabase.
 **Alcance:** que la cantidad de decimales de los montos (`$ 37.500` vs `$ 37.500,00`) sea configuración del Negocio en BD, igual que el `Locale`. Chile opera sin centavos (0 decimales); Perú y otros usan 2.
 
 ---
