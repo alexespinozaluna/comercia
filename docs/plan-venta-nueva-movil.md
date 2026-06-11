@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-06-11
 **Base:** [prompt-venta-nueva-movil.md](prompt-venta-nueva-movil.md) (prompt original, auditado contra el código)
-**Estado:** propuesto, pendiente de validación
+**Estado:** ejecutado 2026-06-11 (commit `a090667`). Decisiones tomadas: ruta `/venta/nueva-movil` (kebab-case), acceso solo por URL directa en este ciclo, prompt original intacto. Desviaciones del plan al implementar: (1) la carga lazy del paso 3 se descartó — los hooks `useMetodoPago`/`useCajaGuard` se montan con el wizard porque hacerlos lazy perdería las selecciones al volver atrás o exigiría duplicar su lógica; el costo son dos GET pequeños al montar. (2) `useProductos` no se usó (no expone `loading`, necesario para el skeleton) — fetch local en el wizard, como el fallback previsto en §2. (3) `ProductSearch` se reutilizó completo (su FAB ya trae la animación y el cálculo del bottom nav) en vez de copiar el grid.
 **Alcance:** ruta nueva de venta para móvil como wizard de 3 pasos (Seleccionar → Confirmar → Crear), reutilizando los componentes POS existentes sin modificarlos.
 
 ---
