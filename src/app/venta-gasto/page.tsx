@@ -36,6 +36,7 @@ function VentaGastoContent() {
   const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
   const [selectedMetodo, setSelectedMetodo] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -62,8 +63,10 @@ function VentaGastoContent() {
   }, [id, isEdit]);
 
   const handleSave = async () => {
+    if (saving) return;
     if (valor <= 0) { toast.error("Ingrese un valor"); return; }
     if (!concepto) { toast.error("Ingrese un concepto"); return; }
+    setSaving(true);
     try {
       const gastoData = {
         FechaEmision: fecha,
@@ -91,6 +94,8 @@ function VentaGastoContent() {
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar gasto");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -170,8 +175,9 @@ function VentaGastoContent() {
       <Button
         className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
         onClick={handleSave}
+        disabled={saving}
       >
-        {isEdit ? "Actualizar gasto" : "Guardar gasto"}
+        {saving ? "Guardando..." : isEdit ? "Actualizar gasto" : "Guardar gasto"}
       </Button>
     </div>
   );

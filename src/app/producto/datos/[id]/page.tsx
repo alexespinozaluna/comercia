@@ -36,6 +36,7 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
   const [idCategoria, setIdCategoria] = useState<number>(SIN_CATEGORIA_ID);
   const [activoVenta, setActivoVenta] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     params.then(async (p) => {
@@ -63,8 +64,10 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
   }, [params]);
 
   const handleSave = async () => {
+    if (saving) return;
     if (!nombre) { toast.error("Nombre es requerido"); return; }
     if (precioVenta <= 0) { toast.error("Precio de venta es requerido"); return; }
+    setSaving(true);
     try {
       const data = {
         Nombre: nombre,
@@ -87,6 +90,8 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar producto");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -211,8 +216,9 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
       <Button
         className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
         onClick={handleSave}
+        disabled={saving}
       >
-        Guardar
+        {saving ? "Guardando..." : "Guardar"}
       </Button>
     </div>
   );

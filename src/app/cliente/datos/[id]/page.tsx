@@ -47,6 +47,7 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
   const [id, setId] = useState(0);
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [nombre, setNombre] = useState("");
   const [nroTelefono, setNroTelefono] = useState("");
@@ -100,7 +101,9 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
   };
 
   const handleSave = async () => {
+    if (saving) return;
     if (!nombre) { toast.error("Nombre es requerido"); return; }
+    setSaving(true);
     try {
       const cliente: Cliente = {
         id,
@@ -124,6 +127,8 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar cliente");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -293,8 +298,9 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
       <Button
         className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
         onClick={handleSave}
+        disabled={saving}
       >
-        Guardar
+        {saving ? "Guardando..." : "Guardar"}
       </Button>
 
       {isEdit && id > 0 && (

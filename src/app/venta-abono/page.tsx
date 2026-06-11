@@ -44,6 +44,7 @@ function VentaAbonoContent() {
   // Saldo a favor disponible del cliente (solo en alta).
   const [disponibleFavor, setDisponibleFavor] = useState(0);
   const [aplicandoFavor, setAplicandoFavor] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -109,8 +110,10 @@ function VentaAbonoContent() {
   const clienteName = deudas[0]?.Cliente?.Nombre ?? "";
 
   const handleSave = async () => {
+    if (saving) return;
     if (total <= 0) { toast.error("Ingrese un monto"); return; }
     if (total > totalDeuda) { toast.error("El monto excede la deuda"); return; }
+    setSaving(true);
     try {
       if (isEdit) {
         await apiPut(`/api/abonos/${idAbono}`, {
@@ -136,6 +139,8 @@ function VentaAbonoContent() {
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Error al guardar abono");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -333,10 +338,10 @@ function VentaAbonoContent() {
       <Button
         className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base gap-2"
         onClick={handleSave}
-        disabled={total <= 0 || total > totalDeuda}
+        disabled={total <= 0 || total > totalDeuda || saving}
       >
         <CreditCard className="h-5 w-5" />
-        {isEdit ? "Guardar cambios" : "Confirmar abono"}
+        {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Confirmar abono"}
       </Button>
     </div>
   );
