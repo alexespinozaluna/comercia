@@ -230,6 +230,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { authUser, setAuthUser } = useAppStore();
   const locale = useAppStore((s) => s.locale);
   const decimales = useAppStore((s) => s.decimales);
+  const simbolo = useAppStore((s) => s.simbolo);
   const caja = useCajaAbierta(authUser?.id ?? null);
 
   useEffect(() => {
@@ -310,7 +311,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Content — keyed por formato regional: si el negocio activo trae
             otro locale/decimales, remonta la página para re-formatear montos. */}
         <main className="flex-1 overflow-auto p-4 pb-20 md:pb-4 bg-page-bg">
-          <div key={`${locale}-${decimales}`} className="contents">
+          <div key={`${locale}-${decimales}-${simbolo}`} className="contents">
             {children}
           </div>
         </main>

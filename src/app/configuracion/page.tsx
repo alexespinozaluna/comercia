@@ -11,6 +11,8 @@ import {
   DECIMALES_LABELS,
   DEFAULT_DECIMALES,
   esDecimalesValido,
+  SIMBOLO_MAX_LEN,
+  simboloEfectivo,
 } from "@/types/locale";
 import { apiGet, apiPut } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
@@ -28,7 +30,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
 import { useGuardar } from "@/hooks/use-guardar";
-import { Building2, Phone, MapPin, ImageIcon, Globe, Hash } from "lucide-react";
+import { Building2, Phone, MapPin, ImageIcon, Globe, Hash, Coins } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -46,6 +48,7 @@ export default function ConfiguracionPage() {
   const [logo, setLogo] = useState("");
   const [locale, setLocaleField] = useState<string>(DEFAULT_LOCALE);
   const [decimales, setDecimalesField] = useState<number>(DEFAULT_DECIMALES);
+  const [simboloMoneda, setSimboloMoneda] = useState("");
   const [loading, setLoading] = useState(true);
   const { saving, guardar } = useGuardar();
   const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
@@ -65,6 +68,7 @@ export default function ConfiguracionPage() {
           setLogo(activo.Logo ?? "");
           setLocaleField(esLocaleValido(activo.Locale) ? activo.Locale : DEFAULT_LOCALE);
           setDecimalesField(esDecimalesValido(activo.Decimales) ? activo.Decimales : DEFAULT_DECIMALES);
+          setSimboloMoneda(activo.SimboloMoneda ?? "");
         }
       } catch (err) {
         console.error(err);
@@ -87,9 +91,10 @@ export default function ConfiguracionPage() {
         Logo: logo || null,
         Locale: locale,
         Decimales: decimales,
+        SimboloMoneda: simboloMoneda.trim(),
       });
       // Aplica el nuevo formato de inmediato (sin esperar recarga).
-      setFormatoGlobal(locale, decimales);
+      setFormatoGlobal(locale, decimales, simboloEfectivo(simboloMoneda, locale));
       toast.success("Configuración guardada");
     } catch (err) {
       console.error(err);
@@ -213,6 +218,23 @@ export default function ConfiguracionPage() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div>
+          <FieldLabel>Símbolo de moneda (opcional)</FieldLabel>
+          <div className="relative">
+            <Coins className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={simboloMoneda}
+              onChange={(e) => setSimboloMoneda(e.target.value)}
+              placeholder={simboloEfectivo("", locale)}
+              maxLength={SIMBOLO_MAX_LEN}
+              className="h-11 rounded-md pl-9"
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Vacío = moneda nacional del país seleccionado ({simboloEfectivo("", locale)}).
+          </p>
         </div>
       </div>
 

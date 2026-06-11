@@ -190,6 +190,8 @@ export interface Negocio extends BaseEnty {
   Locale: string;
   // Decimales de los montos: 0 (enteros, CLP) o 2 (centavos, PEN).
   Decimales: number;
+  // Símbolo de moneda; vacío = derivar del Locale (moneda nacional).
+  SimboloMoneda: string;
   Estado: number;
 }
 

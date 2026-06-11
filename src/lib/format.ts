@@ -1,6 +1,7 @@
 const FALLBACK_LOCALE = process.env.NEXT_PUBLIC_LOCALE ?? "es-CL";
 const LOCALE_STORAGE_KEY = "app-locale";
 const DECIMALES_STORAGE_KEY = "app-decimales";
+const SIMBOLO_STORAGE_KEY = "app-simbolo";
 
 // Formato regional activo (locale + decimales de montos). En el cliente lo
 // fija el Negocio activo de la sesión (negocio-selector / configuración); se
@@ -15,6 +16,11 @@ let currentDecimales =
   typeof window !== "undefined" && window.localStorage.getItem(DECIMALES_STORAGE_KEY) === "2"
     ? 2
     : 0;
+
+// Símbolo de moneda ya resuelto (la resolución vacío→moneda nacional del
+// locale ocurre al aplicar la config del negocio, en el store).
+let currentSimbolo =
+  (typeof window !== "undefined" && window.localStorage.getItem(SIMBOLO_STORAGE_KEY)) || "$";
 
 export function setLocale(locale: string): void {
   currentLocale = locale;
@@ -38,10 +44,22 @@ export function getDecimales(): number {
   return currentDecimales;
 }
 
+export function setSimbolo(simbolo: string): void {
+  currentSimbolo = simbolo;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(SIMBOLO_STORAGE_KEY, simbolo);
+  }
+}
+
+export function getSimbolo(): string {
+  return currentSimbolo;
+}
+
 /** Override explícito de formato para server components (link público). */
 export interface FormatoNegocio {
   locale?: string;
   decimales?: number;
+  simbolo?: string;
 }
 
 /** Número formateado SIN símbolo de moneda: 37.500 / 37.500,00.
@@ -61,13 +79,14 @@ export function formatNumero(
   });
 }
 
-/** Formato de moneda: $ 37.500 (separadores y decimales según el negocio). */
+/** Formato de moneda: "$ 37.500" / "S/ 1,234.56" — símbolo, separadores y
+ * decimales según la configuración del negocio. */
 export function numToString(
   value: number | null | undefined,
   format?: "N0" | "N2",
   fmt?: FormatoNegocio,
 ): string {
-  return `$ ${formatNumero(value, format, fmt)}`;
+  return `${fmt?.simbolo ?? currentSimbolo} ${formatNumero(value, format, fmt)}`;
 }
 
 const formatDatePart = (date: Date) =>

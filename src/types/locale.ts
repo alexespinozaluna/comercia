@@ -42,3 +42,28 @@ export const DEFAULT_DECIMALES: DecimalesValidos = 0;
 export function esDecimalesValido(d: unknown): d is DecimalesValidos {
   return d === 0 || d === 2;
 }
+
+// Símbolo de la moneda nacional por locale. Se usa cuando
+// Negocio.SimboloMoneda está vacío (default).
+export const SIMBOLO_POR_LOCALE: Record<LocaleValido, string> = {
+  "es-CL": "$",
+  "es-PE": "S/",
+  "es-AR": "$",
+  "es-BO": "Bs",
+  "es-CO": "$",
+  "es-MX": "$",
+};
+
+export const DEFAULT_SIMBOLO = "$";
+export const SIMBOLO_MAX_LEN = 8;
+
+/** Símbolo efectivo: el configurado en el negocio si no está vacío;
+ * si no, el de la moneda nacional del locale. */
+export function simboloEfectivo(
+  simboloMoneda: string | null | undefined,
+  locale: string,
+): string {
+  const propio = simboloMoneda?.trim();
+  if (propio) return propio;
+  return esLocaleValido(locale) ? SIMBOLO_POR_LOCALE[locale] : DEFAULT_SIMBOLO;
+}

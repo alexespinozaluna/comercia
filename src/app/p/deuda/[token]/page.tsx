@@ -3,6 +3,17 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { DeudaDetalle, Negocio } from "@/types/database";
 import { numToString, fechaString, extraerIniciales, parseDateOnly } from "@/lib/format";
+import { simboloEfectivo, DEFAULT_LOCALE } from "@/types/locale";
+
+/** Formato explícito del negocio dueño del link (server: sin setters). */
+function fmtDeNegocio(negocio: Negocio | null) {
+  if (!negocio) return undefined;
+  return {
+    locale: negocio.Locale,
+    decimales: negocio.Decimales,
+    simbolo: simboloEfectivo(negocio.SimboloMoneda, negocio.Locale ?? DEFAULT_LOCALE),
+  };
+}
 
 // Dinámica: depende del token y de los headers del request.
 export const dynamic = "force-dynamic";
@@ -42,9 +53,7 @@ export async function generateMetadata({
   const nombreNegocio = negocio?.Nombre ?? "Comercia";
 
   const title = `Deuda pendiente — ${nombreCliente}`;
-  // Server component: el formato va explícito (no usar setters en servidor).
-  const fmt = { locale: negocio?.Locale, decimales: negocio?.Decimales };
-  const description = `${numToString(totalDeuda, undefined, fmt)} · ${nombreNegocio}`;
+  const description = `${numToString(totalDeuda, undefined, fmtDeNegocio(negocio))} · ${nombreNegocio}`;
 
   return {
     title,
@@ -87,9 +96,7 @@ export default async function DeudaPublicaPage({
 
   const totalDeuda = deudas.reduce((s, d) => s + Number(d.Saldo), 0);
   const cliente = deudas[0];
-  // Server component: formatear con el locale/decimales del negocio dueño
-  // del link, pasados explícitos (sin estado de módulo en servidor).
-  const fmt = { locale: negocio?.Locale, decimales: negocio?.Decimales };
+  const fmt = fmtDeNegocio(negocio);
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">

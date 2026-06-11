@@ -4,8 +4,10 @@ import {
   toInputDate,
   getLocale,
   getDecimales,
+  getSimbolo,
   setLocale as setFormatLocale,
   setDecimales as setFormatDecimales,
+  setSimbolo as setFormatSimbolo,
 } from "@/lib/format";
 
 interface AppState {
@@ -21,16 +23,17 @@ interface AppState {
   // Auth user
   authUser: AuthUser | null;
 
-  // Formato regional del negocio activo (es-CL, es-PE, … + decimales de
-  // montos). Espeja el estado de lib/format para que la UI re-renderice.
+  // Formato regional del negocio activo (locale + decimales + símbolo de
+  // moneda ya resuelto). Espeja lib/format para que la UI re-renderice.
   locale: string;
   decimales: number;
+  simbolo: string;
 
   // Actions
   setFilter: (tipo: string, index: number, fechaInicio: string, fechaFin: string) => void;
   triggerRefresh: () => void;
   setAuthUser: (user: AuthUser | null) => void;
-  setFormato: (locale: string, decimales: number) => void;
+  setFormato: (locale: string, decimales: number, simbolo: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -43,15 +46,17 @@ export const useAppStore = create<AppState>((set) => ({
   authUser: null,
   locale: getLocale(),
   decimales: getDecimales(),
+  simbolo: getSimbolo(),
 
   setFilter: (tipo, index, fechaInicio, fechaFin) =>
     set({ filterTipo: tipo, filterIndex: index, filterFechaInicio: fechaInicio, filterFechaFin: fechaFin }),
 
   triggerRefresh: () => set((state) => ({ refreshCounter: state.refreshCounter + 1 })),
   setAuthUser: (user) => set({ authUser: user }),
-  setFormato: (locale, decimales) => {
+  setFormato: (locale, decimales, simbolo) => {
     setFormatLocale(locale);
     setFormatDecimales(decimales);
-    set({ locale, decimales });
+    setFormatSimbolo(simbolo);
+    set({ locale, decimales, simbolo });
   },
 }));
