@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-06-10
 **Base:** [plan-correcciones-auditoria-2026-06-10.md](plan-correcciones-auditoria-2026-06-10.md) (§Aclaración: visualización de fechas según locale configurado)
-**Estado:** propuesto, pendiente de validación
+**Estado:** ejecutado 2026-06-10 (commit `e4d4835`). Decisiones tomadas: Moneda y ticket quedan para ciclos posteriores; el link público usa el locale del negocio dueño del link (implementado). Extra no previsto: `parseFormatted` ahora deriva los separadores del locale vía `Intl.formatToParts` (es-PE/es-MX usan `1,234.56`). Migración `20260611000000_negocio_locale.sql` **pendiente de aplicar** — hasta entonces, guardar en /configuracion falla (columna inexistente); la lectura funciona con fallback.
 **Alcance:** que el formato de fechas y números siga el `Locale` del **negocio activo** guardado en BD (`es-CL`, `es-PE`, etc.), en vez de la variable de entorno `NEXT_PUBLIC_LOCALE` (per-deployment). Una misma instancia podrá atender cuentas/sucursales de distintos países.
 
 ---
