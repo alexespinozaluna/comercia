@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-06-11
 **Base:** [plan-decimales-por-negocio.md](plan-decimales-por-negocio.md), [plan-locale-por-negocio.md](plan-locale-por-negocio.md)
-**Estado:** propuesto, pendiente de validación
+**Estado:** ejecutado 2026-06-11 (commit `4da35e2`; los cambios de `negocio-selector` entraron en `dd070b3` del workstream de useGuardar). Migración `20260611030000_negocio_simbolo_moneda.sql` **pendiente de aplicar** — hasta entonces, guardar /configuracion falla (columna inexistente).
 **Alcance:** que el símbolo que antecede los montos (`$`, `S/`, `US$`, …) deje de ser el literal `"$ "` hardcodeado en `numToString` y sea configurable por Negocio. Diseño puente acordado con el usuario: a futuro habrá una **tabla `Moneda`** (ventas en moneda nacional o USD por documento); este campo NO la reemplaza — es el símbolo de presentación del negocio.
 
 ---
