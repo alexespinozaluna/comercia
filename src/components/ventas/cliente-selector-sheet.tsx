@@ -118,7 +118,18 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto flex flex-col">
+      {/* Altura FIJA en móvil: ancla buscador y resultados arriba, lejos del
+          teclado virtual (con max-h solo, el sheet se encogía al filtrar y
+          quedaba detrás del teclado). Va con ! porque el h-auto base de
+          SheetContent (data-[side=bottom]) gana por especificidad, y además
+          la altura debe ser definida (no un clamp min/max) para que los
+          flex-1/max-h-full internos resuelvan y la lista scrollee sin empujar
+          el botón "Crear nuevo cliente" fuera del sheet. En md+ no hay
+          teclado: compacto como antes. */}
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl h-[85dvh]! md:h-auto! md:max-h-[85vh] overflow-hidden md:overflow-y-auto flex flex-col"
+      >
         <SheetHeader>
           <SheetTitle>
             {mode === "search" ? "Seleccionar cliente" : "Nuevo cliente"}
@@ -135,7 +146,7 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex flex-col gap-3 px-4 flex-1"
+            className="flex flex-col gap-3 px-4 flex-1 min-h-0"
           >
             <SearchInput
               placeholder="Buscar cliente..."
@@ -163,8 +174,9 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
                 description={search ? `No se encontró "${search}"` : "No hay clientes registrados"}
               />
             ) : (
-              <div className="rounded-md ring-1 ring-border/50 bg-white dark:bg-card divide-y divide-border overflow-hidden flex-1 max-h-[60vh] overflow-y-auto">
-                {filtered.map((c) => {
+              <div className="flex-1 min-h-0 md:max-h-[60vh]">
+                <div className="rounded-md ring-1 ring-border/50 bg-white dark:bg-card divide-y divide-border max-h-full overflow-y-auto">
+                  {filtered.map((c) => {
                   const isSelected = selectedId === c.id;
                   return (
                     <button
@@ -200,7 +212,8 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
                       {isSelected && <Check className="h-4 w-4 text-brand shrink-0" />}
                     </button>
                   );
-                })}
+                  })}
+                </div>
               </div>
             )}
 
@@ -220,7 +233,7 @@ export function ClienteSelectorSheet({ open, onOpenChange, onSelect }: ClienteSe
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex flex-col gap-4 px-4"
+            className="flex flex-col gap-4 px-4 pb-4 flex-1 min-h-0 overflow-y-auto"
           >
             <button
               type="button"
