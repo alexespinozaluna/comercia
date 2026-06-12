@@ -5,7 +5,7 @@ import { Lock } from "lucide-react";
 import { useGuardar } from "@/hooks/use-guardar";
 import { MetodoPago } from "@/types/database";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
-import { CartItemEditSheet, type CartEditField } from "./CartItemEditSheet";
+import { CartItemEditSheet } from "./CartItemEditSheet";
 import { CartItemsList } from "./cart/CartItemsList";
 import { FormaVentaToggle } from "./cart/FormaVentaToggle";
 import { FormaPagoChips } from "./cart/FormaPagoChips";
@@ -68,14 +68,13 @@ export function CartSummary({
   onSave,
   children,
 }: CartSummaryProps) {
+  // Solo el precio se edita en sheet; la cantidad es inline en la lista.
   const [editItem, setEditItem] = useState<BasketItemLocal | null>(null);
-  const [editField, setEditField] = useState<CartEditField | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const { saving, guardar } = useGuardar();
 
-  const openEditor = (item: BasketItemLocal, field: CartEditField) => {
+  const openEditor = (item: BasketItemLocal) => {
     setEditItem(item);
-    setEditField(field);
     setDetailOpen(true);
   };
 
@@ -95,9 +94,9 @@ export function CartSummary({
         <CartItemsList
           items={basket}
           onUpdateQuantity={onUpdateQuantity}
+          onSetQuantity={onSetQuantity}
           onRemoveItem={onRemoveItem}
-          onEditQuantity={(item) => openEditor(item, "cantidad")}
-          onEditPrice={(item) => openEditor(item, "precio")}
+          onEditPrice={openEditor}
           onClear={handleVaciar}
         />
 
@@ -145,10 +144,8 @@ export function CartSummary({
 
       <CartItemEditSheet
         item={editItem}
-        field={editField}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        onSetQuantity={onSetQuantity}
         onUpdatePrice={onUpdatePrice}
       />
     </>

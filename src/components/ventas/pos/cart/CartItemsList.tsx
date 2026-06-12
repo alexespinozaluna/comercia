@@ -1,16 +1,17 @@
 "use client";
 
 import { Package, Pencil, Trash2 } from "lucide-react";
-import { numToString, cantidadString } from "@/lib/format";
+import { numToString } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
+import { CantidadInput } from "./CantidadInput";
 
 interface CartItemsListProps {
   items: BasketItemLocal[];
   onUpdateQuantity: (tempId: string, delta: number) => void;
+  /** Fija la cantidad exacta (edición inline del input). */
+  onSetQuantity: (tempId: string, value: number) => void;
   onRemoveItem: (tempId: string) => void;
-  /** Abre el editor de SOLO cantidad. */
-  onEditQuantity: (item: BasketItemLocal) => void;
   /** Abre el editor de SOLO precio. */
   onEditPrice: (item: BasketItemLocal) => void;
   onClear: () => void;
@@ -19,8 +20,8 @@ interface CartItemsListProps {
 export function CartItemsList({
   items,
   onUpdateQuantity,
+  onSetQuantity,
   onRemoveItem,
-  onEditQuantity,
   onEditPrice,
   onClear,
 }: CartItemsListProps) {
@@ -70,7 +71,7 @@ export function CartItemsList({
 
               {/* Fila inferior: cantidad (independiente) · precio (independiente) · total */}
               <div className="flex items-center justify-between gap-2 mt-2">
-                {/* Cantidad: −/+ rápido + número tocable que abre el editor de cantidad */}
+                {/* Cantidad: −/+ rápido + input inline (commit en blur/Enter) */}
                 <div className="flex items-center shrink-0">
                   <button
                     type="button"
@@ -86,14 +87,11 @@ export function CartItemsList({
                   >
                     −
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => onEditQuantity(item)}
-                    aria-label={`Editar cantidad de ${item.Descripcion}`}
-                    className="w-10 h-7 text-center text-sm font-bold tabular-nums rounded-md hover:bg-accent transition-colors"
-                  >
-                    {cantidadString(item.Cantidad)}
-                  </button>
+                  <CantidadInput
+                    value={item.Cantidad}
+                    onCommit={(v) => onSetQuantity(item._tempId, v)}
+                    ariaLabel={`Cantidad de ${item.Descripcion}`}
+                  />
                   <button
                     type="button"
                     onClick={() => onUpdateQuantity(item._tempId, 1)}

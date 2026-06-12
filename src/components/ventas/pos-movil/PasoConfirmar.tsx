@@ -4,10 +4,7 @@ import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
 import { CartItemsList } from "@/components/ventas/pos/cart/CartItemsList";
-import {
-  CartItemEditSheet,
-  type CartEditField,
-} from "@/components/ventas/pos/CartItemEditSheet";
+import { CartItemEditSheet } from "@/components/ventas/pos/CartItemEditSheet";
 import { StickyTotalBar } from "./StickyTotalBar";
 
 interface PasoConfirmarProps {
@@ -34,13 +31,8 @@ export function PasoConfirmar({
   onBack,
   onNext,
 }: PasoConfirmarProps) {
+  // Solo el precio se edita en sheet; la cantidad es inline en la lista.
   const [editItem, setEditItem] = useState<BasketItemLocal | null>(null);
-  const [editField, setEditField] = useState<CartEditField | null>(null);
-
-  const openEditor = (item: BasketItemLocal, field: CartEditField) => {
-    setEditItem(item);
-    setEditField(field);
-  };
 
   return (
     <div className="space-y-4">
@@ -60,9 +52,9 @@ export function PasoConfirmar({
       <CartItemsList
         items={items}
         onUpdateQuantity={onUpdateQuantity}
+        onSetQuantity={onSetQuantity}
         onRemoveItem={onRemoveItem}
-        onEditQuantity={(item) => openEditor(item, "cantidad")}
-        onEditPrice={(item) => openEditor(item, "precio")}
+        onEditPrice={setEditItem}
         onClear={onClear}
       />
 
@@ -71,15 +63,10 @@ export function PasoConfirmar({
 
       <CartItemEditSheet
         item={editItem}
-        field={editField}
         open={editItem !== null}
         onOpenChange={(open) => {
-          if (!open) {
-            setEditItem(null);
-            setEditField(null);
-          }
+          if (!open) setEditItem(null);
         }}
-        onSetQuantity={onSetQuantity}
         onUpdatePrice={onUpdatePrice}
       />
 
