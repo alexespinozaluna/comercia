@@ -1,6 +1,7 @@
 import { Documento } from "@/types/database";
 import { numToString, fechaString, extraerIniciales, sbsLeft } from "@/lib/format";
 import { TipoDoc, esEgreso } from "@/lib/tipo-documento";
+import { labelFormaVenta } from "@/lib/terminologia";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -43,9 +44,7 @@ export function VentaListItem({ venta }: VentaListItemProps) {
     ? "A favor"
     : isPagoFavor
     ? "Pago a favor"
-    : isCredito
-    ? "Crédito"
-    : "Contado";
+    : labelFormaVenta(isCredito);
   const badgeClass = isGasto
     ? "bg-destructive/10 text-destructive"
     : isSaldoFavor || isPagoFavor

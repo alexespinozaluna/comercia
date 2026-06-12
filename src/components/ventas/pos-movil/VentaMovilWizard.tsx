@@ -7,6 +7,7 @@ import { Producto, Categoria, Documento } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { toInputDate, nowIso } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
+import { msgDeudaRequiereCliente } from "@/lib/terminologia";
 import { useAppStore } from "@/stores/app-store";
 import { useBasket } from "@/hooks/pos/use-basket";
 import { useMetodoPago } from "@/hooks/pos/use-metodo-pago";
@@ -114,7 +115,7 @@ export function VentaMovilWizard() {
         return;
       }
       if (isCredit && (cliente.id == null || cliente.id === DEFAULT_CLIENT_ID)) {
-        toast.error("Las ventas a crédito requieren un cliente");
+        toast.error(msgDeudaRequiereCliente());
         return;
       }
       if (!isCredit && metodo.selectedId == null) {
@@ -153,7 +154,7 @@ export function VentaMovilWizard() {
           TotalAbono: 0,
           IdTipoDocumento: TipoDoc.VENTA,
           Saldo: isCredit ? basket.total : 0,
-          // En crédito no aplica forma de pago.
+          // En deuda no aplica forma de pago.
           IdMetodoPago: isCredit ? null : metodo.selectedId,
           IdCaja: null, // backend lo setea al crear
         };

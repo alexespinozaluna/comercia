@@ -3,6 +3,7 @@
 import { Receipt } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/terminologia";
 import { SectionLabel } from "./SectionLabel";
 
 interface FormaVentaToggleProps {
@@ -11,8 +12,8 @@ interface FormaVentaToggleProps {
 }
 
 const OPTIONS = [
-  { value: "efectivo" as const, label: "Contado", isCredit: false },
-  { value: "credito" as const, label: "Crédito", isCredit: true },
+  { value: "efectivo" as const, label: t("ventaPagada"), isCredit: false },
+  { value: "credito" as const, label: t("ventaDeuda"), isCredit: true },
 ];
 
 export function FormaVentaToggle({ isCredit, onChange }: FormaVentaToggleProps) {

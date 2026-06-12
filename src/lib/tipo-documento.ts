@@ -41,7 +41,7 @@ export interface TipoDocFlags {
   ingreso: boolean;
   /** Cuenta como egreso (gasto). */
   egreso: boolean;
-  /** Mueve efectivo en caja (la venta, solo si es de contado). */
+  /** Mueve efectivo en caja (la venta, solo si es pagada). */
   afectaCaja: boolean;
   /** Mueve stock (kardex). */
   afectaKardex: boolean;

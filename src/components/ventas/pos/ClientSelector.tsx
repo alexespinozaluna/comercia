@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { ClienteSelectorSheet } from "@/components/ventas/cliente-selector-sheet";
 import { X, Plus, UserPlus, AlertCircle } from "lucide-react";
+import { msgDeudaRequiereSeleccionarCliente } from "@/lib/terminologia";
 import { DEFAULT_CLIENT_ID, type DireccionOption } from "@/hooks/pos/use-cliente-seleccionado";
 
 // ────────────────────────────────────────────────────────────────────
@@ -38,16 +39,16 @@ interface ClientSelectorProps {
   onSelectClient: (cliente: Cliente) => void;
   onRemoveClient: () => void;
   onDireccionChange: (id: number | null) => void;
-  /** Cuando true (venta a crédito), exige un cliente real (id ≠ 0). */
+  /** Cuando true (venta con deuda), exige un cliente real (id ≠ 0). */
   requireRealClient?: boolean;
 }
 
-/** Aviso cuando crédito exige un cliente real y aún no hay uno válido. */
+/** Aviso cuando la venta con deuda exige un cliente real y aún no hay uno válido. */
 function AvisoClienteRequerido() {
   return (
     <p className="flex items-center gap-1.5 text-xs text-destructive mt-1.5">
       <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-      Las ventas a crédito requieren seleccionar un cliente.
+      {msgDeudaRequiereSeleccionarCliente()}
     </p>
   );
 }
@@ -97,7 +98,7 @@ export function ClientSelector({
   // El bottom sheet de búsqueda/creación de clientes.
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // ¿Falta un cliente real para una venta a crédito?
+  // ¿Falta un cliente real para una venta con deuda?
   const faltaClienteCredito =
     requireRealClient &&
     (selectedClientId === null || selectedClientId === DEFAULT_CLIENT_ID);

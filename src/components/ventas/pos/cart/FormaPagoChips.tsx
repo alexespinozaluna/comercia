@@ -24,7 +24,7 @@ export function FormaPagoChips({ metodos, selectedId, onChange }: FormaPagoChips
             <button
               key={m.id}
               type="button"
-              // Requerido en contado: seleccionar siempre (no se puede deseleccionar).
+              // Requerido en venta pagada: seleccionar siempre (no se puede deseleccionar).
               onClick={() => onChange(m.id)}
               className={cn(
                 "px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ring-1",

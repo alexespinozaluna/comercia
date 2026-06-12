@@ -6,6 +6,7 @@ import { Documento, Cliente } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { toInputDate } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
+import { msgDeudaRequiereCliente } from "@/lib/terminologia";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
 import { useBasket } from "./pos/use-basket";
@@ -133,10 +134,10 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     }
   }, [isEdit, cajaGuard.isOpen, productos.items]);
 
-  // Las ventas a crédito exigen un cliente real (distinto del cliente común id 0).
+  // Las ventas con deuda exigen un cliente real (distinto del cliente común id 0).
   const clienteCreditoOk =
     !isCredit || (cliente.id != null && cliente.id !== DEFAULT_CLIENT_ID);
-  // Las ventas de contado exigen una forma de pago.
+  // Las ventas pagadas exigen una forma de pago.
   const metodoPagoOk = isCredit || metodo.selectedId != null;
   const canSave =
     cajaGuard.isOpen === true &&
@@ -150,7 +151,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
       return;
     }
     if (isCredit && (cliente.id == null || cliente.id === DEFAULT_CLIENT_ID)) {
-      toast.error("Las ventas a crédito requieren un cliente");
+      toast.error(msgDeudaRequiereCliente());
       return;
     }
     if (!isCredit && metodo.selectedId == null) {
@@ -187,7 +188,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         TotalAbono: 0,
         IdTipoDocumento: TipoDoc.VENTA,
         Saldo: isCredit ? basket.total : 0,
-        // En crédito no aplica forma de pago (no se muestra ni se exige).
+        // En deuda no aplica forma de pago (no se muestra ni se exige).
         IdMetodoPago: isCredit ? null : metodo.selectedId,
         IdCaja: null, // backend lo setea al crear
       };

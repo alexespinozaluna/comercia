@@ -103,7 +103,7 @@ export function CartSummary({
 
         <FormaVentaToggle isCredit={isCredit} onChange={onIsCreditChange} />
 
-        {/* Forma de pago: solo aplica a ventas de contado; en crédito no se muestra. */}
+        {/* Forma de pago: solo aplica a ventas pagadas; en deuda no se muestra. */}
         {!isCredit && (
           <FormaPagoChips
             metodos={metodosPago}

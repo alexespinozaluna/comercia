@@ -110,7 +110,7 @@ export default function HomePage() {
   const displayIngresos = filteredIngresos.filter((v) => pasaFiltro(v, filtros));
   const displayGastos = filteredGastos.filter((v) => pasaFiltro(v, filtros));
 
-  // Efectivo = venta de contado (tipo 1) + captura de saldo a favor (tipo 4).
+  // Efectivo = venta pagada (tipo 1) + captura de saldo a favor (tipo 4).
   // NO incluye abonos (tipo 2, tienen su propia card) ni el consumo de saldo a
   // favor (tipo 6, transferencia interna ya contada al capturar).
   const totalEfectivo = filteredIngresos

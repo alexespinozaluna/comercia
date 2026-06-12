@@ -1,4 +1,5 @@
 import { numToString, cantidadString, fechaCortaHora } from "@/lib/format";
+import { labelFormaVenta } from "@/lib/terminologia";
 import type { DocumentoDisplay, Negocio } from "@/types/database";
 
 // Anchos de impresora térmica (puntos a 203 dpi): 58mm ≈ 384, 80mm ≈ 576.
@@ -103,7 +104,7 @@ export function renderTicketCanvas({ doc, negocio, widthMm = 80 }: TicketOpts): 
 
   // ── Datos ────────────────────────────────────────────────────
   lineLR("Fecha:", fechaCortaHora(doc.FechaEmision, doc.FechaCreacion));
-  lineLR("Forma Venta:", doc.bCredito ? "CREDITO" : "CONTADO");
+  lineLR("Forma Venta:", labelFormaVenta(doc.bCredito).toUpperCase());
   if (doc.Cliente?.Nombre) lineLR("Cliente:", doc.Cliente.Nombre);
   if (doc.DireccionEntrega) lineLR("Direccion:", doc.DireccionEntrega);
   sep();

@@ -155,7 +155,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <StatusBadge variant={doc.bCredito ? "info" : "success"}>{doc.FormaVenta}</StatusBadge>
           </div>
 
-          {/* Montos: contado → Total; crédito → Abonado (si hay) + Saldo */}
+          {/* Montos: pagado → Total; deuda → Abonado (si hay) + Saldo */}
           {doc.bCredito && doc.TotalAbono > 0 && (
             <div className="flex justify-between items-center text-success">
               <span className="font-medium">Abonado</span>

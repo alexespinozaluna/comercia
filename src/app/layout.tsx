@@ -22,7 +22,7 @@ const jakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "Comercia - POS",
-  description: "Sistema de punto de venta moderno. Ventas, crédito, contado, pagos, egresos e ingresos.",
+  description: "Sistema de punto de venta moderno. Ventas, deudas, pagos, egresos e ingresos.",
   // PWA: emite mobile-web-app-capable + apple-mobile-web-app-{title,status-bar-style}.
   appleWebApp: { capable: true, title: "Comercia", statusBarStyle: "default" },
   icons: { icon: "/icons/favicon.ico", apple: "/icons/icon-192x192.png" },

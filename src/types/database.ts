@@ -1,6 +1,8 @@
 // TypeScript types matching the Supabase database schema
 // Column names are PascalCase to match the C# entities / Supabase table columns
 
+import { labelFormaVenta } from "@/lib/terminologia";
+
 export interface CreatableEnty {
   id: number;
   FechaCreacion: string;
@@ -122,7 +124,7 @@ export interface SaldoFavorRow {
 
 // Computed properties (not in DB, derived on client)
 export interface DocumentoDisplay extends Documento {
-  FormaVenta: string; // "CREDITO" | "EFECTIVO"
+  FormaVenta: string; // labelFormaVenta en mayúsculas ("DEUDA" | "PAGADO")
   NroVenta: string; // zero-padded id
 }
 
@@ -130,7 +132,7 @@ export interface DocumentoDisplay extends Documento {
 export function toDisplayDocumento(doc: Documento): DocumentoDisplay {
   return {
     ...doc,
-    FormaVenta: doc.bCredito ? "CREDITO" : "EFECTIVO",
+    FormaVenta: labelFormaVenta(doc.bCredito).toUpperCase(),
     NroVenta: doc.id.toString().padStart(5, "0"),
   };
 }
