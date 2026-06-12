@@ -27,10 +27,12 @@ import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, Calenda
 import { toast } from "sonner";
 import { TicketShareSheet } from "@/components/ventas/ticket-share-sheet";
 import { useAppStore } from "@/stores/app-store";
+import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { cn } from "@/lib/utils";
 
 export default function VentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const isDesktop = useIsDesktop();
   const [doc, setDoc] = useState<DocumentoDisplay | null>(null);
   const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -243,7 +245,15 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             variant="outline"
             size="sm"
             className="gap-1.5 h-10"
-            onClick={() => router.push(isGasto ? `/venta-gasto?id=${doc.id}` : `/venta-form/${doc.id}`)}
+            onClick={() =>
+              router.push(
+                isGasto
+                  ? `/venta-gasto?id=${doc.id}`
+                  : isDesktop
+                  ? `/venta-form/${doc.id}`
+                  : `/venta/editar-movil/${doc.id}`,
+              )
+            }
             aria-label="Editar documento"
           >
             <Pencil className="h-4 w-4" /> Editar

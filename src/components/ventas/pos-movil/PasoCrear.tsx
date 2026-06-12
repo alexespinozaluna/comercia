@@ -36,6 +36,8 @@ interface PasoCrearProps {
   cajaAbierta: boolean | null;
   canSave: boolean;
   saving: boolean;
+  /** True al editar una venta existente (cambia la etiqueta del botón). */
+  isEdit?: boolean;
   onSave: () => void;
   onBack: () => void;
 }
@@ -65,6 +67,7 @@ export function PasoCrear({
   cajaAbierta,
   canSave,
   saving,
+  isEdit = false,
   onSave,
   onBack,
 }: PasoCrearProps) {
@@ -154,7 +157,9 @@ export function PasoCrear({
           onClick={onSave}
           disabled={!canSave || saving}
         >
-          {saving ? "Guardando..." : `Guardar venta · ${numToString(total)}`}
+          {saving
+            ? "Guardando..."
+            : `${isEdit ? "Modificar" : "Guardar"} venta · ${numToString(total)}`}
         </Button>
       </div>
     </div>

@@ -202,6 +202,7 @@ function SidebarUserFooter({ onLogout }: { onLogout: () => void }) {
 function getPageTitle(pathname: string): string {
   if (pathname === "/") return "Ventas";
   if (pathname.startsWith("/venta/nueva")) return "Nueva Venta";
+  if (pathname.startsWith("/venta/editar-movil")) return "Editar Venta";
   if (pathname.startsWith("/venta-form")) return "Editar Venta";
   if (pathname.startsWith("/venta-detalle")) return "Detalle";
   if (pathname.startsWith("/venta-abono")) return "Abono";

@@ -35,7 +35,7 @@ export function PosShell({ paramsPromise }: PosShellProps) {
     return <LoadingState variant="skeleton-cards" count={6} />;
   }
 
-  if (pos.redirectTo) {
+  if (pos.redirecting) {
     return null;
   }
 

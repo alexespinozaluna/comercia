@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Documento, Cliente } from "@/types/database";
-import { apiGet, apiPost, apiPut } from "@/lib/api-client";
+import { Documento } from "@/types/database";
+import { apiPost, apiPut } from "@/lib/api-client";
 import { toInputDate } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { msgDeudaRequiereCliente } from "@/lib/terminologia";
@@ -15,6 +15,7 @@ import { useMetodoPago } from "./pos/use-metodo-pago";
 import { useCajaGuard } from "./pos/use-caja-guard";
 import { useProductos } from "./pos/use-productos";
 import { useConcepto } from "./pos/use-concepto";
+import { useVentaEdicion } from "./pos/use-venta-edicion";
 
 export type { BasketItemLocal } from "./pos/use-basket";
 
@@ -27,22 +28,32 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
 
   const [id, setId] = useState<number>(0);
   const [isEdit, setIsEdit] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  const [initialReady, setInitialReady] = useState(false);
 
   // Form state
   const [fecha, setFecha] = useState(toInputDate());
   const [isCredit, setIsCredit] = useState(false);
-  // Ids de los DocumentoItem que tenia la venta al cargarse — base del diff de modificacion
-  const [originalItemIds, setOriginalItemIds] = useState<number[]>([]);
 
   // Sub-hooks
   const basket = useBasket();
-  const cliente = useClienteSeleccionado({ loadDefault: !isEdit });
+  // loadDefault solo guarda el cliente común como fallback de guardado;
+  // el selector arranca vacío (también al editar una venta del cliente común).
+  const cliente = useClienteSeleccionado({ loadDefault: true });
   const metodo = useMetodoPago();
   const cajaGuard = useCajaGuard();
   const productos = useProductos();
   const concepto = useConcepto(basket.autoDescripcion);
+
+  // Carga + elegibilidad + hidratación al editar (compartido con el wizard móvil)
+  const edicion = useVentaEdicion({
+    id: isEdit ? id : 0,
+    basket,
+    cliente,
+    metodo,
+    concepto,
+    onFecha: setFecha,
+    onIsCredit: setIsCredit,
+  });
 
   // Resolve route params
   useEffect(() => {
@@ -53,86 +64,15 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     });
   }, [params]);
 
-  // Redirect when sale is not editable
+  // Initial loading is done once caja+productos finished (solo aplica en
+  // creación; al editar manda la carga de la venta en useVentaEdicion).
   useEffect(() => {
-    if (redirectTo) router.replace(redirectTo);
-  }, [redirectTo, router]);
-
-  // Load existing venta when in edit mode (params already resolved)
-  useEffect(() => {
-    if (id === undefined) return;
-    if (!isEdit || id <= 0) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const venta = await apiGet<Documento | null>(`/api/ventas/${id}`);
-        if (cancelled) return;
-        if (!venta) {
-          toast.error("Venta no encontrada");
-          setRedirectTo("/");
-          return;
-        }
-        if (venta.Estado === 0) {
-          toast.error("Esta venta fue eliminada");
-          setRedirectTo(`/venta-detalle/${id}`);
-          return;
-        }
-        if (venta.TotalAbono > 0) {
-          toast.error("Esta venta ya tiene abonos y no se puede modificar");
-          setRedirectTo(`/venta-detalle/${id}`);
-          return;
-        }
-
-        setFecha(venta.FechaEmision?.split("T")[0] ?? toInputDate());
-        setIsCredit(venta.bCredito);
-        metodo.setSelectedId(venta.IdMetodoPago);
-        concepto.hydrate(venta.Concepto);
-
-        if (venta.IdCliente != null) {
-          const c = await apiGet<Cliente | null>(`/api/clientes/${venta.IdCliente}`);
-          if (!cancelled && c) cliente.hydrate(c, venta.IdClienteDireccion);
-        }
-
-        if (venta.DocumentoItem) {
-          setOriginalItemIds(venta.DocumentoItem.map((item) => item.id));
-          basket.hydrate(
-            venta.DocumentoItem.map((item) => ({
-              _tempId: `item-${item.id}`,
-              id: item.id, // preserva el id real → el diff lo trata como UPDATE, no re-INSERT
-              IdProducto: item.IdProducto,
-              Descripcion: item.Descripcion,
-              Cantidad: item.Cantidad,
-              PrecioVenta: item.PrecioVenta,
-              MontoAbono: item.MontoAbono,
-            }))
-          );
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Error al cargar datos");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // Intentionally exclude the sub-hook setter refs — they're stable enough,
-    // and re-running this on their identity would cause repeated re-fetches.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isEdit]);
-
-  // Initial loading is done once caja+productos+metodos finished
-  // (the load effect above flips loading=false for the !isEdit path too).
-  useEffect(() => {
-    if (isEdit) return;
     if (cajaGuard.isOpen !== null && productos.items !== undefined) {
-      setLoading(false);
+      setInitialReady(true);
     }
-  }, [isEdit, cajaGuard.isOpen, productos.items]);
+  }, [cajaGuard.isOpen, productos.items]);
+
+  const loading = isEdit ? edicion.loading : !initialReady;
 
   // Las ventas con deuda exigen un cliente real (distinto del cliente común id 0).
   const clienteCreditoOk =
@@ -170,8 +110,9 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         Concepto: concepto.value || null,
         Total: basket.total,
         bCredito: isCredit,
-        IdCliente: cliente.id,
-        IdClienteDireccion: cliente.direccionId,
+        // Sin cliente seleccionado → se asigna el común y su dirección.
+        IdCliente: cliente.idEfectivo,
+        IdClienteDireccion: cliente.direccionIdEfectiva,
         DireccionEntrega: null,
         DocumentoItem: basket.items.map((b) => ({
           id: b.id ?? 0, // id real al editar (→ UPDATE); 0 para items nuevos (→ INSERT)
@@ -194,7 +135,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
       };
 
       if (isEdit) {
-        await apiPut(`/api/ventas/${id}`, { ...documento, originalItemIds });
+        await apiPut(`/api/ventas/${id}`, { ...documento, originalItemIds: edicion.originalItemIds });
         toast.success("Venta modificada");
       } else {
         await apiPost("/api/ventas", documento);
@@ -212,13 +153,14 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     basket.autoDescripcion,
     isCredit,
     cliente.id,
-    cliente.direccionId,
+    cliente.idEfectivo,
+    cliente.direccionIdEfectiva,
     concepto.value,
     metodo.selectedId,
     fecha,
     isEdit,
     id,
-    originalItemIds,
+    edicion.originalItemIds,
     router,
   ]);
 
@@ -227,7 +169,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     id,
     isEdit,
     loading,
-    redirectTo,
+    redirecting: edicion.redirecting,
     // Basket
     basket: basket.items,
     total: basket.total,

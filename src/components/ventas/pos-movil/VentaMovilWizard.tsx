@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Producto, Categoria, Documento } from "@/types/database";
-import { apiGet, apiPost } from "@/lib/api-client";
+import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { toInputDate, nowIso } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { msgDeudaRequiereCliente } from "@/lib/terminologia";
@@ -17,6 +17,7 @@ import {
 } from "@/hooks/pos/use-cliente-seleccionado";
 import { useCajaGuard } from "@/hooks/pos/use-caja-guard";
 import { useConcepto } from "@/hooks/pos/use-concepto";
+import { useVentaEdicion } from "@/hooks/pos/use-venta-edicion";
 import { useGuardar } from "@/hooks/use-guardar";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProductQuickCreate } from "@/components/ventas/pos/ProductQuickCreate";
@@ -26,16 +27,25 @@ import { PasoCrear } from "./PasoCrear";
 
 type WizardStep = "seleccionar" | "confirmar" | "crear";
 
+interface VentaMovilWizardProps {
+  /** Id de la venta a editar; 0/ausente = crear una nueva. */
+  idVenta?: number;
+}
+
 /**
  * Wizard POS móvil de 3 pasos: Seleccionar → Confirmar → Crear.
  * Reutiliza los hooks chicos del POS (useBasket, useMetodoPago,
  * useClienteSeleccionado, useCajaGuard, useConcepto) sin tocarlos; solo el
  * fetch de productos es local porque useProductos no expone `loading` y aquí
  * se necesita el skeleton inicial.
+ * Con `idVenta` entra en modo edición: useVentaEdicion (compartido con el
+ * POS desktop) carga/valida/hidrata, se aterriza en el paso Confirmar y el
+ * guardado es PUT con originalItemIds (diff que preserva kardex).
  */
-export function VentaMovilWizard() {
+export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
   const router = useRouter();
-  const [step, setStep] = useState<WizardStep>("seleccionar");
+  const isEdit = idVenta > 0;
+  const [step, setStep] = useState<WizardStep>(isEdit ? "confirmar" : "seleccionar");
 
   // Productos / categorías
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -47,6 +57,8 @@ export function VentaMovilWizard() {
 
   const basket = useBasket();
   const metodo = useMetodoPago();
+  // loadDefault solo guarda el cliente común como fallback de guardado;
+  // el selector arranca vacío (también al editar una venta del cliente común).
   const cliente = useClienteSeleccionado({ loadDefault: true });
   const caja = useCajaGuard();
   const concepto = useConcepto(basket.autoDescripcion);
@@ -54,6 +66,17 @@ export function VentaMovilWizard() {
 
   const [fecha, setFecha] = useState(toInputDate());
   const [isCredit, setIsCredit] = useState(false);
+
+  // Carga + elegibilidad + hidratación al editar (compartido con el POS desktop)
+  const edicion = useVentaEdicion({
+    id: idVenta,
+    basket,
+    cliente,
+    metodo,
+    concepto,
+    onFecha: setFecha,
+    onIsCredit: setIsCredit,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -74,11 +97,14 @@ export function VentaMovilWizard() {
   }, []);
 
   // Si la canasta queda vacía en los pasos 2/3, volver al paso 1.
+  // (No mientras hidrata la edición: la canasta aún está vacía y el wizard
+  // arranca en Confirmar — sin el guard rebotaría al paso 1.)
   useEffect(() => {
+    if (edicion.loading) return;
     if (basket.items.length === 0 && step !== "seleccionar") {
       setStep("seleccionar");
     }
-  }, [basket.items.length, step]);
+  }, [basket.items.length, step, edicion.loading]);
 
   const filteredProducts = useMemo(
     () =>
@@ -127,7 +153,7 @@ export function VentaMovilWizard() {
         // Mismo payload plano que el flujo desktop (use-pos-transaction):
         // el API exige Descripcion cuando hay items y arma DocumentoItem.
         const documento: Documento = {
-          id: 0,
+          id: isEdit ? idVenta : 0,
           Estado: 1,
           IdTenant: 0,
           FechaCreacion: nowIso(),
@@ -136,8 +162,9 @@ export function VentaMovilWizard() {
           Concepto: concepto.value || null,
           Total: basket.total,
           bCredito: isCredit,
-          IdCliente: cliente.id,
-          IdClienteDireccion: cliente.direccionId,
+          // Sin cliente seleccionado → se asigna el común y su dirección.
+          IdCliente: cliente.idEfectivo,
+          IdClienteDireccion: cliente.direccionIdEfectiva,
           DireccionEntrega: null,
           DocumentoItem: basket.items.map((b) => ({
             id: b.id ?? 0,
@@ -159,18 +186,33 @@ export function VentaMovilWizard() {
           IdCaja: null, // backend lo setea al crear
         };
 
-        const created = await apiPost<Documento>("/api/ventas", documento);
-        useAppStore.getState().triggerRefresh();
-        toast.success("Venta creada");
-        router.push(`/venta-detalle/${created.id}`);
+        if (isEdit) {
+          // originalItemIds: base del diff UPDATE-vs-INSERT (no duplica kardex)
+          await apiPut(`/api/ventas/${idVenta}`, {
+            ...documento,
+            originalItemIds: edicion.originalItemIds,
+          });
+          useAppStore.getState().triggerRefresh();
+          toast.success("Venta modificada");
+          router.push(`/venta-detalle/${idVenta}`);
+        } else {
+          const created = await apiPost<Documento>("/api/ventas", documento);
+          useAppStore.getState().triggerRefresh();
+          toast.success("Venta creada");
+          router.push(`/venta-detalle/${created.id}`);
+        }
       } catch (err) {
         console.error(err);
         toast.error(err instanceof Error ? err.message : "Error al guardar la venta");
       }
     });
 
-  if (loading) {
+  if (loading || edicion.loading) {
     return <LoadingState variant="skeleton-cards" count={6} />;
+  }
+
+  if (edicion.redirecting) {
+    return null;
   }
 
   return (
@@ -230,6 +272,7 @@ export function VentaMovilWizard() {
           cajaAbierta={caja.isOpen}
           canSave={canSave}
           saving={saving}
+          isEdit={isEdit}
           onSave={handleSave}
           onBack={() => setStep("confirmar")}
         />

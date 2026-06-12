@@ -28,7 +28,8 @@ function pickDefaultDireccionId(dirs: ClienteDireccion[]): number | null {
 }
 
 interface UseClienteSeleccionadoOpts {
-  /** If true, on mount load /api/clientes/0 and pre-select. */
+  /** If true, on mount load /api/clientes/0 as fallback de guardado
+   *  (NO lo selecciona: el selector se ve vacío). */
   loadDefault?: boolean;
 }
 
@@ -39,6 +40,11 @@ export function useClienteSeleccionado({
   const [nombre, setNombre] = useState("");
   const [direcciones, setDirecciones] = useState<DireccionOption[]>([]);
   const [direccionId, setDireccionId] = useState<number | null>(null);
+  // Cliente común (id 0): se asigna al guardar si no se seleccionó ninguno.
+  const [fallback, setFallback] = useState<{
+    id: number;
+    direccionId: number | null;
+  } | null>(null);
   const refreshCounter = useAppStore((s) => s.refreshCounter);
 
   /** Hydrate from a Cliente (used at edit-load or programmatically). */
@@ -73,14 +79,18 @@ export function useClienteSeleccionado({
     setDireccionId(null);
   }, []);
 
-  // Load default cliente on mount
+  // Load default cliente on mount — solo como fallback de guardado;
+  // la selección visible queda vacía.
   useEffect(() => {
     if (!loadDefault) return;
     let cancelled = false;
     apiGet<Cliente | null>(`/api/clientes/${DEFAULT_CLIENT_ID}`)
       .then((cliente) => {
         if (cancelled || !cliente) return;
-        hydrate(cliente);
+        setFallback({
+          id: cliente.id,
+          direccionId: pickDefaultDireccionId(cliente.ClienteDireccion ?? []),
+        });
       })
       .catch(() => {
         /* no default configured */
@@ -88,7 +98,7 @@ export function useClienteSeleccionado({
     return () => {
       cancelled = true;
     };
-  }, [loadDefault, hydrate]);
+  }, [loadDefault]);
 
   // Refetch direcciones when refreshCounter ticks (eg. user added a new address)
   useEffect(() => {
@@ -119,5 +129,9 @@ export function useClienteSeleccionado({
     hydrate,
     select,
     remove,
+    /** Cliente efectivo para guardar: el seleccionado, o el común por defecto. */
+    idEfectivo: id ?? fallback?.id ?? null,
+    /** Dirección efectiva para guardar (la del seleccionado o la del común). */
+    direccionIdEfectiva: id != null ? direccionId : fallback?.direccionId ?? null,
   };
 }
