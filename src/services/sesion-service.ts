@@ -19,6 +19,8 @@ export interface CrearSesionInput {
   idTenant: number;
   /** Duración de la sesión en segundos (30d con "Recordarme", 8h sin). */
   duracionSegundos: number;
+  /** Sucursal activa inicial; el refresh la lee para no perderla (ADMIN). */
+  idNegocioActivo?: number | null;
   userAgent?: string | null;
   ip?: string | null;
 }
@@ -38,6 +40,7 @@ export type RotarResult =
       rotada: boolean;
       idUsuario: number;
       idTenant: number;
+      idNegocioActivo: number | null; // sucursal activa persistida en la sesión
       token?: string; // presente solo si rotada=true
       expiraEn?: string; // presente solo si rotada=true
     }
@@ -58,6 +61,7 @@ export const sesionService = {
         IdTenant: input.idTenant,
         TokenHash: hashToken(token),
         Familia: randomUUID(),
+        IdNegocioActivo: input.idNegocioActivo ?? null,
         ExpiraEn: expiraEn,
         UserAgent: input.userAgent ?? null,
         Ip: input.ip ?? null,
@@ -86,7 +90,7 @@ export const sesionService = {
     const { data: fila, error } = await db
       .from(TABLE)
       .select(
-        "id, IdUsuario, IdTenant, Familia, ExpiraEn, RevocadoEn, UserAgent, Ip",
+        "id, IdUsuario, IdTenant, Familia, IdNegocioActivo, ExpiraEn, RevocadoEn, UserAgent, Ip",
       )
       .eq("TokenHash", hashToken(token))
       .maybeSingle();
@@ -104,6 +108,7 @@ export const sesionService = {
           rotada: false,
           idUsuario: fila.IdUsuario as number,
           idTenant: fila.IdTenant as number,
+          idNegocioActivo: fila.IdNegocioActivo as number | null,
         };
       }
       // Reuso: un token revocado hace rato vuelve a aparecer → posible robo.
@@ -137,6 +142,7 @@ export const sesionService = {
       IdTenant: fila.IdTenant,
       TokenHash: hashToken(nuevoToken),
       Familia: fila.Familia,
+      IdNegocioActivo: fila.IdNegocioActivo, // arrastra la sucursal activa
       ExpiraEn: fila.ExpiraEn, // expiración absoluta heredada (no se desliza)
       UserAgent: meta?.userAgent ?? fila.UserAgent ?? null,
       Ip: meta?.ip ?? fila.Ip ?? null,
@@ -149,6 +155,7 @@ export const sesionService = {
       rotada: true,
       idUsuario: fila.IdUsuario as number,
       idTenant: fila.IdTenant as number,
+      idNegocioActivo: fila.IdNegocioActivo as number | null,
       token: nuevoToken,
       expiraEn: fila.ExpiraEn as string,
     };
@@ -162,6 +169,24 @@ export const sesionService = {
       .eq("TokenHash", hashToken(token))
       .is("RevocadoEn", null);
     if (error) throw new Error(`Error revocando sesión: ${error.message}`);
+  },
+
+  /**
+   * Fija la sucursal activa en todas las sesiones vivas del usuario. Se llama al
+   * cambiar de sucursal (ADMIN); como la cookie de refresh no llega al endpoint
+   * de cambio (path /api/auth), se actualiza por usuario en vez de por sesión.
+   */
+  async setNegocioActivoDelUsuario(
+    idUsuario: number,
+    idNegocio: number,
+  ): Promise<void> {
+    const { error } = await getSupabaseServer()
+      .from(TABLE)
+      .update({ IdNegocioActivo: idNegocio })
+      .eq("IdUsuario", idUsuario)
+      .is("RevocadoEn", null);
+    if (error)
+      throw new Error(`Error fijando sucursal activa: ${error.message}`);
   },
 
   /** Revoca todas las sesiones de una familia (reuso detectado). */

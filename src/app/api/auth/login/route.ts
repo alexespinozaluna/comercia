@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       idUsuario: user.id,
       idTenant: user.IdTenant,
       duracionSegundos: sessionMaxAge,
+      idNegocioActivo: idNegocio,
       userAgent,
       ip,
     });

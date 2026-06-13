@@ -37,7 +37,10 @@ async function doRefresh(req: NextRequest): Promise<RefreshOutcome> {
     return { ok: false };
   }
 
+  // Sucursal activa: la persistida en la sesión (la que el ADMIN eligió) manda;
+  // si no hay, la fija del usuario; si no, el default del tenant.
   const idNegocio =
+    rot.idNegocioActivo ??
     user.IdNegocio ??
     (await negocioService.getDefaultForTenant(user.IdTenant))?.id ??
     null;

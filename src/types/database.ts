@@ -262,6 +262,7 @@ export interface SistemaSesion {
   IdTenant: number;
   TokenHash: string; // sha256 del refresh token opaco
   Familia: string; // uuid: cadena de rotación
+  IdNegocioActivo: number | null; // sucursal activa (ADMIN); sobrevive al refresh
   ExpiraEn: string;
   RevocadoEn: string | null; // null = activa
   UserAgent: string | null;

@@ -226,15 +226,41 @@ Entregado en una sola tanda. Archivos:
   desactivación de usuario (queda para cuando se quiera ese efecto; hoy el refresh
   ya expulsa al desactivado en ≤45 min vía `Estado`).
 
+### Sucursal activa del ADMIN (`IdNegocioActivo`)
+
+El access token corto introdujo una regresión: el ADMIN (con `IdNegocio = NULL`)
+elige una sucursal activa que viajaba **solo en el claim del JWT**; al refrescar
+a los 45 min, `/api/auth/refresh` recomputa los claims desde BD y volvía al
+default del tenant. Solución:
+
+- Migración `20260613010000_sesion_negocio_activo.sql`: columna
+  `SistemaSesion.IdNegocioActivo`.
+- `login` la setea al crear la sesión; `rotar` la arrastra a la fila nueva;
+  `refresh` la usa con prioridad: `IdNegocioActivo ?? user.IdNegocio ?? default`.
+- `POST /api/sesion/negocio` (cambiar sucursal) llama
+  `sesionService.setNegocioActivoDelUsuario(idUsuario, idNegocio)` y emite el
+  access token con `setAccessCookie` (antes seteaba la cookie a mano con
+  `maxAge` de 8h y `SameSite=Lax` — quedaba inconsistente con el nuevo esquema).
+- Se persiste **por usuario** (todas sus sesiones vivas), no por sesión, porque
+  la cookie `refresh_token` (path `/api/auth`) no llega a ese endpoint y no se
+  puede identificar la sesión exacta. Trade-off aceptable: cambiar de sucursal
+  en un dispositivo se propaga a los demás tras su próximo refresh.
+
 ### Verificación
 
 `npx tsc --noEmit` y `npm run lint` limpios. **Smoke test en runtime OK
 (2026-06-13)**: login (2 cookies + fila en `SistemaSesion`), refresh por
 navegación (`/api/auth/refresh?next=…`, rotación con misma `Familia`), refresh
 por API (401 → POST refresh → reintento), y logout (cookies borradas + fila
-revocada). Migración aplicada en Supabase.
+revocada). Migración base aplicada en Supabase. **Falta aplicar
+`20260613010000_sesion_negocio_activo.sql` y probar el flujo de cambio de
+sucursal del ADMIN.**
 
 ## Pendientes / próximas decisiones
 
+- Aplicar `20260613010000_sesion_negocio_activo.sql` en Supabase + probar cambio
+  de sucursal del ADMIN (que la elección sobreviva al refresh).
+- Limpieza de `SistemaSesion`: la tabla crece sin tope; falta purga (cron o
+  `delete` oportunista) de filas expiradas/revocadas. No bloquea hoy.
 - Fase 3 (opcional): página "Sesiones activas" + cablear `revocarDelUsuario` a
   cambio de contraseña / desactivación de usuario.

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/api-auth";
 import { negocioService } from "@/services/negocio-service";
+import { sesionService } from "@/services/sesion-service";
 import { createToken } from "@/lib/jwt";
+import { setAccessCookie } from "@/lib/auth-cookies";
 
 // POST: cambia la sucursal activa de la sesión. Solo ADMIN — los demás roles
 // tienen su sucursal fija (SistemaUsuario.IdNegocio).
@@ -28,6 +30,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "El negocio está inactivo" }, { status: 400 });
     }
 
+    // Persistir la sucursal activa para que sobreviva al refresh del access
+    // token (que recomputa claims desde BD).
+    await sesionService.setNegocioActivoDelUsuario(user.id, negocio.id);
+
     const token = await createToken({
       sub: String(user.id),
       codigo: user.codigo,
@@ -48,15 +54,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    response.cookies.set({
-      name: "token",
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 8, // 8 horas
-      path: "/",
-    });
+    // Access token consistente con login/refresh (45 min, SameSite=Strict).
+    // OJO: la sucursal activa viaja solo en el claim; al refrescar a los 45 min
+    // se recomputa desde BD. Ver nota de IdNegocioActivo en el doc de sesiones.
+    setAccessCookie(response, token);
 
     return response;
   } catch (err) {
