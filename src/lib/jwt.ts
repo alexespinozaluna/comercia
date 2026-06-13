@@ -17,9 +17,12 @@ export interface JWTPayload {
   exp: number;
 }
 
+// Access token de vida corta: el estado revocable vive en `SistemaSesion`
+// (refresh token), no en el JWT. Al expirar, el cliente lo renueva vía
+// /api/auth/refresh. Ver docs/propuesta-sesiones-en-bd-refresh-tokens.md.
 export async function createToken(
   payload: Omit<JWTPayload, "iat" | "exp">,
-  expiresIn: string = "8h",
+  expiresIn: string = "45m",
 ): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })

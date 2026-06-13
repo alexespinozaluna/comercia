@@ -255,6 +255,21 @@ export interface SistemaUsuario {
   FechaCreacion: string;
 }
 
+/** Sesión respaldada en BD: refresh token opaco hasheado + cadena de rotación. */
+export interface SistemaSesion {
+  id: number;
+  IdUsuario: number;
+  IdTenant: number;
+  TokenHash: string; // sha256 del refresh token opaco
+  Familia: string; // uuid: cadena de rotación
+  ExpiraEn: string;
+  RevocadoEn: string | null; // null = activa
+  UserAgent: string | null;
+  Ip: string | null;
+  FechaCreacion: string;
+  UltimoUso: string | null;
+}
+
 export interface Caja {
   id: number;
   IdTenant: number;

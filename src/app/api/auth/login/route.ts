@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { usuarioService } from "@/services/usuario-service";
 import { negocioService } from "@/services/negocio-service";
+import { sesionService } from "@/services/sesion-service";
 import { createToken } from "@/lib/jwt";
+import {
+  setAccessCookie,
+  setRefreshCookie,
+  getRequestMeta,
+} from "@/lib/auth-cookies";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,22 +36,29 @@ export async function POST(req: NextRequest) {
       (await negocioService.getDefaultForTenant(user.IdTenant))?.id ??
       null;
 
-    // "Recordarme": sesión larga (30 días); si no, 8 horas. Aplica tanto al
-    // exp del JWT como al maxAge de la cookie para que ambos coincidan.
-    const maxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 8;
-    const expiresIn = remember ? "30d" : "8h";
+    // "Recordarme" controla la vida de la SESIÓN (refresh token): 30 días vs
+    // 8 horas. El access token (JWT) siempre es corto (45 min) y se renueva
+    // contra la BD vía /api/auth/refresh.
+    const sessionMaxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 8;
 
-    const token = await createToken(
-      {
-        sub: String(user.id),
-        codigo: user.Codigo,
-        nombre: user.Nombre,
-        rol: user.Rol,
-        idTenant: user.IdTenant,
-        idNegocio,
-      },
-      expiresIn,
-    );
+    const token = await createToken({
+      sub: String(user.id),
+      codigo: user.Codigo,
+      nombre: user.Nombre,
+      rol: user.Rol,
+      idTenant: user.IdTenant,
+      idNegocio,
+    });
+
+    // Sesión respaldada en BD: refresh token opaco (hasheado) + auditoría.
+    const { userAgent, ip } = getRequestMeta(req);
+    const { token: refreshToken } = await sesionService.crear({
+      idUsuario: user.id,
+      idTenant: user.IdTenant,
+      duracionSegundos: sessionMaxAge,
+      userAgent,
+      ip,
+    });
 
     const response = NextResponse.json({
       user: {
@@ -58,15 +71,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    response.cookies.set({
-      name: "token",
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge,
-      path: "/",
-    });
+    setAccessCookie(response, token);
+    setRefreshCookie(response, refreshToken, sessionMaxAge);
 
     return response;
   } catch (err) {
