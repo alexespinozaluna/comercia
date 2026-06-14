@@ -252,15 +252,22 @@ default del tenant. Solución:
 (2026-06-13)**: login (2 cookies + fila en `SistemaSesion`), refresh por
 navegación (`/api/auth/refresh?next=…`, rotación con misma `Familia`), refresh
 por API (401 → POST refresh → reintento), y logout (cookies borradas + fila
-revocada). Migración base aplicada en Supabase. **Falta aplicar
-`20260613010000_sesion_negocio_activo.sql` y probar el flujo de cambio de
-sucursal del ADMIN.**
+revocada). Ambas migraciones aplicadas en Supabase. **Flujo de sucursal del
+ADMIN verificado por curl (2026-06-13)**: login (idNegocio=1 default) → cambiar a
+sucursal 2 → refresh (recomputa desde BD) → sigue en 2 (sin el fix volvería a 1,
+porque `admin.IdNegocio` es NULL y el default es 1).
+
+### Purga de sesiones (oportunista en el login)
+
+`sesionService.purgarVencidas(retencionHoras = 24)` borra filas **revocadas o
+expiradas** con más de 24 h de antigüedad (`RevocadoEn.lt.corte OR
+ExpiraEn.lt.corte`); las revocadas recientes se conservan para no perder la
+**detección de reuso**. Se llama desde `login/route.ts` (try/catch, no rompe el
+login si falla). Sin migración: es un `DELETE` de una tabla por supabase-js.
+**Verificado (2026-06-13)**: fila con `ExpiraEn` de hace 2 días → tras un login
+desaparece.
 
 ## Pendientes / próximas decisiones
 
-- Aplicar `20260613010000_sesion_negocio_activo.sql` en Supabase + probar cambio
-  de sucursal del ADMIN (que la elección sobreviva al refresh).
-- Limpieza de `SistemaSesion`: la tabla crece sin tope; falta purga (cron o
-  `delete` oportunista) de filas expiradas/revocadas. No bloquea hoy.
 - Fase 3 (opcional): página "Sesiones activas" + cablear `revocarDelUsuario` a
   cambio de contraseña / desactivación de usuario.

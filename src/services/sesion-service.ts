@@ -209,4 +209,22 @@ export const sesionService = {
       .is("RevocadoEn", null);
     if (error) throw new Error(`Error revocando sesiones: ${error.message}`);
   },
+
+  /**
+   * Purga filas muertas: revocadas o expiradas con más de `retencionHoras` de
+   * antigüedad. Se conservan las revocadas recientes para que siga funcionando
+   * la detección de reuso (ventana de 24 h por defecto). Se llama oportunamente
+   * en el login. Devuelve cuántas filas borró.
+   */
+  async purgarVencidas(retencionHoras = 24): Promise<number> {
+    const corte = new Date(
+      Date.now() - retencionHoras * 60 * 60 * 1000,
+    ).toISOString();
+    const { error, count } = await getSupabaseServer()
+      .from(TABLE)
+      .delete({ count: "exact" })
+      .or(`RevocadoEn.lt.${corte},ExpiraEn.lt.${corte}`);
+    if (error) throw new Error(`Error purgando sesiones: ${error.message}`);
+    return count ?? 0;
+  },
 };

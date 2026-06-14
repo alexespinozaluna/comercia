@@ -50,6 +50,14 @@ export async function POST(req: NextRequest) {
       idNegocio,
     });
 
+    // Purga oportunista de sesiones muertas (revocadas/expiradas viejas). No
+    // debe romper el login si falla.
+    try {
+      await sesionService.purgarVencidas();
+    } catch (err) {
+      console.error("Login: error purgando sesiones:", err);
+    }
+
     // Sesión respaldada en BD: refresh token opaco (hasheado) + auditoría.
     const { userAgent, ip } = getRequestMeta(req);
     const { token: refreshToken } = await sesionService.crear({
