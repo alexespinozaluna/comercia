@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Documento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { obtenerRangosDeFechas } from "@/lib/date-utils";
 import { agruparIngresosPorMetodo } from "@/lib/reportes";
 import { useAppStore } from "@/stores/app-store";
@@ -39,28 +40,12 @@ export default function ReporteIngresosPage() {
   const router = useRouter();
   const refreshCounter = useAppStore((s) => s.refreshCounter);
   const [filtro, setFiltro] = useState<RangoFiltro>(rangoInicial);
-  const [docs, setDocs] = useState<Documento[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiGet<Documento[]>(
-        `/api/ventas?fechaIni=${filtro.fi}&fechaFin=${filtro.ff}`,
-      );
-      setDocs(data);
-    } catch (err) {
-      console.error("Error cargando reporte de ingresos:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [filtro.fi, filtro.ff]);
-
-  useEffect(() => {
-    load();
-  }, [load, refreshCounter]);
-
-  const { grupos, totales } = useMemo(() => agruparIngresosPorMetodo(docs), [docs]);
+  const { data, loading } = useResource(
+    () => apiGet<Documento[]>(`/api/ventas?fechaIni=${filtro.fi}&fechaFin=${filtro.ff}`),
+    [filtro.fi, filtro.ff, refreshCounter],
+  );
+  const { grupos, totales } = useMemo(() => agruparIngresosPorMetodo(data ?? []), [data]);
 
   return (
     <div className="space-y-3 max-w-lg mx-auto">

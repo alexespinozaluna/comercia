@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Documento, toDisplayDocumento, DocumentoDisplay } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { numToString, fechaCortaHora, cantidadString } from "@/lib/format";
 import { TipoDoc, esEgreso, esAbono } from "@/lib/tipo-documento";
 import { PageHeader } from "@/components/shared/page-header";
@@ -33,28 +34,21 @@ import { cn } from "@/lib/utils";
 export default function VentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const isDesktop = useIsDesktop();
-  const [doc, setDoc] = useState<DocumentoDisplay | null>(null);
-  const [cajaAbiertaId, setCajaAbiertaId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { id } = use(params);
   const [shareOpen, setShareOpen] = useState(false);
 
-  useEffect(() => {
-    params.then(async (p) => {
-      try {
-        const [data, caja] = await Promise.all([
-          apiGet<Documento | null>(`/api/ventas/${p.id}`),
-          apiGet<{ id: number } | null>("/api/caja").catch(() => null),
-        ]);
-        if (data) setDoc(toDisplayDocumento(data));
-        setCajaAbiertaId(caja?.id ?? null);
-      } catch (err) {
-        console.error(err);
-        toast.error("Error al cargar documento");
-      } finally {
-        setLoading(false);
-      }
-    });
-  }, [params]);
+  const { data, loading } = useResource(async () => {
+    const [docData, caja] = await Promise.all([
+      apiGet<Documento | null>(`/api/ventas/${id}`),
+      apiGet<{ id: number } | null>("/api/caja").catch(() => null),
+    ]);
+    return {
+      doc: docData ? toDisplayDocumento(docData) : null,
+      cajaAbiertaId: caja?.id ?? null,
+    };
+  }, [id]);
+  const doc: DocumentoDisplay | null = data?.doc ?? null;
+  const cajaAbiertaId = data?.cajaAbiertaId ?? null;
 
   const handleDelete = async () => {
     if (!doc) return;

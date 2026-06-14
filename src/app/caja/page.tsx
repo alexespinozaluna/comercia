@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useLayoutEffect, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Caja, CajaArqueo } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { AuthUser, getCurrentUser } from "@/lib/auth-client";
+import { useResource } from "@/hooks/use-resource";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -59,9 +60,6 @@ function BreakdownRow({
 
 export default function CajaPage() {
   const router = useRouter();
-  const [caja, setCaja] = useState<Caja | null>(null);
-  const [arqueo, setArqueo] = useState<CajaArqueo | null>(null);
-  const [loading, setLoading] = useState(true);
   const [montoInicial, setMontoInicial] = useState(0);
   const [montoFinal, setMontoFinal] = useState(0);
   const [observacion, setObservacion] = useState("");
@@ -73,31 +71,16 @@ export default function CajaPage() {
   }, []);
   const puedeVerHistorial = !!user && ROLES_HISTORIAL.includes(user.rol);
 
-  async function load() {
-    try {
-      const data = await apiGet<Caja | null>("/api/caja");
-      setCaja(data);
-      if (data) {
-        try {
-          const ar = await apiGet<CajaArqueo>(`/api/caja/arqueo?id=${data.id}`);
-          setArqueo(ar);
-        } catch {
-          setArqueo(null);
-        }
-      } else {
-        setArqueo(null);
-      }
-    } catch {
-      setCaja(null);
-      setArqueo(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useLayoutEffect(() => {
-    load();
-  }, []);
+  // Caja abierta + su arqueo en vivo (si hay caja).
+  const { data, loading, reload } = useResource(async () => {
+    const cajaAbierta = await apiGet<Caja | null>("/api/caja").catch(() => null);
+    const ar = cajaAbierta
+      ? await apiGet<CajaArqueo>(`/api/caja/arqueo?id=${cajaAbierta.id}`).catch(() => null)
+      : null;
+    return { caja: cajaAbierta, arqueo: ar };
+  });
+  const caja = data?.caja ?? null;
+  const arqueo = data?.arqueo ?? null;
 
   // Diferencia en vivo según lo que tecleó el cajero
   const diferencia = useMemo(() => {
@@ -116,7 +99,7 @@ export default function CajaPage() {
       await apiPost("/api/caja/apertura", { montoInicial: monto });
       toast.success("Caja abierta");
       setMontoInicial(0);
-      await load();
+      await reload();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error");
     }
@@ -150,7 +133,7 @@ export default function CajaPage() {
         toast.success("Caja cerrada");
         setMontoFinal(0);
         setObservacion("");
-        await load();
+        await reload();
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Error");
       }

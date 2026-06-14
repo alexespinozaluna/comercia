@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DeudaDetalle } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -31,26 +32,15 @@ function formatHora(fechaIso: string): string {
 
 export default function DeudaDetallePage({ params }: { params: Promise<{ idCliente: string }> }) {
   const router = useRouter();
-  const [idCliente, setIdCliente] = useState<number>(0);
-  const [deudas, setDeudas] = useState<DeudaDetalle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const idCliente = parseInt(use(params).idCliente);
 
   // Carga: pide al backend solo las deudas de este cliente (filtrado en la BD).
   // Antes traíamos todas las deudas del tenant y filtrabamos en JavaScript.
-  useEffect(() => {
-    params.then(async (p) => {
-      const cid = parseInt(p.idCliente);
-      setIdCliente(cid);
-      try {
-        const data = await apiGet<DeudaDetalle[]>(`/api/deudas/detalle?idCliente=${cid}`);
-        setDeudas(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    });
-  }, [params]);
+  const { data, loading } = useResource(
+    () => apiGet<DeudaDetalle[]>(`/api/deudas/detalle?idCliente=${idCliente}`),
+    [idCliente],
+  );
+  const deudas = useMemo(() => data ?? [], [data]);
 
   const nomCliente = deudas[0]?.NomCliente ?? "Cliente";
   const totalSaldo = useMemo(() => deudas.reduce((sum, d) => sum + Number(d.Saldo), 0), [deudas]);
