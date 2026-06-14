@@ -151,9 +151,10 @@ PWA/offline del proyecto.
 ## 6. Mejoras a futuro
 
 > ✅ HECHO (paso 5): **Vitest** configurado (`npm test`, `vitest.config.ts` con alias
-> `@`). **60 tests** sobre lógica pura crítica: tipo-documento flags, reportes/balance,
+> `@`). **71 tests** sobre lógica pura crítica: tipo-documento flags, reportes/balance,
 > format de montos/fechas, locale, permisos, `date-utils` (rangos de fechas),
-> `cleanJsonId` (prep de INSERT master-detail) y el wrapper `withAuth` (mapeo de
+> `cleanJsonId` (prep de INSERT master-detail), `filter-sheet` (`pasaFiltro`/
+> `contarFiltros`), `terminologia` y el wrapper `withAuth` (mapeo de
 > 401/403/ApiError/500/exposeErrors). Activados `noUnusedLocals` y
 > `noUnusedParameters` en `tsconfig.json`.
 >
