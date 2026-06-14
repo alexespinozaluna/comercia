@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Negocio } from "@/types/database";
+import { useResource } from "@/hooks/use-resource";
 import {
   LOCALES_VALIDOS,
   LOCALE_LABELS,
@@ -41,7 +42,6 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function ConfiguracionPage() {
-  const [negocio, setNegocio] = useState<Negocio | null>(null);
   const [nombre, setNombre] = useState("");
   const [direccion, setDireccion] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -49,36 +49,27 @@ export default function ConfiguracionPage() {
   const [locale, setLocaleField] = useState<string>(DEFAULT_LOCALE);
   const [decimales, setDecimalesField] = useState<number>(DEFAULT_DECIMALES);
   const [simboloMoneda, setSimboloMoneda] = useState("");
-  const [loading, setLoading] = useState(true);
   const { saving, guardar } = useGuardar();
   const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
   const setFormatoGlobal = useAppStore((s) => s.setFormato);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        // GET devuelve la lista de sucursales del tenant; editamos la activa.
-        const list = await apiGet<Negocio[]>("/api/negocio");
-        const activo = list.find((n) => n.id === idNegocioActivo) ?? list[0] ?? null;
-        if (activo) {
-          setNegocio(activo);
-          setNombre(activo.Nombre ?? "");
-          setDireccion(activo.Direccion ?? "");
-          setTelefono(activo.Telefono ?? "");
-          setLogo(activo.Logo ?? "");
-          setLocaleField(esLocaleValido(activo.Locale) ? activo.Locale : DEFAULT_LOCALE);
-          setDecimalesField(esDecimalesValido(activo.Decimales) ? activo.Decimales : DEFAULT_DECIMALES);
-          setSimboloMoneda(activo.SimboloMoneda ?? "");
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Error al cargar configuración");
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+  // GET devuelve la lista de sucursales del tenant; editamos la activa.
+  const { data: negocio, loading } = useResource(async () => {
+    const list = await apiGet<Negocio[]>("/api/negocio");
+    return list.find((n) => n.id === idNegocioActivo) ?? list[0] ?? null;
   }, [idNegocioActivo]);
+
+  // Inicializa los campos editables cuando llega el negocio.
+  useEffect(() => {
+    if (!negocio) return;
+    setNombre(negocio.Nombre ?? "");
+    setDireccion(negocio.Direccion ?? "");
+    setTelefono(negocio.Telefono ?? "");
+    setLogo(negocio.Logo ?? "");
+    setLocaleField(esLocaleValido(negocio.Locale) ? negocio.Locale : DEFAULT_LOCALE);
+    setDecimalesField(esDecimalesValido(negocio.Decimales) ? negocio.Decimales : DEFAULT_DECIMALES);
+    setSimboloMoneda(negocio.SimboloMoneda ?? "");
+  }, [negocio]);
 
   const handleSave = () => guardar(async () => {
     if (!negocio) { toast.error("No hay registro de negocio"); return; }

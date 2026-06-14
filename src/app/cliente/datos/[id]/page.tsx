@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Cliente, ClienteDireccion } from "@/types/database";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,9 +46,8 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 export default function ClienteDatosPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [id, setId] = useState(0);
-  const [isEdit, setIsEdit] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const id = parseInt(use(params).id);
+  const isEdit = id > 0;
   const { saving, guardar } = useGuardar();
 
   const [nombre, setNombre] = useState("");
@@ -57,29 +57,21 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
   const [comentario, setComentario] = useState("");
   const [direcciones, setDirecciones] = useState<ClienteDireccion[]>([]);
 
+  const { data: cliente, loading } = useResource(
+    () => (isEdit ? apiGet<Cliente | null>(`/api/clientes/${id}`) : Promise.resolve(null)),
+    [id],
+  );
+
+  // Poblar el formulario al editar (en alta queda vacío).
   useEffect(() => {
-    params.then(async (p) => {
-      const parsedId = parseInt(p.id);
-      setId(parsedId);
-      setIsEdit(parsedId > 0);
-      if (parsedId > 0) {
-        try {
-          const cliente = await apiGet<Cliente | null>(`/api/clientes/${parsedId}`);
-          if (cliente) {
-            setNombre(cliente.Nombre);
-            setNroTelefono(cliente.NroTelefono ?? "");
-            setTipoDocumento(cliente.TipoDocumento ?? "");
-            setNroDocumento(cliente.NroDocumento ?? "");
-            setComentario(cliente.Comentario ?? "");
-            setDirecciones(cliente.ClienteDireccion ?? []);
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }
-      setLoading(false);
-    });
-  }, [params]);
+    if (!cliente) return;
+    setNombre(cliente.Nombre);
+    setNroTelefono(cliente.NroTelefono ?? "");
+    setTipoDocumento(cliente.TipoDocumento ?? "");
+    setNroDocumento(cliente.NroDocumento ?? "");
+    setComentario(cliente.Comentario ?? "");
+    setDirecciones(cliente.ClienteDireccion ?? []);
+  }, [cliente]);
 
   const addDireccion = () => {
     setDirecciones([

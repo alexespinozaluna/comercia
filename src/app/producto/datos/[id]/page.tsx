@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Producto } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { Input } from "@/components/ui/input";
 import { MontoInput } from "@/components/shared/monto-input";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,8 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 export default function ProductoDatosPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [id, setId] = useState(0);
-  const [isEdit, setIsEdit] = useState(false);
+  const id = parseInt(use(params).id);
+  const isEdit = id > 0;
 
   const [nombre, setNombre] = useState("");
   const [precioCosto, setPrecioCosto] = useState<number | null>(null);
@@ -37,33 +38,24 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
   const [fechaVencimiento, setFechaVencimiento] = useState<string>("");
   const [idCategoria, setIdCategoria] = useState<number>(SIN_CATEGORIA_ID);
   const [activoVenta, setActivoVenta] = useState<boolean>(true);
-  const [loading, setLoading] = useState(true);
   const { saving, guardar } = useGuardar();
 
+  const { data: product, loading } = useResource(
+    () => (isEdit ? apiGet<Producto | null>(`/api/productos/${id}`) : Promise.resolve(null)),
+    [id],
+  );
+
+  // Poblar el formulario al editar (en alta queda con los valores por defecto).
   useEffect(() => {
-    params.then(async (p) => {
-      const parsedId = parseInt(p.id);
-      setId(parsedId);
-      setIsEdit(parsedId > 0);
-      if (parsedId > 0) {
-        try {
-          const product = await apiGet<Producto | null>(`/api/productos/${parsedId}`);
-          if (product) {
-            setNombre(product.Nombre);
-            setPrecioCosto(product.PrecioCosto);
-            setPrecioVenta(product.PrecioVenta);
-            setCantidad(product.Cantidad);
-            setFechaVencimiento(product.FechaVencimiento?.split("T")[0] ?? "");
-            setIdCategoria(product.IdCategoria ?? SIN_CATEGORIA_ID);
-            setActivoVenta(product.bActivoVenta ?? true);
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }
-      setLoading(false);
-    });
-  }, [params]);
+    if (!product) return;
+    setNombre(product.Nombre);
+    setPrecioCosto(product.PrecioCosto);
+    setPrecioVenta(product.PrecioVenta);
+    setCantidad(product.Cantidad);
+    setFechaVencimiento(product.FechaVencimiento?.split("T")[0] ?? "");
+    setIdCategoria(product.IdCategoria ?? SIN_CATEGORIA_ID);
+    setActivoVenta(product.bActivoVenta ?? true);
+  }, [product]);
 
   const handleSave = () => guardar(async () => {
     if (!nombre) { toast.error("Nombre es requerido"); return; }

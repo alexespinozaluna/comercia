@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Documento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { useAppStore } from "@/stores/app-store";
 import { numToString } from "@/lib/format";
 import { TipoDoc, esEgreso } from "@/lib/tipo-documento";
@@ -30,8 +31,6 @@ import { Receipt, TrendingDown, ChevronDown, Monitor, Smartphone } from "lucide-
 export default function HomePage() {
   const router = useRouter();
   const isDesktop = useIsDesktop();
-  const [ventas, setVentas] = useState<Documento[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtros, setFiltros] = useState<VentaFilter>(EMPTY_FILTER);
 
@@ -51,23 +50,11 @@ export default function HomePage() {
     } catch {}
   }, [setFilter]);
 
-  const loadVentas = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiGet<Documento[]>(
-        `/api/ventas?fechaIni=${filterFechaInicio}&fechaFin=${filterFechaFin}`
-      );
-      setVentas(data);
-    } catch (err) {
-      console.error("Error loading ventas:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [filterFechaInicio, filterFechaFin]);
-
-  useEffect(() => {
-    loadVentas();
-  }, [loadVentas, refreshCounter]);
+  const { data, loading } = useResource(
+    () => apiGet<Documento[]>(`/api/ventas?fechaIni=${filterFechaInicio}&fechaFin=${filterFechaFin}`),
+    [filterFechaInicio, filterFechaFin, refreshCounter],
+  );
+  const ventas = data ?? [];
 
   const handleFilterChange = (
     tipo: string,
