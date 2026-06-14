@@ -1,7 +1,7 @@
 # Propuesta: sesiones respaldadas en BD (refresh tokens)
 
-Fecha: 2026-06-12 · Plan añadido 2026-06-13 · **Fases 1+2 implementadas 2026-06-13**
-Estado: **Implementado (Fases 1 y 2)** — falta solo Fase 3 (UI de sesiones activas)
+Fecha: 2026-06-12 · Plan añadido 2026-06-13 · **Fases 1, 2 y 3 implementadas 2026-06-13**
+Estado: **Implementado y verificado (completo)**
 Relacionado: `docs/recordarme-persistencia-sesion.md`
 
 ## Contexto
@@ -284,8 +284,27 @@ recién revocado seguía sirviendo hasta 30 s. **Verificado por curl**: tras cam
 de contraseña y tras desactivación, las sesiones quedan en 0 y el `refresh` con la
 sesión revocada da 401 de inmediato.
 
-## Pendientes / próximas decisiones
+### Fase 3 — Parte 1: UI "Sesiones activas" (implementada 2026-06-13)
 
-- Fase 3 — Parte 1 (opcional): página "Sesiones activas" (listar sesiones del
-  usuario con `UserAgent`/`Ip`/`UltimoUso` y botón de cierre remoto). Endpoints
-  `GET /api/auth/sesiones` + revocar por id.
+Página `/sesiones` (enlazada desde el menú de cuenta, disponible a **todos** los
+roles; cada usuario gestiona solo las suyas):
+
+- `GET /api/auth/sesiones` → lista las sesiones vivas del usuario
+  (`UserAgent`/`Ip`/`UltimoUso`/`FechaCreacion`), marcando `esActual` por el hash
+  del refresh token de la petición (la cookie llega por `path /api/auth`).
+- `DELETE /api/auth/sesiones?id=N` → revoca una sesión concreta (guard de
+  pertenencia: solo las del propio usuario). `DELETE` sin `id` → "cerrar las
+  demás" (todas menos la actual).
+- Service: `listarActivasDelUsuario`, `idSesionPorToken`, `revocarPorId`
+  (con guard), `revocarOtrasDelUsuario`. DTO en `src/types/sesion.ts` (sin
+  exponer `TokenHash`/`Familia`). La sesión actual no se puede revocar desde la
+  lista (se usa "Cerrar sesión").
+
+**Verificado por curl**: marcado de "este dispositivo", revocar por id (la sesión
+revocada da 401 al refrescar), guard de pertenencia (revocar sesión ajena → 404 y
+sigue activa) y "cerrar las demás".
+
+## Estado
+
+**Opción B completa**: Fases 1, 2 y 3 implementadas y verificadas. No quedan
+pendientes funcionales.

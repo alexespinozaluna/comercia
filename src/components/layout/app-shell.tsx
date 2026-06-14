@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Menu, LogOut, ChevronDown, Landmark, Settings, ClipboardList, Users } from "lucide-react";
+import { Menu, LogOut, ChevronDown, Landmark, Settings, ClipboardList, Users, MonitorSmartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -107,6 +107,12 @@ function UserMenu({
         <DropdownMenuItem onClick={() => router.push("/caja")}>
           <Landmark className="h-4 w-4" />
           Ir a Caja
+        </DropdownMenuItem>
+
+        {/* Disponible a todos: cada usuario gestiona sus propias sesiones. */}
+        <DropdownMenuItem onClick={() => router.push("/sesiones")}>
+          <MonitorSmartphone className="h-4 w-4" />
+          Sesiones activas
         </DropdownMenuItem>
 
         {isAdmin && (
@@ -217,6 +223,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/producto/kardex")) return "Kardex";
   if (pathname.startsWith("/producto")) return "Inventario";
   if (pathname.startsWith("/bluetoothprinter")) return "Impresora";
+  if (pathname.startsWith("/sesiones")) return "Sesiones activas";
   if (pathname.startsWith("/configuracion")) return "Configuración";
   if (pathname.startsWith("/auditoria")) return "Auditoría";
   if (pathname.startsWith("/superadmin")) return "Tenants";

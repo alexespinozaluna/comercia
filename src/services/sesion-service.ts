@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "crypto";
 import { getSupabaseServer } from "@/lib/supabase-server";
+import type { SesionActivaDTO } from "@/types/sesion";
 
 const TABLE = "SistemaSesion";
 
@@ -223,6 +224,59 @@ export const sesionService = {
       .update({ RevocadoEn: new Date().toISOString() })
       .eq("IdUsuario", idUsuario)
       .is("RevocadoEn", null);
+    if (error) throw new Error(`Error revocando sesiones: ${error.message}`);
+  },
+
+  /** Lista las sesiones vivas (no revocadas ni expiradas) de un usuario. */
+  async listarActivasDelUsuario(
+    idUsuario: number,
+  ): Promise<Omit<SesionActivaDTO, "esActual">[]> {
+    const { data, error } = await getSupabaseServer()
+      .from(TABLE)
+      .select("id, UserAgent, Ip, FechaCreacion, UltimoUso, ExpiraEn")
+      .eq("IdUsuario", idUsuario)
+      .is("RevocadoEn", null)
+      .gt("ExpiraEn", new Date().toISOString())
+      .order("FechaCreacion", { ascending: false });
+    if (error) throw new Error(`Error listando sesiones: ${error.message}`);
+    return (data ?? []) as Omit<SesionActivaDTO, "esActual">[];
+  },
+
+  /** id de la sesión viva cuyo refresh token se pasa (para marcar "actual"). */
+  async idSesionPorToken(token: string): Promise<number | null> {
+    const { data } = await getSupabaseServer()
+      .from(TABLE)
+      .select("id")
+      .eq("TokenHash", hashToken(token))
+      .is("RevocadoEn", null)
+      .maybeSingle();
+    return (data?.id as number | undefined) ?? null;
+  },
+
+  /** Revoca una sesión concreta, con guard de pertenencia al usuario. */
+  async revocarPorId(id: number, idUsuario: number): Promise<boolean> {
+    const { error, count } = await getSupabaseServer()
+      .from(TABLE)
+      .update({ RevocadoEn: new Date().toISOString() }, { count: "exact" })
+      .eq("id", id)
+      .eq("IdUsuario", idUsuario)
+      .is("RevocadoEn", null);
+    if (error) throw new Error(`Error revocando sesión: ${error.message}`);
+    return (count ?? 0) > 0;
+  },
+
+  /** Revoca todas las sesiones vivas del usuario salvo `exceptId` (si se da). */
+  async revocarOtrasDelUsuario(
+    idUsuario: number,
+    exceptId: number | null,
+  ): Promise<void> {
+    let q = getSupabaseServer()
+      .from(TABLE)
+      .update({ RevocadoEn: new Date().toISOString() })
+      .eq("IdUsuario", idUsuario)
+      .is("RevocadoEn", null);
+    if (exceptId != null) q = q.neq("id", exceptId);
+    const { error } = await q;
     if (error) throw new Error(`Error revocando sesiones: ${error.message}`);
   },
 
