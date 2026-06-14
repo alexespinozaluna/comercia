@@ -100,40 +100,24 @@ export default async function DeudaPublicaPage({
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
-      {/* Header negocio compacto */}
-      {negocio && (
-        <div className="flex items-center gap-3 pb-3 border-b border-border">
+      {/* Header cliente: nombre + teléfono (dos datos del cliente) y total */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center shrink-0">
             <span className="text-sm font-bold text-brand">
-              {extraerIniciales(negocio.Nombre ?? "")}
+              {extraerIniciales(cliente.NomCliente ?? "")}
             </span>
           </div>
           <div className="min-w-0">
             <h1 className="text-base font-bold text-foreground truncate">
-              {negocio.Nombre}
+              {cliente.NomCliente ?? "Cliente"}
             </h1>
-            {(negocio.Direccion || negocio.Telefono) && (
+            {(cliente.NroDocumento || cliente.NroTelefono) && (
               <p className="text-xs text-muted-foreground truncate">
-                {[negocio.Direccion, negocio.Telefono && `Tel: ${negocio.Telefono}`]
-                  .filter(Boolean)
-                  .join(" · ")}
+                {[cliente.NroDocumento, cliente.NroTelefono].filter(Boolean).join(" · ")}
               </p>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Barra cliente + deuda total */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-foreground font-bold truncate">
-            {cliente.NomCliente ?? "Cliente"}
-          </h2>
-          {cliente.NroTelefono && (
-            <p className="text-muted-foreground text-xs truncate">
-              {cliente.NroTelefono}
-            </p>
-          )}
         </div>
         <div className="text-right shrink-0">
           <p className="text-red-600 text-[10px] uppercase font-semibold">Debe</p>

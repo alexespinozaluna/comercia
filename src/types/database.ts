@@ -169,6 +169,7 @@ export interface DeudaDetalle {
   IdUsuarioCreacion: number | null;
   NomCliente: string | null;
   NroTelefono: string | null;
+  NroDocumento: string | null;
   NomUsuarioCreacion: string | null;
 }
 
