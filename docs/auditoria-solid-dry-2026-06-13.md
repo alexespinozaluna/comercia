@@ -126,9 +126,11 @@ export const PERMISOS = {
 > usan `useResource` con el render gateado por `authUser == null || loading` (sin
 > parpadeo). `getCurrentUser()` ya solo lo usa el app-shell.
 >
-> **Único pendiente:** `venta-abono` (su carga hace `router.replace`/`toast` y
-> ramas condicionales; requiere separar fetch de side-effects). `superadmin` usa
-> centinela `null` propio y se deja como está.
+> `venta-abono` también migrada: el fetcher es puro y devuelve un resultado
+> discriminado (`{kind:"ok"|"invalid"}`); un `useEffect` sobre `data` hace los
+> side-effects (poblar formulario, o `toast`+`router.replace` si el abono no es
+> editable). Único que queda con patrón propio: `superadmin` (centinela `null`,
+> opcional).
 
 
 ~22-24 páginas repiten `useState(loading)` + `useEffect(fetch)` + manejo de error. Ya existe

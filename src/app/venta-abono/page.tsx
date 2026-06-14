@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Documento, MetodoPago } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { numToString, fechaString, extraerIniciales, toInputDate, parseDateOnly } from "@/lib/format";
+import { useResource } from "@/hooks/use-resource";
 import { Input } from "@/components/ui/input";
 import { MontoInput } from "@/components/shared/monto-input";
 import { Button } from "@/components/ui/button";
@@ -33,80 +34,109 @@ function VentaAbonoContent() {
   const isEdit = idAbono > 0;
   const pagina = searchParams.get("pagina") ?? (isEdit ? `/venta-detalle/${idAbono}` : "/");
 
-  const [deudas, setDeudas] = useState<Documento[]>([]);
   const [fecha, setFecha] = useState(toInputDate());
   const [total, setTotal] = useState(0);
   const [concepto, setConcepto] = useState("");
-  const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
   const [selectedMetodo, setSelectedMetodo] = useState<number | null>(null);
-  // En edición: monto que este abono ya aportaba a la venta (se suma al disponible).
-  const [extraDisponible, setExtraDisponible] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [deudasOpen, setDeudasOpen] = useState(false);
-  // Saldo a favor disponible del cliente (solo en alta).
-  const [disponibleFavor, setDisponibleFavor] = useState(0);
   const { saving: aplicandoFavor, guardar: guardarFavor } = useGuardar();
   const { saving, guardar } = useGuardar();
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const methods = await apiGet<MetodoPago[]>("/api/metodo-pago");
-        setMetodoPago(methods);
-        // Por defecto, el método marcado como efectivo (bEfectivo); si no hay, el primero.
-        const efectivo = methods.find((m) => m.bEfectivo) ?? methods[0];
-        if (efectivo) setSelectedMetodo(efectivo.id);
+  type AbonoData =
+    | { kind: "invalid"; message: string; redirect?: string }
+    | {
+        kind: "ok";
+        methods: MetodoPago[];
+        deudas: Documento[];
+        disponibleFavor: number;
+        // En edición: monto que este abono ya aportaba a la venta (se suma al disponible).
+        extraDisponible: number;
+        // Valores para poblar el formulario al editar (null en alta).
+        edit: { total: number; concepto: string; fecha: string; metodo: number | null } | null;
+      };
 
-        if (isEdit) {
-          // Cargar el abono y la venta que referencia
-          const abono = await apiGet<Documento | null>(`/api/ventas/${idAbono}`);
-          const item = abono?.DocumentoItem?.[0];
-          if (!abono || !item) {
-            toast.error("Abono no encontrado");
-            return;
-          }
-          if ((abono.DocumentoItem?.length ?? 0) !== 1) {
-            toast.error("Este abono no se puede editar (varias deudas)");
-            router.replace(`/venta-detalle/${idAbono}`);
-            return;
-          }
-          const venta = await apiGet<Documento | null>(`/api/ventas/${item.IdDocumentoRef}`);
-          if (venta) setDeudas([venta]);
-          setTotal(item.MontoAbono);
-          setExtraDisponible(item.MontoAbono);
-          setConcepto(abono.Concepto ?? "");
-          setFecha(abono.FechaEmision.split("T")[0]);
-          if (abono.IdMetodoPago != null) setSelectedMetodo(abono.IdMetodoPago);
-        } else if (tipo === 1 && id > 0) {
-          const doc = await apiGet<Documento | null>(`/api/ventas/${id}`);
-          if (doc) setDeudas([doc]);
-        } else if (tipo === 2 && id > 0) {
-          const docs = await apiGet<Documento[]>(`/api/ventas?bCredito=true&idCliente=${id}`);
-          setDeudas(docs.filter((d) => d.Saldo > 0));
-        }
+  const { data, loading } = useResource(async (): Promise<AbonoData> => {
+    const methods = await apiGet<MetodoPago[]>("/api/metodo-pago");
 
-        // Saldo a favor disponible del cliente (solo en alta)
-        if (!isEdit) {
-          let clientId = tipo === 2 ? id : 0;
-          if (tipo === 1 && id > 0) {
-            const doc = await apiGet<Documento | null>(`/api/ventas/${id}`).catch(() => null);
-            clientId = doc?.IdCliente ?? 0;
-          }
-          if (clientId > 0) {
-            const favores = await apiGet<{ IdCliente: number | null; Saldo: number }[]>(
-              `/api/saldo-favor?idCliente=${clientId}`,
-            ).catch(() => [] as { IdCliente: number | null; Saldo: number }[]);
-            setDisponibleFavor(favores.reduce((s, f) => s + (f.Saldo || 0), 0));
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    if (isEdit) {
+      const abono = await apiGet<Documento | null>(`/api/ventas/${idAbono}`);
+      const item = abono?.DocumentoItem?.[0];
+      if (!abono || !item) return { kind: "invalid", message: "Abono no encontrado" };
+      if ((abono.DocumentoItem?.length ?? 0) !== 1) {
+        return {
+          kind: "invalid",
+          message: "Este abono no se puede editar (varias deudas)",
+          redirect: `/venta-detalle/${idAbono}`,
+        };
       }
+      const venta = await apiGet<Documento | null>(`/api/ventas/${item.IdDocumentoRef}`);
+      return {
+        kind: "ok",
+        methods,
+        deudas: venta ? [venta] : [],
+        disponibleFavor: 0,
+        extraDisponible: item.MontoAbono,
+        edit: {
+          total: item.MontoAbono,
+          concepto: abono.Concepto ?? "",
+          fecha: abono.FechaEmision.split("T")[0],
+          metodo: abono.IdMetodoPago ?? null,
+        },
+      };
     }
-    load();
-  }, [id, tipo, idAbono, isEdit, router]);
+
+    // Alta: deudas según tipo (1 = una venta puntual, 2 = todas las del cliente).
+    let deudasAlta: Documento[] = [];
+    if (tipo === 1 && id > 0) {
+      const doc = await apiGet<Documento | null>(`/api/ventas/${id}`);
+      if (doc) deudasAlta = [doc];
+    } else if (tipo === 2 && id > 0) {
+      const docs = await apiGet<Documento[]>(`/api/ventas?bCredito=true&idCliente=${id}`);
+      deudasAlta = docs.filter((d) => d.Saldo > 0);
+    }
+
+    // Saldo a favor disponible del cliente.
+    let clientId = tipo === 2 ? id : 0;
+    if (tipo === 1 && id > 0) {
+      const doc = await apiGet<Documento | null>(`/api/ventas/${id}`).catch(() => null);
+      clientId = doc?.IdCliente ?? 0;
+    }
+    let disponibleFavor = 0;
+    if (clientId > 0) {
+      const favores = await apiGet<{ IdCliente: number | null; Saldo: number }[]>(
+        `/api/saldo-favor?idCliente=${clientId}`,
+      ).catch(() => [] as { IdCliente: number | null; Saldo: number }[]);
+      disponibleFavor = favores.reduce((s, f) => s + (f.Saldo || 0), 0);
+    }
+
+    return { kind: "ok", methods, deudas: deudasAlta, disponibleFavor, extraDisponible: 0, edit: null };
+  }, [id, tipo, idAbono, isEdit]);
+
+  const ok = data?.kind === "ok" ? data : null;
+  const deudas = ok?.deudas ?? [];
+  const metodoPago = ok?.methods ?? [];
+  const disponibleFavor = ok?.disponibleFavor ?? 0;
+  const extraDisponible = ok?.extraDisponible ?? 0;
+
+  // Side-effects al llegar los datos: poblar el formulario, o avisar/redirigir si
+  // el abono no es editable. Separado del fetch (que es puro) — ver useResource.
+  useEffect(() => {
+    if (!data) return;
+    if (data.kind === "invalid") {
+      toast.error(data.message);
+      if (data.redirect) router.replace(data.redirect);
+      return;
+    }
+    // Por defecto, el método marcado como efectivo (bEfectivo); si no hay, el primero.
+    const efectivo = data.methods.find((m) => m.bEfectivo) ?? data.methods[0];
+    if (efectivo) setSelectedMetodo(efectivo.id);
+    if (data.edit) {
+      setTotal(data.edit.total);
+      setConcepto(data.edit.concepto);
+      setFecha(data.edit.fecha);
+      if (data.edit.metodo != null) setSelectedMetodo(data.edit.metodo);
+    }
+  }, [data, router]);
 
   const totalDeuda = deudas.reduce((sum, d) => sum + d.Saldo, 0) + extraDisponible;
   const clienteName = deudas[0]?.Cliente?.Nombre ?? "";
