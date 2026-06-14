@@ -49,7 +49,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-supabase
+# Supabase: SÍ versionamos supabase/migrations/ (fuente de verdad del esquema).
+# NO el directorio script/ (backups/dumps con datos sensibles) ni temporales del CLI.
+supabase/script/
+supabase/.branches/
+supabase/.temp/
 
 # DB backups/dumps — nunca al repo (datos sensibles: hashes, clientes, tokens)
 docs/backup*.sql
