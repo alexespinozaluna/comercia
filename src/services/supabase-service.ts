@@ -1,7 +1,12 @@
 import { getSupabaseServer } from "@/lib/supabase-server";
 
-/** Strip "id":0 from JSON before insert (matches C# CleanJsonId) */
-function cleanJsonId(obj: Record<string, unknown>): Record<string, unknown> {
+/**
+ * Quita `id` cuando es 0 o undefined antes de un INSERT (port de C# CleanJsonId).
+ * Es la pieza de los guardados master-detail que permite insertar filas nuevas
+ * (los detalles con `id:0`) dejando que Postgres asigne el id real.
+ * Exportada para pruebas; en runtime la usa `add`.
+ */
+export function cleanJsonId(obj: Record<string, unknown>): Record<string, unknown> {
   if (obj.id === 0 || obj.id === undefined) {
     const { id, ...rest } = obj;
     return rest as Record<string, unknown>;

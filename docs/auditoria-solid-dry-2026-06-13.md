@@ -151,10 +151,16 @@ PWA/offline del proyecto.
 ## 6. Mejoras a futuro
 
 > ✅ HECHO (paso 5): **Vitest** configurado (`npm test`, `vitest.config.ts` con alias
-> `@`). 48 tests sobre lógica pura crítica (tipo-documento flags, reportes/balance,
-> format de montos/fechas, locale, permisos) y el wrapper `withAuth` (mapeo de
+> `@`). **60 tests** sobre lógica pura crítica: tipo-documento flags, reportes/balance,
+> format de montos/fechas, locale, permisos, `date-utils` (rangos de fechas),
+> `cleanJsonId` (prep de INSERT master-detail) y el wrapper `withAuth` (mapeo de
 > 401/403/ApiError/500/exposeErrors). Activados `noUnusedLocals` y
-> `noUnusedParameters` en `tsconfig.json` (no detectaron código muerto restante).
+> `noUnusedParameters` en `tsconfig.json`.
+>
+> Nota master-detail: el diff fila-a-fila (insert/update/soft-delete de detalles)
+> vive en los RPCs plpgsql (`guardar_venta_con_items`, `guardar_cliente_con_direcciones`),
+> así que se valida a nivel BD, no en unit tests. El diff JS antiguo de
+> `cliente-service` quedó muerto tras esa migración y se eliminó.
 
 
 - **Tests:** no existe ningún test unitario/integración (solo Playwright e2e con harness). La

@@ -1,8 +1,11 @@
-import { Cliente, ClienteDireccion } from "@/types/database";
+import { Cliente } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 
 const TABLE = "Cliente";
 
+// Las altas/ediciones de Cliente + ClienteDireccion van por el RPC transaccional
+// `guardar_cliente_con_direcciones` (el diff insert/update/soft-delete de las
+// direcciones se hace en plpgsql). Este servicio solo lee.
 export const clienteService = {
   /** Get all clients with their addresses */
   async getAllWithDirecciones(tenantId?: number): Promise<Cliente[]> {
@@ -37,89 +40,5 @@ export const clienteService = {
       throw new Error(`Error fetching ${TABLE}: ${error.message}`);
     }
     return data as Cliente;
-  },
-
-  /** Save client with addresses (create or update) using diff-based pattern */
-  async saveClienteConDirecciones(
-    idCliente: number | null,
-    cliente: Cliente
-  ): Promise<number> {
-    // Deep clone to avoid circular references
-    const { ClienteDireccion: direcciones, ...clienteData } = cliente;
-
-    if (!idCliente || idCliente === 0) {
-      // CREATE
-      const { id, ...clienteNoId } = clienteData as Cliente & { id: number };
-      const { data, error } = await getSupabaseServer()
-        .from(TABLE)
-        .insert(clienteNoId)
-        .select()
-        .single();
-
-      if (error) throw new Error(`Error creating Cliente: ${error.message}`);
-      idCliente = (data as Cliente).id;
-    } else {
-      // UPDATE
-      const { id, FechaCreacion, ...clienteNoId } = clienteData as Cliente & { id: number; FechaCreacion: string };
-      const { error } = await getSupabaseServer()
-        .from(TABLE)
-        .update(clienteNoId)
-        .eq("id", idCliente);
-
-      if (error) throw new Error(`Error updating Cliente: ${error.message}`);
-    }
-
-    // Fetch current addresses
-    const { data: currentDirecciones, error: fetchErr } = await getSupabaseServer()
-      .from("ClienteDireccion")
-      .select("*")
-      .eq("IdCliente", idCliente);
-
-    if (fetchErr) throw new Error(`Error fetching ClienteDireccion: ${fetchErr.message}`);
-
-    const current = (currentDirecciones ?? []) as ClienteDireccion[];
-    const newDirecciones = direcciones ?? [];
-
-    // Diff: delete, update, add
-    const toDelete = current.filter((c) => !newDirecciones.some((n) => n.id === c.id));
-    const toUpdate = newDirecciones.filter((n) => current.some((c) => c.id === n.id));
-    const toAdd = newDirecciones.filter((n) => !current.some((c) => c.id === n.id));
-
-    // Batch delete
-    if (toDelete.length > 0) {
-      const idsToDelete = toDelete.map((d) => d.id);
-      const { error: delErr } = await getSupabaseServer()
-        .from("ClienteDireccion")
-        .delete()
-        .in("id", idsToDelete);
-
-      if (delErr) throw new Error(`Error deleting ClienteDireccion: ${delErr.message}`);
-    }
-
-    // Individual updates
-    for (const item of toUpdate) {
-      const { id, FechaCreacion, ...updateData } = item as ClienteDireccion & { id: number; FechaCreacion?: string };
-      const { error: updErr } = await getSupabaseServer()
-        .from("ClienteDireccion")
-        .update(updateData)
-        .eq("id", id);
-
-      if (updErr) throw new Error(`Error updating ClienteDireccion: ${updErr.message}`);
-    }
-
-    // Batch insert new addresses
-    if (toAdd.length > 0) {
-      const addData = toAdd.map(({ id, ...rest }) => ({
-        ...rest,
-        IdCliente: idCliente,
-      }));
-      const { error: addErr } = await getSupabaseServer()
-        .from("ClienteDireccion")
-        .insert(addData);
-
-      if (addErr) throw new Error(`Error adding ClienteDireccion: ${addErr.message}`);
-    }
-
-    return idCliente;
   },
 };
