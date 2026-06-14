@@ -186,7 +186,14 @@ export default function CajaHistorialPage() {
         <div className="grid grid-cols-2 gap-2 items-end">
           <div>
             <label className="block text-[11px] font-semibold uppercase text-muted-foreground mb-1">Cajero</label>
-            <Select value={usuarioFilter} onValueChange={(v) => setUsuarioFilter(v ?? "0")}>
+            <Select
+              value={usuarioFilter}
+              items={{
+                "0": "Todos",
+                ...Object.fromEntries(cajeros.map((c) => [String(c.id), c.nombre])),
+              }}
+              onValueChange={(v) => setUsuarioFilter(v ?? "0")}
+            >
               <SelectTrigger className="h-10">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>

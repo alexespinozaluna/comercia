@@ -174,7 +174,7 @@ export default function ConfiguracionPage() {
           <FieldLabel>País / formato de fechas y números</FieldLabel>
           <div className="relative">
             <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-            <Select value={locale} onValueChange={(v) => v && setLocaleField(v)}>
+            <Select value={locale} items={LOCALE_LABELS} onValueChange={(v) => v && setLocaleField(v)}>
               <SelectTrigger className="h-11 rounded-md pl-9 w-full">
                 <SelectValue placeholder="Selecciona el país" />
               </SelectTrigger>
@@ -195,6 +195,9 @@ export default function ConfiguracionPage() {
             <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
             <Select
               value={String(decimales)}
+              items={Object.fromEntries(
+                DECIMALES_VALIDOS.map((d) => [String(d), DECIMALES_LABELS[d]])
+              )}
               onValueChange={(v) => v != null && setDecimalesField(parseInt(v))}
             >
               <SelectTrigger className="h-11 rounded-md pl-9 w-full">

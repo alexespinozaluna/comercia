@@ -152,6 +152,15 @@ export default function UsuarioDatosPage({
   const isSelf = isEdit && authUser?.id === id;
   const esAdmin = rol === "ADMIN";
 
+  // Base UI monta los SelectItem solo al abrir el popup; sin `items` en el Root,
+  // <SelectValue> mostraría el valor crudo (el id) en vez del nombre.
+  const negocioItems: Record<string, React.ReactNode> = {
+    __todas__: "Todas las sucursales",
+    ...Object.fromEntries(
+      negociosActivos.map((n) => [n.id.toString(), n.Nombre ?? `Negocio #${n.id}`])
+    ),
+  };
+
   return (
     <div className="space-y-2 max-w-lg">
       <PageHeader
@@ -224,6 +233,7 @@ export default function UsuarioDatosPage({
           <Select
             value={esAdmin ? "__todas__" : idNegocio?.toString() ?? ""}
             onValueChange={(v) => setIdNegocio(v ? parseInt(v, 10) : null)}
+            items={negocioItems}
             disabled={esAdmin}
           >
             <SelectTrigger className="h-11 rounded-md">
