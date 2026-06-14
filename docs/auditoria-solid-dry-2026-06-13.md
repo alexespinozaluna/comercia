@@ -111,7 +111,14 @@ export const PERMISOS = {
 } as const;
 ```
 
-## 5. DRY — Patrón fetch/loading/error repetido en el frontend
+## 5. DRY — Patrón fetch/loading/error repetido en el frontend 🚧 EN CURSO (paso 4)
+
+> Implementado: `src/hooks/use-resource.ts` (`useResource(fetcher, deps?)` →
+> `{ data, loading, error, reload, setData }`). Migradas como muestra:
+> `saldo-favor` (fetch compuesto + reload), `sesiones`, `venta-eliminadas`,
+> `deuda`. Pendiente: el resto de páginas (incremental, página por página).
+> `superadmin` se deja como está (carga condicional solo-SUPERADMIN + centinela `null`).
+
 
 ~22-24 páginas repiten `useState(loading)` + `useEffect(fetch)` + manejo de error. Ya existe
 `api-client.ts` (bien hecho, con refresh de token), `loading-state.tsx`, `empty-state.tsx`,

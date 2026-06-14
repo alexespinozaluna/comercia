@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { apiGet, apiDelete } from "@/lib/api-client";
 import type { SesionActivaDTO } from "@/types/sesion";
 import { useAppStore } from "@/stores/app-store";
+import { useResource } from "@/hooks/use-resource";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -43,8 +44,10 @@ function dispositivoLabel(ua: string | null): { texto: string; movil: boolean } 
 
 export default function SesionesPage() {
   const locale = useAppStore((s) => s.locale);
-  const [sesiones, setSesiones] = useState<SesionActivaDTO[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading, reload } = useResource(() =>
+    apiGet<SesionActivaDTO[]>("/api/auth/sesiones"),
+  );
+  const sesiones = data ?? [];
   const [toRevocar, setToRevocar] = useState<SesionActivaDTO | null>(null);
   const [confirmOtras, setConfirmOtras] = useState(false);
   const [working, setWorking] = useState(false);
@@ -63,23 +66,6 @@ export default function SesionesPage() {
     [locale],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiGet<SesionActivaDTO[]>("/api/auth/sesiones");
-      setSesiones(data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al cargar sesiones");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
   const confirmRevocar = async () => {
     if (!toRevocar) return;
     setWorking(true);
@@ -87,7 +73,7 @@ export default function SesionesPage() {
       await apiDelete(`/api/auth/sesiones?id=${toRevocar.id}`);
       toast.success("Sesión cerrada");
       setToRevocar(null);
-      await load();
+      await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -101,7 +87,7 @@ export default function SesionesPage() {
       await apiDelete("/api/auth/sesiones");
       toast.success("Se cerraron las demás sesiones");
       setConfirmOtras(false);
-      await load();
+      await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {

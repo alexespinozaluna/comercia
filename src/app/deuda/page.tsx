@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DeudaResumen } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchInput } from "@/components/shared/search-input";
@@ -14,25 +15,14 @@ import { BookOpenText, ChevronRight } from "lucide-react";
 
 export default function DeudaPage() {
   const router = useRouter();
-  const [resumen, setResumen] = useState<DeudaResumen[]>([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
 
   // Carga inicial: el resumen agregado ya viene calculado desde Supabase
   // (función fn_deuda_resumen). Sin pasadas de JavaScript ni Map<>.
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await apiGet<DeudaResumen[]>("/api/deudas/resumen");
-        setResumen(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const { data, loading } = useResource(() =>
+    apiGet<DeudaResumen[]>("/api/deudas/resumen"),
+  );
+  const resumen = data ?? [];
 
   const filtered = search
     ? resumen.filter((r) => (r.NomCliente ?? "").toLowerCase().includes(search.toLowerCase()))

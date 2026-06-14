@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Cliente, MetodoPago, SaldoFavorRow, Caja } from "@/types/database";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api-client";
@@ -32,6 +32,7 @@ import { ClienteSelectorSheet } from "@/components/ventas/cliente-selector-sheet
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
 import { useGuardar } from "@/hooks/use-guardar";
+import { useResource } from "@/hooks/use-resource";
 import { cn } from "@/lib/utils";
 import { PiggyBank, Plus, UserPlus, X, Pencil, Trash2 } from "lucide-react";
 
@@ -45,9 +46,18 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 export default function SaldoFavorPage() {
   const router = useRouter();
-  const [lista, setLista] = useState<SaldoFavorRow[]>([]);
-  const [caja, setCaja] = useState<Caja | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const { data, loading, reload } = useResource(async () => {
+    const [rows, cajaAct, methods] = await Promise.all([
+      apiGet<SaldoFavorRow[]>("/api/saldo-favor"),
+      apiGet<Caja | null>("/api/caja").catch(() => null),
+      apiGet<MetodoPago[]>("/api/metodo-pago").catch(() => [] as MetodoPago[]),
+    ]);
+    return { rows, cajaAct, methods };
+  });
+  const lista = data?.rows ?? [];
+  const caja = data?.cajaAct ?? null;
+  const metodoPago = data?.methods ?? [];
 
   // Crear (sheet)
   const [createOpen, setCreateOpen] = useState(false);
@@ -56,37 +66,21 @@ export default function SaldoFavorPage() {
   const [fecha, setFecha] = useState(toInputDate());
   const [monto, setMonto] = useState(0);
   const [concepto, setConcepto] = useState("");
-  const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
   const [selectedMetodo, setSelectedMetodo] = useState<number | null>(null);
   const { saving, guardar } = useGuardar();
+
+  // Método por defecto (efectivo) cuando llegan los métodos de pago.
+  useEffect(() => {
+    const methods = data?.methods;
+    if (!methods?.length || selectedMetodo != null) return;
+    const efectivo = methods.find((m) => m.bEfectivo) ?? methods[0];
+    setSelectedMetodo(efectivo?.id ?? null);
+  }, [data, selectedMetodo]);
 
   // Editar (sheet) / eliminar
   const [editTarget, setEditTarget] = useState<SaldoFavorRow | null>(null);
   const [editMonto, setEditMonto] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<SaldoFavorRow | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const [rows, cajaAct, methods] = await Promise.all([
-        apiGet<SaldoFavorRow[]>("/api/saldo-favor"),
-        apiGet<Caja | null>("/api/caja").catch(() => null),
-        apiGet<MetodoPago[]>("/api/metodo-pago").catch(() => [] as MetodoPago[]),
-      ]);
-      setLista(rows);
-      setCaja(cajaAct);
-      setMetodoPago(methods);
-      const efectivo = methods.find((m) => m.bEfectivo) ?? methods[0];
-      setSelectedMetodo((prev) => prev ?? efectivo?.id ?? null);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   // ¿Se puede editar/eliminar? No usado + su caja sigue abierta (la actual).
   const esEditable = (row: SaldoFavorRow) =>
@@ -119,7 +113,7 @@ export default function SaldoFavorPage() {
       toast.success(`Saldo a favor registrado · ${numToString(monto)}`);
       setCreateOpen(false);
       resetCreate();
-      load();
+      reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al registrar");
     }
@@ -133,7 +127,7 @@ export default function SaldoFavorPage() {
       useAppStore.getState().triggerRefresh();
       toast.success("Saldo a favor actualizado");
       setEditTarget(null);
-      load();
+      reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al editar");
     }
@@ -146,7 +140,7 @@ export default function SaldoFavorPage() {
       useAppStore.getState().triggerRefresh();
       toast.success("Saldo a favor eliminado");
       setDeleteTarget(null);
-      load();
+      reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al eliminar");
     }

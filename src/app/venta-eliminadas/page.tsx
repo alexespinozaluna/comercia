@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Documento } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -18,31 +18,17 @@ import { useAppStore } from "@/stores/app-store";
 
 export default function VentaEliminadasPage() {
   const router = useRouter();
-  const [docs, setDocs] = useState<Documento[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  async function load() {
-    try {
-      const data = await apiGet<Documento[]>("/api/ventas/eliminadas");
-      setDocs(data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al cargar documentos eliminados");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { data, loading, reload } = useResource(() =>
+    apiGet<Documento[]>("/api/ventas/eliminadas"),
+  );
+  const docs = data ?? [];
 
   const handleRestore = async (id: number) => {
     try {
       await apiPost(`/api/ventas/${id}`, {});
       useAppStore.getState().triggerRefresh();
       toast.success("Documento restaurado");
-      await load();
+      await reload();
     } catch (err) {
       console.error(err);
       toast.error("Error al restaurar");
