@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { SistemaTenant } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { useGuardar } from "@/hooks/use-guardar";
+import { useResource } from "@/hooks/use-resource";
 import { useAppStore } from "@/stores/app-store";
 import { ROL_SUPERADMIN } from "@/types/usuario";
 import {
@@ -40,7 +41,6 @@ export default function SuperadminPage() {
   const router = useRouter();
   const authUser = useAppStore((s) => s.authUser);
   const { saving, guardar } = useGuardar();
-  const [tenants, setTenants] = useState<SistemaTenant[] | null>(null);
   const [form, setForm] = useState(EMPTY);
 
   // Guard: solo SUPERADMIN.
@@ -48,18 +48,10 @@ export default function SuperadminPage() {
     if (authUser && authUser.rol !== ROL_SUPERADMIN) router.replace("/");
   }, [authUser, router]);
 
-  const load = useCallback(async () => {
-    try {
-      setTenants(await apiGet<SistemaTenant[]>("/api/admin/tenants"));
-    } catch (err) {
-      console.error(err);
-      toast.error("Error cargando tenants");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (authUser?.rol === ROL_SUPERADMIN) load();
-  }, [authUser, load]);
+  const { data: tenants, loading, reload } = useResource(async () => {
+    if (authUser?.rol !== ROL_SUPERADMIN) return [] as SistemaTenant[];
+    return apiGet<SistemaTenant[]>("/api/admin/tenants");
+  }, [authUser?.rol]);
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -70,7 +62,7 @@ export default function SuperadminPage() {
         await apiPost("/api/admin/tenants", form);
         toast.success(`Tenant "${form.nombre}" creado`);
         setForm(EMPTY);
-        await load();
+        await reload();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Error al crear tenant");
       }
@@ -152,13 +144,13 @@ export default function SuperadminPage() {
         <div className="px-4 py-2 border-b border-border bg-muted/40">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tenants existentes</span>
         </div>
-        {tenants === null ? (
+        {authUser == null || loading ? (
           <LoadingState variant="skeleton-detail" count={3} />
-        ) : tenants.length === 0 ? (
+        ) : (tenants ?? []).length === 0 ? (
           <p className="px-4 py-3 text-sm text-muted-foreground">Sin tenants.</p>
         ) : (
           <div className="divide-y divide-border">
-            {tenants.map((t) => (
+            {(tenants ?? []).map((t) => (
               <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
                 <div className="h-8 w-8 rounded-full bg-brand-surface flex items-center justify-center shrink-0">
                   <Building2 className="h-4 w-4 text-brand" />

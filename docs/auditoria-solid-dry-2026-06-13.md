@@ -129,8 +129,11 @@ export const PERMISOS = {
 > `venta-abono` también migrada: el fetcher es puro y devuelve un resultado
 > discriminado (`{kind:"ok"|"invalid"}`); un `useEffect` sobre `data` hace los
 > side-effects (poblar formulario, o `toast`+`router.replace` si el abono no es
-> editable). Único que queda con patrón propio: `superadmin` (centinela `null`,
-> opcional).
+> editable). `superadmin` también migrada (su centinela `null` se reemplazó por
+> el gate `authUser == null || loading`).
+>
+> **Resultado:** el 100% de las páginas que cargan datos usan `useResource`;
+> ninguna conserva el patrón manual `useState(loading)+useEffect(fetch)`.
 
 
 ~22-24 páginas repiten `useState(loading)` + `useEffect(fetch)` + manejo de error. Ya existe
