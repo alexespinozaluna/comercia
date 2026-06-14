@@ -23,8 +23,7 @@ No test projects exist.
 
 ### Key Patterns
 - **API Routes** (`src/app/api/*`) - all backend access goes through Next.js API routes; frontend never talks directly to Supabase
-- **Supabase server client** (`src/lib/supabase-server.ts`) - lazy singleton using `NEXT_PUBLIC_SUPABASE_ANON_KEY` for API route queries
-- **Supabase client** (`src/lib/supabase.ts`) - anon key for frontend auth (login only)
+- **Supabase server client** (`src/lib/supabase-server.ts`) - lazy singleton using `NEXT_PUBLIC_SUPABASE_ANON_KEY` for API route queries (the only Supabase client; the frontend never talks to Supabase directly — login goes through `/api/auth/login`)
 - **Custom JWT auth** (`src/app/api/auth/*`) - `jose` + `bcryptjs` with `SistemaUsuario` table; no Supabase Auth
 - **Service layer** (`src/services/`) - mirrors C# service pattern with master-detail CRUD (diff-based saves for Documento+DocumentoItem and Cliente+ClienteDireccion)
 - **Zustand store** (`src/stores/app-store.ts`) - replaces MAUI RefreshService, holds basket state and filter state
