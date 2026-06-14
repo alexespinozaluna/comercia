@@ -13,9 +13,13 @@ npm run dev        # Dev server (http://localhost:3000)
 npm run build      # Production build
 npm run start      # Start production server
 npm run lint       # ESLint
+npm test           # Unit tests (Vitest, lógica pura en src/**/*.test.ts)
+npm run test:e2e   # Playwright e2e (e2e/*.spec.ts, vía dev-harness)
 ```
 
-No test projects exist.
+Tests unitarios con **Vitest** (`src/**/*.test.ts`, entorno node, alias `@`): cubren
+lógica pura (tipo-documento flags, reportes, format, locale, permisos) y el wrapper
+`withAuth`. e2e con Playwright en `e2e/`.
 
 ## Architecture
 

@@ -134,6 +134,13 @@ PWA/offline del proyecto.
 
 ## 6. Mejoras a futuro
 
+> ✅ HECHO (paso 5): **Vitest** configurado (`npm test`, `vitest.config.ts` con alias
+> `@`). 48 tests sobre lógica pura crítica (tipo-documento flags, reportes/balance,
+> format de montos/fechas, locale, permisos) y el wrapper `withAuth` (mapeo de
+> 401/403/ApiError/500/exposeErrors). Activados `noUnusedLocals` y
+> `noUnusedParameters` en `tsconfig.json` (no detectaron código muerto restante).
+
+
 - **Tests:** no existe ningún test unitario/integración (solo Playwright e2e con harness). La
   lógica de `tipo-documento` (flags), `reportes`, diffs master-detail y los RPCs son candidatos
   ideales para tests unitarios — son lógica pura y crítica para el dinero.
