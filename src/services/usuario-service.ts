@@ -2,6 +2,7 @@ import { SistemaUsuario } from "@/types/database";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { verifyPassword, hashPassword } from "@/lib/password";
 import { negocioService } from "@/services/negocio-service";
+import { sesionService } from "@/services/sesion-service";
 import { auditCreate, auditUpdate } from "@/lib/audit";
 import { ROLES_VALIDOS, Rol, UsuarioSinPassword } from "@/types/usuario";
 
@@ -209,6 +210,13 @@ export const usuarioService = {
       .eq("IdTenant", tenant);
 
     if (error) throw new Error(`Error actualizando usuario: ${error.message}`);
+
+    // Revocar sesiones si cambió la contraseña o se desactivó al usuario: los
+    // refresh tokens dejan de servir de inmediato (los access JWT activos
+    // mueren solos en ≤45 min). Aplica también a quien cambia su propia clave.
+    if (input.Password || input.Estado === 0) {
+      await sesionService.revocarDelUsuario(id);
+    }
     return true;
   },
 
@@ -234,6 +242,10 @@ export const usuarioService = {
       .eq("IdTenant", tenant);
 
     if (error) throw new Error(`Error desactivando usuario: ${error.message}`);
+
+    // Expulsión inmediata: revoca las sesiones del usuario desactivado (sin
+    // esperar a que el access token expire y el refresh lo eche por Estado).
+    await sesionService.revocarDelUsuario(id);
     return true;
   },
 };

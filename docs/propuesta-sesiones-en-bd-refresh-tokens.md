@@ -218,8 +218,11 @@ Entregado en una sola tanda. Archivos:
   vieja. La sesión "Recordarme" dura 30 días **desde el login**, no se desliza
   indefinidamente con el uso (tope de seguridad).
 - **Ventana de gracia = 30 s**: un refresh token ya rotado se acepta 30 s para
-  cubrir carreras de requests paralelos; pasado ese lapso, su reaparición se
-  trata como reuso y se revoca toda la `Familia`.
+  cubrir carreras de requests paralelos, **pero solo si la rotación dejó un
+  sucesor activo en la `Familia`**. Una revocación explícita (logout / cambio de
+  contraseña / desactivación) revoca toda la familia sin sucesor → se rechaza de
+  inmediato, sin esperar los 30 s. Pasado el lapso, la reaparición de un token
+  revocado se trata como reuso y se revoca toda la `Familia`.
 - **Sin RPC**: son escrituras de una sola tabla, no master-detail; van directas
   por `getSupabaseServer()`.
 - **`revocarDelUsuario`** ya existe pero aún no se cablea a cambio de contraseña /
@@ -267,7 +270,22 @@ login si falla). Sin migración: es un `DELETE` de una tabla por supabase-js.
 **Verificado (2026-06-13)**: fila con `ExpiraEn` de hace 2 días → tras un login
 desaparece.
 
+### Fase 3 — Parte 2: revocación proactiva (implementada 2026-06-13)
+
+`revocarDelUsuario` cableado en `usuario-service`:
+
+- **Cambio de contraseña** (`update` con `Password`) → revoca todas las sesiones
+  del usuario (incluye al que cambia su propia clave). Re-login forzado.
+- **Desactivación** (`update` con `Estado=0` y `softDelete`) → revoca al instante,
+  sin esperar a que el `refresh` lo eche por `Estado` (ahorra hasta 45 min).
+
+Requirió el refinamiento de la ventana de gracia (arriba): sin él, un token
+recién revocado seguía sirviendo hasta 30 s. **Verificado por curl**: tras cambio
+de contraseña y tras desactivación, las sesiones quedan en 0 y el `refresh` con la
+sesión revocada da 401 de inmediato.
+
 ## Pendientes / próximas decisiones
 
-- Fase 3 (opcional): página "Sesiones activas" + cablear `revocarDelUsuario` a
-  cambio de contraseña / desactivación de usuario.
+- Fase 3 — Parte 1 (opcional): página "Sesiones activas" (listar sesiones del
+  usuario con `UserAgent`/`Ip`/`UltimoUso` y botón de cierre remoto). Endpoints
+  `GET /api/auth/sesiones` + revocar por id.

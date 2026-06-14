@@ -44,7 +44,7 @@ export type RotarResult =
       token?: string; // presente solo si rotada=true
       expiraEn?: string; // presente solo si rotada=true
     }
-  | { ok: false; motivo: "invalido" | "expirado" | "reuso" };
+  | { ok: false; motivo: "invalido" | "expirado" | "revocado" | "reuso" };
 
 export const sesionService = {
   /** Crea una sesión y devuelve el refresh token opaco (en crudo, una sola vez). */
@@ -98,20 +98,36 @@ export const sesionService = {
     if (error) throw new Error(`Error leyendo sesión: ${error.message}`);
     if (!fila) return { ok: false, motivo: "invalido" };
 
-    // Token ya rotado: ¿carrera en ventana de gracia o reuso real?
+    // Token ya rotado/revocado: distinguir carrera de rotación, revocación
+    // explícita y reuso.
     if (fila.RevocadoEn) {
-      const finGracia =
+      const dentroGracia =
+        ahora <=
         new Date(fila.RevocadoEn as string).getTime() + GRACIA_SEGUNDOS * 1000;
-      if (ahora <= finGracia) {
-        return {
-          ok: true,
-          rotada: false,
-          idUsuario: fila.IdUsuario as number,
-          idTenant: fila.IdTenant as number,
-          idNegocioActivo: fila.IdNegocioActivo as number | null,
-        };
+      if (dentroGracia) {
+        // Solo es carrera legítima si la rotación dejó un sucesor activo en la
+        // familia. Una revocación explícita (logout / cambio de contraseña /
+        // desactivación) revoca toda la familia sin sucesor → rechazo inmediato,
+        // sin esperar a que pase la ventana de gracia.
+        const { data: activa } = await db
+          .from(TABLE)
+          .select("id")
+          .eq("Familia", fila.Familia as string)
+          .is("RevocadoEn", null)
+          .limit(1)
+          .maybeSingle();
+        if (activa) {
+          return {
+            ok: true,
+            rotada: false,
+            idUsuario: fila.IdUsuario as number,
+            idTenant: fila.IdTenant as number,
+            idNegocioActivo: fila.IdNegocioActivo as number | null,
+          };
+        }
+        return { ok: false, motivo: "revocado" };
       }
-      // Reuso: un token revocado hace rato vuelve a aparecer → posible robo.
+      // Fuera de gracia: un token revocado viejo reaparece → posible robo.
       await this.revocarFamilia(fila.Familia as string);
       return { ok: false, motivo: "reuso" };
     }
