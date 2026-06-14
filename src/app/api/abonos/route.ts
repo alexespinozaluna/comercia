@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 import { documentoService } from "@/services/documento-service";
 
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.COBRANZA);
 
     // Validar caja abierta (de la sucursal activa)
     const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);

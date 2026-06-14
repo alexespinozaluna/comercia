@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditUpdate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
@@ -10,7 +11,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.CAJA_Y_GASTOS);
 
     const { id } = await params;
     const idDoc = parseInt(id);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 
 export async function POST(req: NextRequest) {
@@ -8,7 +9,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.CAJA_Y_GASTOS);
 
     const body = await req.json();
     const montoInicial = parseFloat(body.montoInicial);

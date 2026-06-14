@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { clienteService } from "@/services/cliente-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate, auditUpdate } from "@/lib/audit";
@@ -27,7 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "VENDEDOR", "COBRANZA", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.CUALQUIER_OPERADOR);
 
     const { id } = await params;
     const idCliente = parseInt(id);
@@ -93,7 +94,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.ADMINISTRACION);
 
     const { id } = await params;
     const idCliente = parseInt(id);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { documentoService } from "@/services/documento-service";
 import { cajaService } from "@/services/caja-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
@@ -37,7 +38,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
 
     const { id } = await params;
     const idDoc = parseInt(id);
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.ADMINISTRACION);
 
     const { id } = await params;
     const idDoc = parseInt(id);
@@ -188,7 +189,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.ADMINISTRACION);
 
     const { id } = await params;
     const idDoc = parseInt(id);

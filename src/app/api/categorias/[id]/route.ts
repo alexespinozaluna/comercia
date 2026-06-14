@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { categoriaService } from "@/services/categoria-service";
 
 export async function PUT(
@@ -11,7 +12,7 @@ export async function PUT(
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
 
     const { id } = await params;
     const { Nombre } = await req.json();
@@ -35,7 +36,7 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.ADMINISTRACION);
 
     const { id } = await params;
     await categoriaService.remove(parseInt(id, 10), user.idTenant, user.id);

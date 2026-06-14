@@ -34,7 +34,7 @@ export function requireAuth(user: APIUser | null): asserts user is APIUser {
   }
 }
 
-export function requireRole(user: APIUser, roles: string[]): void {
+export function requireRole(user: APIUser, roles: readonly string[]): void {
   if (!roles.includes(user.rol)) {
     throw new Error("Forbidden");
   }

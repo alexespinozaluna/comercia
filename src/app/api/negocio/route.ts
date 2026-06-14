@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { negocioService } from "@/services/negocio-service";
 import {
   esLocaleValido,
@@ -32,7 +33,7 @@ export async function PUT(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.ADMINISTRACION);
 
     const body = await req.json();
     const { id, Nombre, Direccion, Telefono, Logo, Locale, Decimales, SimboloMoneda } = body;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { productoService } from "@/services/producto-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate } from "@/lib/audit";
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
 
     const body = await req.json();
     const { Nombre, PrecioCosto, PrecioVenta, Cantidad, FechaVencimiento, IdCategoria, bActivoVenta } = body;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 import { documentoService } from "@/services/documento-service";
 
@@ -11,7 +12,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.COBRANZA);
 
     const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
@@ -44,7 +45,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!user) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
-    requireRole(user, ["ADMIN", "CAJERO", "COBRANZA", "SUPERVISOR"]);
+    requireRole(user, PERMISOS.COBRANZA);
 
     const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {

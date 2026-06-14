@@ -74,7 +74,11 @@ El wrapper traduce `"Unauthorized"→401`, `"Forbidden"→403`, valida roles y h
 imposible olvidar el check de auth (hoy es copy-paste manual). Esto es **SRP**: la ruta solo
 describe la lógica de negocio; auth/errores son responsabilidad del wrapper.
 
-## 4. SOLID — "Magic strings" de roles dispersos
+## 4. SOLID — "Magic strings" de roles dispersos ✅ HECHO (paso 2)
+
+> Implementado: `src/lib/permisos.ts` centraliza los grupos por capacidad y las
+> 30 llamadas `requireRole(...)` en 22 rutas ahora usan `PERMISOS.*`.
+
 
 Los arrays de roles están hardcodeados y repetidos por toda la capa de rutas:
 
