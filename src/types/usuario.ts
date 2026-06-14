@@ -14,3 +14,8 @@ export const ROLES_VALIDOS = [
   "COBRANZA",
 ] as const;
 export type Rol = (typeof ROLES_VALIDOS)[number];
+
+// Rol de sistema (operador del SaaS), FUERA de ROLES_VALIDOS a propósito: un
+// ADMIN de tenant nunca puede crear/escalar a SUPERADMIN vía /api/usuarios.
+// Solo se siembra por migración (bootstrap) o lo crea otro SUPERADMIN.
+export const ROL_SUPERADMIN = "SUPERADMIN";

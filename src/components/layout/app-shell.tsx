@@ -219,6 +219,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/bluetoothprinter")) return "Impresora";
   if (pathname.startsWith("/configuracion")) return "Configuración";
   if (pathname.startsWith("/auditoria")) return "Auditoría";
+  if (pathname.startsWith("/superadmin")) return "Tenants";
   if (pathname.startsWith("/reporte-ingresos")) return "Reporte de ingresos";
   if (pathname.startsWith("/caja")) return "Caja";
   return pathname.slice(1).charAt(0).toUpperCase() + pathname.slice(2);
@@ -242,6 +243,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       getCurrentUser().then((u) => setAuthUser(u));
     }
   }, [pathname, authUser, setAuthUser]);
+
+  // El SUPERADMIN no opera el POS: lo confinamos a /superadmin.
+  useEffect(() => {
+    if (
+      authUser?.rol === "SUPERADMIN" &&
+      pathname !== "/login" &&
+      !pathname.startsWith("/superadmin")
+    ) {
+      router.replace("/superadmin");
+    }
+  }, [authUser, pathname, router]);
 
   const handleLogout = async () => {
     await logout();

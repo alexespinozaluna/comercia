@@ -14,6 +14,7 @@ import {
   ArrowDownRight,
   PiggyBank,
   BarChart3,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthUser } from "@/lib/auth-client";
@@ -38,6 +39,7 @@ const ALL_NAV: NavItem[] = [
   { href: "/venta-eliminadas", label: "Papelera", icon: Trash2, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },
   { href: "/auditoria", label: "Auditoría", icon: ClipboardList, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },
   { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },
+  { href: "/superadmin", label: "Tenants", icon: Building2, roles: ["SUPERADMIN"], group: "gestion" },
 ];
 
 function NavItemLink({
