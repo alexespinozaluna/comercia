@@ -9,6 +9,10 @@ import { ROLES_VALIDOS, type Rol } from "@/types/usuario";
  * SUPERADMIN no aparece aquí: es el operador del SaaS y se valida por separado
  * (ver ROL_SUPERADMIN). La gestión de usuarios exige ADMIN exacto y tampoco usa
  * estos grupos.
+ *
+ * SUPERVISOR es de **solo lectura**: figura en los grupos para *ver* todo, pero
+ * `withAuth` le bloquea cualquier mutación (POST/PUT/DELETE) salvo autoservicio
+ * (`allowReadOnly`). Ver ROLES_SOLO_LECTURA.
  */
 export const PERMISOS = {
   /** Operaciones administrativas/sensibles: borrados, auditoría, configuración
@@ -28,3 +32,22 @@ export const PERMISOS = {
    *  clientes, que todos los perfiles necesitan durante la operación. */
   CUALQUIER_OPERADOR: [...ROLES_VALIDOS],
 } as const satisfies Record<string, readonly Rol[]>;
+
+/**
+ * Roles de **solo lectura**: ven todo lo que su grupo permite, pero no pueden
+ * crear/editar/eliminar. `withAuth` los rechaza en POST/PUT/DELETE (salvo rutas
+ * marcadas `allowReadOnly`, p. ej. autoservicio de sesiones / cambio de sucursal).
+ */
+export const ROLES_SOLO_LECTURA: readonly string[] = ["SUPERVISOR"];
+
+/** ¿El rol es de solo lectura (no puede mutar datos de negocio)? */
+export const esSoloLectura = (rol?: string | null): boolean =>
+  !!rol && ROLES_SOLO_LECTURA.includes(rol);
+
+/**
+ * ¿El rol accede a las secciones de gestión/administración (ve lo mismo que el
+ * ADMIN)? Incluye al SUPERVISOR (solo lectura). Para la UI: visibilidad, no
+ * permiso de escritura.
+ */
+export const puedeGestionar = (rol?: string | null): boolean =>
+  rol === "ADMIN" || rol === "SUPERVISOR";

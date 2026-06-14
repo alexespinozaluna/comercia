@@ -6,6 +6,7 @@ import { Negocio } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
 import type { UsuarioSinPassword } from "@/types/usuario";
 import { useAppStore } from "@/stores/app-store";
+import { puedeGestionar, esSoloLectura } from "@/lib/permisos";
 import { useResource } from "@/hooks/use-resource";
 import { extraerIniciales } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
@@ -34,15 +35,15 @@ export default function UsuariosPage() {
   );
   const [working, setWorking] = useState(false);
 
-  // Guard: solo ADMIN.
+  // Guard: ADMIN gestiona; SUPERVISOR solo ve.
   useEffect(() => {
-    if (authUser && authUser.rol !== "ADMIN") {
+    if (authUser && !puedeGestionar(authUser.rol)) {
       router.replace("/");
     }
   }, [authUser, router]);
 
   const { data, loading, reload } = useResource(async () => {
-    if (authUser?.rol !== "ADMIN") {
+    if (!puedeGestionar(authUser?.rol)) {
       return { usuarios: [] as UsuarioSinPassword[], negocios: [] as Negocio[] };
     }
     const [u, n] = await Promise.all([
@@ -72,25 +73,30 @@ export default function UsuariosPage() {
     }
   };
 
-  if (authUser && authUser.rol !== "ADMIN") {
+  if (authUser && !puedeGestionar(authUser.rol)) {
     return (
       <EmptyState title="Acceso restringido" description="Solo administradores." />
     );
   }
+
+  // SUPERVISOR ve la lista pero no crea/desactiva (solo lectura).
+  const soloLectura = esSoloLectura(authUser?.rol);
 
   return (
     <div className="space-y-2">
       <PageHeader
         title="Usuarios"
         actions={
-          <Button
-            size="sm"
-            className="bg-brand hover:bg-brand-dark text-white gap-1.5 shadow-sm"
-            onClick={() => router.push("/configuracion/usuarios/nuevo")}
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo
-          </Button>
+          soloLectura ? undefined : (
+            <Button
+              size="sm"
+              className="bg-brand hover:bg-brand-dark text-white gap-1.5 shadow-sm"
+              onClick={() => router.push("/configuracion/usuarios/nuevo")}
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo
+            </Button>
+          )
         }
       />
 
@@ -143,34 +149,36 @@ export default function UsuariosPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    onClick={() => router.push(`/configuracion/usuarios/${u.id}`)}
-                    aria-label="Editar"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive disabled:opacity-30"
-                    onClick={() => setToDesactivar(u)}
-                    disabled={isSelf || inactivo}
-                    aria-label="Desactivar"
-                    title={
-                      isSelf
-                        ? "No puedes desactivarte"
-                        : inactivo
-                        ? "Ya está inactivo"
-                        : "Desactivar"
-                    }
-                  >
-                    <Power className="h-4 w-4" />
-                  </Button>
-                </div>
+                {!soloLectura && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={() => router.push(`/configuracion/usuarios/${u.id}`)}
+                      aria-label="Editar"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive disabled:opacity-30"
+                      onClick={() => setToDesactivar(u)}
+                      disabled={isSelf || inactivo}
+                      aria-label="Desactivar"
+                      title={
+                        isSelf
+                          ? "No puedes desactivarte"
+                          : inactivo
+                          ? "Ya está inactivo"
+                          : "Desactivar"
+                      }
+                    >
+                      <Power className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}

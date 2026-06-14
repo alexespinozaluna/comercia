@@ -43,5 +43,6 @@ export const DELETE = withAuth(
     await sesionService.revocarOtrasDelUsuario(user.id, actualId);
     return NextResponse.json({ ok: true });
   },
-  { exposeErrors: true },
+  // Autoservicio: cada usuario gestiona sus propias sesiones (incluido solo lectura).
+  { exposeErrors: true, allowReadOnly: true },
 );

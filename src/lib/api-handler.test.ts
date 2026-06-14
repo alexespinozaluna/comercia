@@ -99,3 +99,37 @@ describe("withAuth", () => {
     expect(await res.json()).toEqual({ ok: true });
   });
 });
+
+describe("withAuth — rol de solo lectura (SUPERVISOR)", () => {
+  const SUPERVISOR: APIUser = { ...USER, rol: "SUPERVISOR" };
+  const reqM = (method: string) =>
+    ({ method, nextUrl: { pathname: "/api/test" } }) as unknown as NextRequest;
+  const okHandler = async () => Response.json({ ok: true }) as never;
+
+  beforeEach(() => getCurrentUserFromRequest.mockResolvedValue(SUPERVISOR));
+
+  it("permite GET (lectura)", async () => {
+    const res = await withAuth(okHandler, { roles: ["ADMIN", "SUPERVISOR"] })(reqM("GET"), noCtx);
+    expect(res.status).toBe(200);
+  });
+
+  it.each(["POST", "PUT", "PATCH", "DELETE"])("bloquea %s con 403 solo lectura", async (method) => {
+    const res = await withAuth(okHandler, { roles: ["ADMIN", "SUPERVISOR"] })(reqM(method), noCtx);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "Tu rol es de solo lectura" });
+  });
+
+  it("allowReadOnly permite la mutación (autoservicio: sesiones, sucursal)", async () => {
+    const res = await withAuth(okHandler, {
+      roles: ["ADMIN", "SUPERVISOR"],
+      allowReadOnly: true,
+    })(reqM("POST"), noCtx);
+    expect(res.status).toBe(200);
+  });
+
+  it("a un rol que NO es de solo lectura no le afecta el bloqueo", async () => {
+    getCurrentUserFromRequest.mockResolvedValue({ ...USER, rol: "CAJERO" });
+    const res = await withAuth(okHandler, { roles: ["CAJERO"] })(reqM("POST"), noCtx);
+    expect(res.status).toBe(200);
+  });
+});

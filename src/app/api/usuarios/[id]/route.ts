@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { withAuth, ApiError } from "@/lib/api-handler";
 import { usuarioService } from "@/services/usuario-service";
 
-// La gestión de usuarios exige ADMIN exacto (no usa los grupos de PERMISOS).
+// El detalle/edición de un usuario es ADMIN exacto (el SUPERVISOR ve la lista,
+// no el formulario). No usa los grupos de PERMISOS.
 const SOLO_ADMIN = ["ADMIN"] as const;
 
 function parseId(raw: string): number | null {

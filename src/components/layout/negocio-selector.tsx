@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useAppStore } from "@/stores/app-store";
+import { puedeGestionar } from "@/lib/permisos";
 import { useGuardar } from "@/hooks/use-guardar";
 import { apiGet, apiPost } from "@/lib/api-client";
 import type { Negocio } from "@/types/database";
@@ -58,8 +59,9 @@ export function NegocioSelector() {
   const activo = negocios.find((n) => n.id === authUser.idNegocio) ?? negocios[0];
   if (!activo) return null; // aún no cargó la lista / sin sucursales
 
-  // Solo ADMIN con más de una sucursal puede cambiar; el resto ve un badge fijo.
-  const canSwitch = authUser.rol === "ADMIN" && negocios.length > 1;
+  // ADMIN y SUPERVISOR (solo vista, para supervisar) con más de una sucursal
+  // pueden cambiar; el resto ve un badge fijo.
+  const canSwitch = puedeGestionar(authUser.rol) && negocios.length > 1;
 
   if (!canSwitch) {
     return (

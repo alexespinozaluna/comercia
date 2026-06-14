@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserFromRequest, type APIUser } from "@/lib/api-auth";
+import { esSoloLectura } from "@/lib/permisos";
 
 /**
  * Error con código HTTP explícito. Lánzalo desde un handler (o servicio) cuando
@@ -28,7 +29,17 @@ interface AuthOptions {
    * `ApiError` siempre respeta su propio status/mensaje, independientemente de esto.
    */
   exposeErrors?: boolean;
+  /**
+   * Permite la mutación (POST/PUT/DELETE) a roles de **solo lectura**
+   * (`ROLES_SOLO_LECTURA`, p. ej. SUPERVISOR). Úsalo solo en acciones de
+   * autoservicio que NO son datos de negocio: gestionar las propias sesiones,
+   * cambiar la sucursal activa, etc. Por defecto los roles de solo lectura son
+   * rechazados en cualquier mutación.
+   */
+  allowReadOnly?: boolean;
 }
+
+const METODOS_MUTACION = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 type RouteContext<P> = { params: Promise<P> };
 type HandlerContext<P> = { user: APIUser; params: P };
@@ -64,6 +75,17 @@ export function withAuth<P = Record<string, never>>(
       }
       if (options.roles && !options.roles.includes(user.rol)) {
         return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+      }
+      // Rol de solo lectura: bloquear mutaciones de negocio (salvo autoservicio).
+      if (
+        !options.allowReadOnly &&
+        METODOS_MUTACION.has(req.method) &&
+        esSoloLectura(user.rol)
+      ) {
+        return NextResponse.json(
+          { error: "Tu rol es de solo lectura" },
+          { status: 403 },
+        );
       }
       // En rutas estáticas Next puede no pasar contexto; en dinámicas trae params.
       const params = (routeCtx ? await routeCtx.params : ({} as P)) as P;

@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-handler";
 import { usuarioService } from "@/services/usuario-service";
 
-// La gestión de usuarios exige ADMIN exacto (no usa los grupos de PERMISOS).
+// Crear/editar/eliminar usuarios exige ADMIN exacto. La lectura la comparte el
+// SUPERVISOR (solo vista). No usa los grupos de PERMISOS.
 const SOLO_ADMIN = ["ADMIN"] as const;
+const VER_USUARIOS = ["ADMIN", "SUPERVISOR"] as const;
 
 export const GET = withAuth(
   async (_req, { user }) => {
     const data = await usuarioService.listByTenant(user.idTenant);
     return NextResponse.json({ data });
   },
-  { roles: SOLO_ADMIN },
+  { roles: VER_USUARIOS },
 );
 
 export const POST = withAuth(

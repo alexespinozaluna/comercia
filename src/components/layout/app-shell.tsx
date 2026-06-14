@@ -17,6 +17,7 @@ import { MobileNav } from "./mobile-nav";
 import { NegocioSelector } from "./negocio-selector";
 import { ThemeToggle } from "./theme-toggle";
 import { getCurrentUser, logout, type AuthUser } from "@/lib/auth-client";
+import { puedeGestionar } from "@/lib/permisos";
 import { useAppStore } from "@/stores/app-store";
 import { extraerIniciales, numToString } from "@/lib/format";
 import { toast } from "sonner";
@@ -56,7 +57,8 @@ function UserMenu({
   onLogout: () => void;
 }) {
   const router = useRouter();
-  const isAdmin = authUser.rol === "ADMIN";
+  // Secciones de gestión: ADMIN y SUPERVISOR (este último, solo vista).
+  const isAdmin = puedeGestionar(authUser.rol);
 
   return (
     <DropdownMenu>
@@ -173,9 +175,9 @@ function SidebarUserFooter({ onLogout }: { onLogout: () => void }) {
       <div
         className={cn(
           "flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors",
-          authUser.rol === "ADMIN" && "cursor-pointer hover:bg-page-bg"
+          puedeGestionar(authUser.rol) && "cursor-pointer hover:bg-page-bg"
         )}
-        onClick={() => authUser.rol === "ADMIN" && router.push("/configuracion")}
+        onClick={() => puedeGestionar(authUser.rol) && router.push("/configuracion")}
       >
         <div className="h-9 w-9 rounded-full bg-brand flex items-center justify-center shrink-0">
           <span className="text-white text-xs font-semibold">

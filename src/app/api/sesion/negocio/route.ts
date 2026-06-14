@@ -5,8 +5,9 @@ import { sesionService } from "@/services/sesion-service";
 import { createToken } from "@/lib/jwt";
 import { setAccessCookie } from "@/lib/auth-cookies";
 
-// POST: cambia la sucursal activa de la sesión. Solo ADMIN — los demás roles
-// tienen su sucursal fija (SistemaUsuario.IdNegocio).
+// POST: cambia la sucursal activa de la sesión. ADMIN y SUPERVISOR (este último,
+// de solo lectura, para supervisar otras sucursales). Los demás roles tienen su
+// sucursal fija (SistemaUsuario.IdNegocio).
 export const POST = withAuth(
   async (req, { user }) => {
     const { idNegocio } = await req.json();
@@ -53,5 +54,7 @@ export const POST = withAuth(
 
     return response;
   },
-  { roles: ["ADMIN"], exposeErrors: true },
+  // Cambio de sucursal es autoservicio de sesión (no muta datos de negocio) →
+  // allowReadOnly para que el SUPERVISOR pueda supervisar otras sucursales.
+  { roles: ["ADMIN", "SUPERVISOR"], exposeErrors: true, allowReadOnly: true },
 );
