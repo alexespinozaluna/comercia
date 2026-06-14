@@ -50,3 +50,7 @@ yarn-error.log*
 next-env.d.ts
 
 supabase
+
+# DB backups/dumps — nunca al repo (datos sensibles: hashes, clientes, tokens)
+docs/backup*.sql
+*.dump
