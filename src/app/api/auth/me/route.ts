@@ -1,24 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api-handler";
 
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    return NextResponse.json({
-      user: {
-        id: user.id,
-        codigo: user.codigo,
-        nombre: user.nombre,
-        rol: user.rol,
-        idTenant: user.idTenant,
-        idNegocio: user.idNegocio,
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "Token invalido" }, { status: 401 });
-  }
-}
+export const GET = withAuth(async (_req, { user }) => {
+  return NextResponse.json({
+    user: {
+      id: user.id,
+      codigo: user.codigo,
+      nombre: user.nombre,
+      rol: user.rol,
+      idTenant: user.idTenant,
+      idNegocio: user.idNegocio,
+    },
+  });
+});

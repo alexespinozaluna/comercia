@@ -1,31 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { tenantService } from "@/services/tenant-service";
 import { ROL_SUPERADMIN } from "@/types/usuario";
 import { esLocaleValido, esDecimalesValido, DEFAULT_LOCALE } from "@/types/locale";
 
-export async function GET(req: NextRequest) {
-  const user = await getCurrentUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (user.rol !== ROL_SUPERADMIN)
-    return NextResponse.json({ error: "Solo SUPERADMIN" }, { status: 403 });
+const SOLO_SUPERADMIN = [ROL_SUPERADMIN] as const;
 
-  try {
+export const GET = withAuth(
+  async () => {
     const data = await tenantService.list();
     return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/admin/tenants error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: SOLO_SUPERADMIN },
+);
 
-export async function POST(req: NextRequest) {
-  const user = await getCurrentUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-  if (user.rol !== ROL_SUPERADMIN)
-    return NextResponse.json({ error: "Solo SUPERADMIN" }, { status: 403 });
-
-  try {
+export const POST = withAuth(
+  async (req, { user }) => {
     const body = await req.json();
     const {
       codigo,
@@ -46,9 +36,9 @@ export async function POST(req: NextRequest) {
       !adminNombre?.trim() ||
       !adminPassword
     ) {
-      return NextResponse.json(
-        { error: "Código, nombre, y datos del admin (código, nombre, contraseña) son requeridos" },
-        { status: 400 },
+      throw new ApiError(
+        400,
+        "Código, nombre, y datos del admin (código, nombre, contraseña) son requeridos",
       );
     }
     const localeOk = esLocaleValido(locale) ? locale : DEFAULT_LOCALE;
@@ -70,8 +60,6 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ data: { id } });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  { roles: SOLO_SUPERADMIN, exposeErrors: true },
+);

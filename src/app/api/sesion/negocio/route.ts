@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { negocioService } from "@/services/negocio-service";
 import { sesionService } from "@/services/sesion-service";
 import { createToken } from "@/lib/jwt";
@@ -7,27 +7,19 @@ import { setAccessCookie } from "@/lib/auth-cookies";
 
 // POST: cambia la sucursal activa de la sesión. Solo ADMIN — los demás roles
 // tienen su sucursal fija (SistemaUsuario.IdNegocio).
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    if (user.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Solo ADMIN" }, { status: 403 });
-    }
-
+export const POST = withAuth(
+  async (req, { user }) => {
     const { idNegocio } = await req.json();
     if (!idNegocio || idNegocio <= 0) {
-      return NextResponse.json({ error: "idNegocio requerido" }, { status: 400 });
+      throw new ApiError(400, "idNegocio requerido");
     }
 
     const negocio = await negocioService.getById(idNegocio, user.idTenant);
     if (!negocio) {
-      return NextResponse.json({ error: "Negocio no encontrado" }, { status: 404 });
+      throw new ApiError(404, "Negocio no encontrado");
     }
     if (negocio.Estado !== 1) {
-      return NextResponse.json({ error: "El negocio está inactivo" }, { status: 400 });
+      throw new ApiError(400, "El negocio está inactivo");
     }
 
     // Persistir la sucursal activa para que sobreviva al refresh del access
@@ -60,8 +52,6 @@ export async function POST(req: NextRequest) {
     setAccessCookie(response, token);
 
     return response;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  { roles: ["ADMIN"], exposeErrors: true },
+);

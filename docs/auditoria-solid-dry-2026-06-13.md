@@ -38,7 +38,15 @@ directo a `producto-service.ts` y eliminar `supabase-service.ts` por completo (e
 services ya llaman `getSupabaseServer()` directo — el "base service genérico" portado de C#
 quedó como vestigio).
 
-## 3. DRY — Boilerplate repetido en API routes (mayor oportunidad)
+## 3. DRY — Boilerplate repetido en API routes (mayor oportunidad) ✅ HECHO (paso 3)
+
+> Implementado: `src/lib/api-handler.ts` con `withAuth(handler, { roles, exposeErrors })`
+> y `ApiError(status, msg)`. Las 40 rutas autenticadas (≈70 handlers) se migraron;
+> `requireRole`/`requireAuth` se eliminaron de `api-auth.ts` al quedar muertos.
+> Solo quedan fuera las rutas públicas (login/logout/refresh, deudas pública, link
+> público, tipo-movimiento). `exposeErrors` preserva las rutas que devolvían el
+> mensaje del servicio/RPC como 400.
+
 
 Las 46 rutas repiten el **mismo bloque** en cada handler:
 

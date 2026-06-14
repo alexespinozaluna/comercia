@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { documentoService } from "@/services/documento-service";
 import { cajaService } from "@/services/caja-service";
@@ -16,32 +16,14 @@ function truncateField(value: string | null | undefined): string | null {
   return trimmed.length > MAX_FIELD_LEN ? trimmed.substring(0, MAX_FIELD_LEN) : trimmed;
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+export const GET = withAuth<{ id: string }>(async (_req, { user, params }) => {
+  const data = await documentoService.getVentaConItem(parseInt(params.id), user.idTenant, user.idNegocio);
+  return NextResponse.json({ data });
+});
 
-    const { id } = await params;
-    const data = await documentoService.getVentaConItem(parseInt(id), user.idTenant, user.idNegocio);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/ventas/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
-
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
-
-    const { id } = await params;
-    const idDoc = parseInt(id);
+export const PUT = withAuth<{ id: string }>(
+  async (req, { user, params }) => {
+    const idDoc = parseInt(params.id);
 
     const body = await req.json();
     const { FechaEmision, Descripcion, Concepto, Total, bCredito, IdCliente, IdClienteDireccion, DireccionEntrega, IdMetodoPago, DocumentoItem: items, originalItemIds } = body;
@@ -67,7 +49,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       // Crear requiere caja abierta (igual que POST /api/ventas)
       cajaActiva = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
       if (!cajaActiva) {
-        return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
+        throw new ApiError(400, "No hay caja abierta");
       }
     } else {
       // Verify document exists, is active, belongs to tenant, and has no payments
@@ -78,37 +60,46 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         .single();
 
       if (fetchErr || !existing) {
-        return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+        throw new ApiError(404, "Documento no encontrado");
       }
 
       // Solo se editan ventas por esta vía. Editar otro tipo (p. ej. un ajuste,
       // tipo 5) lo reescribiría como venta — bloquear.
       if ((existing as { IdTipoDocumento: number }).IdTipoDocumento !== TipoDoc.VENTA) {
-        return NextResponse.json({ error: "Este documento no es una venta y no se puede editar aquí" }, { status: 403 });
+        throw new ApiError(403, "Este documento no es una venta y no se puede editar aquí");
       }
 
       if ((existing as { Estado: number }).Estado !== 1) {
-        return NextResponse.json({ error: "Este documento no se puede modificar" }, { status: 403 });
+        throw new ApiError(403, "Este documento no se puede modificar");
       }
 
       if ((existing as { IdTenant: number }).IdTenant !== user.idTenant) {
-        return NextResponse.json({ error: "No tiene permiso para modificar este documento" }, { status: 403 });
+        throw new ApiError(403, "No tiene permiso para modificar este documento");
       }
 
       if ((existing as { TotalAbono: number }).TotalAbono > 0) {
-        return NextResponse.json({ error: "No se puede modificar: el documento ya tiene abonos registrados" }, { status: 403 });
+        throw new ApiError(403, "No se puede modificar: el documento ya tiene abonos registrados");
       }
     }
 
-    const result = await documentoService.guardarVentaConItems(
-      isNew ? 0 : idDoc,
-      { ...doc, IdTipoDocumento: TipoDoc.VENTA },
-      items ?? [],
-      originalItemIds ?? [],
-      user.idTenant,
-      user.id,
-      user.idNegocio,
-    );
+    let result;
+    try {
+      result = await documentoService.guardarVentaConItems(
+        isNew ? 0 : idDoc,
+        { ...doc, IdTipoDocumento: TipoDoc.VENTA },
+        items ?? [],
+        originalItemIds ?? [],
+        user.idTenant,
+        user.id,
+        user.idNegocio,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new ApiError(
+        400,
+        msg.includes("Descuadre de totales") ? "error: al conectarse al servidor" : msg,
+      );
+    }
 
     // Vincular venta nueva a la caja activa (para arqueo).
     if (isNew && cajaActiva && result?.id) {
@@ -117,25 +108,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json(isNew ? { data: result } : { ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const clientMsg = msg.includes("Descuadre de totales")
-      ? "error: al conectarse al servidor"
-      : msg;
-    return NextResponse.json({ error: clientMsg }, { status: 400 });
-  }
-}
+  },
+  { roles: PERMISOS.VENTAS_Y_CATALOGO },
+);
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
-    const { id } = await params;
-    const idDoc = parseInt(id);
+export const POST = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const idDoc = parseInt(params.id);
 
     // Verify document exists and is deleted
     const { data: doc, error: docErr } = await getSupabaseServer()
@@ -147,7 +126,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .single();
 
     if (docErr || !doc) {
-      return NextResponse.json({ error: "Documento no encontrado o ya esta activo" }, { status: 404 });
+      throw new ApiError(404, "Documento no encontrado o ya esta activo");
     }
 
     // Restore items
@@ -168,31 +147,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .eq("id", idDoc)
       .eq("IdTenant", user.idTenant);
 
-    if (error) {
-      console.error("POST restore error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const clientMsg = msg.includes("Descuadre de totales")
-      ? "error: al conectarse al servidor"
-      : msg;
-    return NextResponse.json({ error: clientMsg }, { status: 400 });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION, exposeErrors: true },
+);
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
-    const { id } = await params;
-    const idDoc = parseInt(id);
+export const DELETE = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const idDoc = parseInt(params.id);
 
     // Verify no payments
     const { data: doc, error: docErr } = await getSupabaseServer()
@@ -204,20 +168,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .single();
 
     if (docErr || !doc) {
-      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+      throw new ApiError(404, "Documento no encontrado");
     }
 
     // Los ajustes (tipo 5) se anulan desde el módulo de Stock, no aquí: por esta
     // vía no se devolvería el stock correctamente.
     if ((doc as { IdTipoDocumento: number }).IdTipoDocumento === TipoDoc.AJUSTE) {
-      return NextResponse.json({ error: "Los ajustes de inventario se anulan desde Stock → Ajustes" }, { status: 400 });
+      throw new ApiError(400, "Los ajustes de inventario se anulan desde Stock → Ajustes");
     }
 
     if ((doc as { TotalAbono: number }).TotalAbono > 0) {
-      return NextResponse.json(
-        { error: "No se puede eliminar: el documento tiene abonos registrados" },
-        { status: 400 }
-      );
+      throw new ApiError(400, "No se puede eliminar: el documento tiene abonos registrados");
     }
 
     // Soft delete items
@@ -238,14 +199,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .eq("id", idDoc)
       .eq("IdTenant", user.idTenant);
 
-    if (error) {
-      console.error("DELETE /api/ventas/[id] error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("DELETE /api/ventas/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION },
+);

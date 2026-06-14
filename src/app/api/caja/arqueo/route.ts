@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { cajaService } from "@/services/caja-service";
 
 /**
@@ -9,29 +9,21 @@ import { cajaService } from "@/services/caja-service";
  * Devuelve el desglose vivo (no persistido) calculado por fn_caja_arqueo:
  * inicial + ventas efectivo + abonos efectivo − gastos efectivo = esperado.
  */
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
+export const GET = withAuth(
+  async (req, { user }) => {
     const idParam = req.nextUrl.searchParams.get("id");
     let idCaja: number | null = idParam ? parseInt(idParam, 10) : null;
 
     if (!idCaja || !Number.isFinite(idCaja) || idCaja <= 0) {
       const abierta = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
       if (!abierta) {
-        return NextResponse.json({ error: "No hay caja abierta" }, { status: 404 });
+        throw new ApiError(404, "No hay caja abierta");
       }
       idCaja = abierta.id;
     }
 
     const data = await cajaService.getArqueo(idCaja, user.idTenant);
     return NextResponse.json({ data });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    console.error("GET /api/caja/arqueo error:", err);
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  { exposeErrors: true },
+);

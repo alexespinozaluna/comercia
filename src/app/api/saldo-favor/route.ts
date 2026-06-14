@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 import { documentoService } from "@/services/documento-service";
@@ -8,47 +8,31 @@ import { auditCreate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
 
 // Lista de saldos a favor activos (tipo 4 con Saldo > 0) para agregar por cliente.
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    const idCliente = Number(req.nextUrl.searchParams.get("idCliente")) || undefined;
-    const data = await documentoService.getSaldosFavor(user.idTenant, undefined, idCliente);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/saldo-favor error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+export const GET = withAuth(async (req, { user }) => {
+  const idCliente = Number(req.nextUrl.searchParams.get("idCliente")) || undefined;
+  const data = await documentoService.getSaldosFavor(user.idTenant, undefined, idCliente);
+  return NextResponse.json({ data });
+});
 
 // Registra un saldo a favor (anticipo) de un cliente: un Documento tipo 4 con
 // Saldo = Total (= crédito disponible). No toca deudas. Es dinero recibido →
 // se vincula a la caja activa para el arqueo, igual que un abono/gasto.
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.COBRANZA);
-
+export const POST = withAuth(
+  async (req, { user }) => {
     // Validar caja abierta (de la sucursal activa)
     const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
-      return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
+      throw new ApiError(400, "No hay caja abierta");
     }
 
     const body = await req.json();
     const { IdCliente, FechaEmision, Concepto, Total, IdMetodoPago } = body;
 
     if (!IdCliente || IdCliente <= 0) {
-      return NextResponse.json({ error: "Cliente requerido" }, { status: 400 });
+      throw new ApiError(400, "Cliente requerido");
     }
     if (!FechaEmision || Total == null || Total <= 0) {
-      return NextResponse.json({ error: "FechaEmision y monto requeridos" }, { status: 400 });
+      throw new ApiError(400, "FechaEmision y monto requeridos");
     }
 
     const { data, error } = await getSupabaseServer()
@@ -76,14 +60,9 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
 
-    if (error) {
-      console.error("POST /api/saldo-favor error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ data });
-  } catch (err) {
-    console.error("POST /api/saldo-favor error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.COBRANZA },
+);

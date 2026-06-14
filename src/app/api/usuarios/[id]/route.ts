@@ -1,59 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { usuarioService } from "@/services/usuario-service";
+
+// La gestión de usuarios exige ADMIN exacto (no usa los grupos de PERMISOS).
+const SOLO_ADMIN = ["ADMIN"] as const;
 
 function parseId(raw: string): number | null {
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    if (user.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Solo ADMIN" }, { status: 403 });
-    }
-
-    const { id } = await params;
-    const idUsuario = parseId(id);
+export const GET = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const idUsuario = parseId(params.id);
     if (idUsuario == null) {
-      return NextResponse.json({ error: "id invalido" }, { status: 400 });
+      throw new ApiError(400, "id invalido");
     }
 
     const data = await usuarioService.getById(idUsuario, user.idTenant);
     if (!data) {
-      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+      throw new ApiError(404, "Usuario no encontrado");
     }
     return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/usuarios/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: SOLO_ADMIN, exposeErrors: true },
+);
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    if (user.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Solo ADMIN" }, { status: 403 });
-    }
-
-    const { id } = await params;
-    const idUsuario = parseId(id);
+export const PUT = withAuth<{ id: string }>(
+  async (req, { user, params }) => {
+    const idUsuario = parseId(params.id);
     if (idUsuario == null) {
-      return NextResponse.json({ error: "id invalido" }, { status: 400 });
+      throw new ApiError(400, "id invalido");
     }
 
     const body = await req.json();
@@ -61,16 +38,10 @@ export async function PUT(
     // Auto-protección: el ADMIN no puede cambiar su propio Rol ni Estado por esta ruta.
     if (idUsuario === user.id) {
       if (body.Rol != null && body.Rol !== "ADMIN") {
-        return NextResponse.json(
-          { error: "No puedes cambiar tu propio rol" },
-          { status: 400 },
-        );
+        throw new ApiError(400, "No puedes cambiar tu propio rol");
       }
       if (body.Estado === 0) {
-        return NextResponse.json(
-          { error: "No puedes desactivarte a ti mismo" },
-          { status: 400 },
-        );
+        throw new ApiError(400, "No puedes desactivarte a ti mismo");
       }
     }
 
@@ -87,42 +58,23 @@ export async function PUT(
       user.id,
     );
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  { roles: SOLO_ADMIN, exposeErrors: true },
+);
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    if (user.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Solo ADMIN" }, { status: 403 });
-    }
-
-    const { id } = await params;
-    const idUsuario = parseId(id);
+export const DELETE = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const idUsuario = parseId(params.id);
     if (idUsuario == null) {
-      return NextResponse.json({ error: "id invalido" }, { status: 400 });
+      throw new ApiError(400, "id invalido");
     }
 
     if (idUsuario === user.id) {
-      return NextResponse.json(
-        { error: "No puedes desactivarte a ti mismo" },
-        { status: 400 },
-      );
+      throw new ApiError(400, "No puedes desactivarte a ti mismo");
     }
 
     await usuarioService.softDelete(idUsuario, user.idTenant, user.id);
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  { roles: SOLO_ADMIN, exposeErrors: true },
+);

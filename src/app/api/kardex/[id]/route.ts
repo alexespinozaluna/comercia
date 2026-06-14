@@ -1,24 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api-handler";
 import { kardexService } from "@/services/kardex-service";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    const { id } = await params;
-    const productId = parseInt(id);
+export const GET = withAuth<{ id: string }>(async (req, { user, params }) => {
+  const productId = parseInt(params.id);
 
-    const { searchParams } = new URL(req.url);
-    const fechaInicio = searchParams.get("fechaInicio") ?? undefined;
-    const fechaFin = searchParams.get("fechaFin") ?? undefined;
+  const { searchParams } = new URL(req.url);
+  const fechaInicio = searchParams.get("fechaInicio") ?? undefined;
+  const fechaFin = searchParams.get("fechaFin") ?? undefined;
 
-    const data = await kardexService.getByProducto(productId, user.idTenant, fechaInicio, fechaFin, user.idNegocio);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/kardex/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  const data = await kardexService.getByProducto(productId, user.idTenant, fechaInicio, fechaFin, user.idNegocio);
+  return NextResponse.json({ data });
+});

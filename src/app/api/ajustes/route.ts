@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 import { productoService } from "@/services/producto-service";
@@ -42,14 +42,8 @@ async function getOperacion(tipoMovimiento: number): Promise<OperacionTipo> {
 
 // Listado de ajustes de inventario (tipos 3-6) del tenant/sucursal activos,
 // filtrado por rango de fechas. Solo ADMIN/SUPERVISOR (igual que el POST).
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
+export const GET = withAuth(
+  async (req, { user }) => {
     const { searchParams } = new URL(req.url);
     const fechaInicio = searchParams.get("fechaInicio") ?? undefined;
     const fechaFin = searchParams.get("fechaFin") ?? undefined;
@@ -64,39 +58,28 @@ export async function GET(req: NextRequest) {
       tipos,
     );
     return NextResponse.json({ data });
-  } catch (err) {
-    if (err instanceof Error && err.message === "Forbidden") {
-      return NextResponse.json({ error: "No tiene permisos para esta accion" }, { status: 403 });
-    }
-    console.error("GET /api/ajustes error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION },
+);
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
+export const POST = withAuth(
+  async (req, { user }) => {
     const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
-      return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
+      throw new ApiError(400, "No hay caja abierta");
     }
 
     const body: AjusteBody = await req.json();
     const { mode = "baja", IdProducto, Cantidad, Motivo, Observacion } = body;
 
     if (!IdProducto || IdProducto <= 0) {
-      return NextResponse.json({ error: "Producto requerido" }, { status: 400 });
+      throw new ApiError(400, "Producto requerido");
     }
 
     // Validate motivo based on mode
     const validMotivos: readonly string[] = mode === "inventario" ? MOTIVOS_INVENTARIO : MOTIVOS_BAJA;
     if (!Motivo || !validMotivos.includes(Motivo)) {
-      return NextResponse.json({ error: "Motivo no valido" }, { status: 400 });
+      throw new ApiError(400, "Motivo no valido");
     }
 
     const fechaEmision = new Date().toISOString();
@@ -105,10 +88,10 @@ export async function POST(req: NextRequest) {
     // de ProductoStock de la sucursal activa (catálogo compartido, stock por sucursal).
     const producto = await productoService.getById(IdProducto, user.idTenant, user.idNegocio);
     if (!producto) {
-      return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+      throw new ApiError(404, "Producto no encontrado");
     }
     if (producto.Cantidad == null) {
-      return NextResponse.json({ error: "Este producto no rastrea stock" }, { status: 400 });
+      throw new ApiError(400, "Este producto no rastrea stock");
     }
 
     const stockAnterior = producto.Cantidad;
@@ -124,13 +107,13 @@ export async function POST(req: NextRequest) {
       // If zero → no movement needed
       const cantidadContada = Cantidad;
       if (cantidadContada < 0) {
-        return NextResponse.json({ error: "La cantidad contada no puede ser negativa" }, { status: 400 });
+        throw new ApiError(400, "La cantidad contada no puede ser negativa");
       }
 
       const diferencia = cantidadContada - stockAnterior;
 
       if (diferencia === 0) {
-        return NextResponse.json({ error: "No hay diferencia entre el stock contado y el actual" }, { status: 400 });
+        throw new ApiError(400, "No hay diferencia entre el stock contado y el actual");
       }
 
       tipoMovimiento = TIPO_MOVIMIENTO.INVENTARIO_FISICO; // 6
@@ -141,10 +124,10 @@ export async function POST(req: NextRequest) {
       // Baja mode: subtract quantity from stock
       // TipoMovimiento depends on motivo (Vencimiento → 5, else → 4)
       if (!Cantidad || Cantidad <= 0) {
-        return NextResponse.json({ error: "Cantidad debe ser mayor a 0" }, { status: 400 });
+        throw new ApiError(400, "Cantidad debe ser mayor a 0");
       }
       if (producto.Cantidad < Cantidad) {
-        return NextResponse.json({ error: `Stock insuficiente. Disponible: ${producto.Cantidad}` }, { status: 400 });
+        throw new ApiError(400, `Stock insuficiente. Disponible: ${producto.Cantidad}`);
       }
 
       tipoMovimiento = getTipoMovimientoForBaja(Motivo);
@@ -184,7 +167,7 @@ export async function POST(req: NextRequest) {
 
     if (docError || !docData) {
       console.error("Error creating documento:", docError);
-      return NextResponse.json({ error: "Error al crear documento" }, { status: 500 });
+      throw new ApiError(500, "Error al crear documento");
     }
 
     // 2. Create DocumentoItem
@@ -209,7 +192,7 @@ export async function POST(req: NextRequest) {
     if (itemError) {
       console.error("Error creating documento item:", itemError);
       await supabase.from("Documento").delete().eq("id", docData.id);
-      return NextResponse.json({ error: "Error al crear item de documento" }, { status: 500 });
+      throw new ApiError(500, "Error al crear item de documento");
     }
 
     // 3. Create ProductoMovimiento
@@ -236,7 +219,7 @@ export async function POST(req: NextRequest) {
 
     if (movError) {
       console.error("Error creating movimiento:", movError);
-      return NextResponse.json({ error: "Error al registrar movimiento" }, { status: 500 });
+      throw new ApiError(500, "Error al registrar movimiento");
     }
 
     // 4. Actualizar stock de la sucursal activa (ProductoStock). Si la sesión
@@ -260,7 +243,7 @@ export async function POST(req: NextRequest) {
 
     if (stockUpd.error) {
       console.error("Error updating product stock:", stockUpd.error);
-      return NextResponse.json({ error: "Error al actualizar stock" }, { status: 500 });
+      throw new ApiError(500, "Error al actualizar stock");
     }
 
     return NextResponse.json({
@@ -273,11 +256,6 @@ export async function POST(req: NextRequest) {
         cantidadMovimiento,
       },
     }, { status: 201 });
-  } catch (err) {
-    if (err instanceof Error && err.message === "Forbidden") {
-      return NextResponse.json({ error: "No tiene permisos para esta accion" }, { status: 403 });
-    }
-    console.error("POST /api/ajustes error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION },
+);

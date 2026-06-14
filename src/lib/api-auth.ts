@@ -27,15 +27,3 @@ export async function getCurrentUserFromRequest(req: NextRequest): Promise<APIUs
     return null;
   }
 }
-
-export function requireAuth(user: APIUser | null): asserts user is APIUser {
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-}
-
-export function requireRole(user: APIUser, roles: readonly string[]): void {
-  if (!roles.includes(user.rol)) {
-    throw new Error("Forbidden");
-  }
-}

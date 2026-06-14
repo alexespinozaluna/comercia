@@ -1,10 +1,10 @@
 import { ROLES_VALIDOS, type Rol } from "@/types/usuario";
 
 /**
- * Grupos de permisos por **capacidad**, no por rol. Las rutas API piden uno de
- * estos grupos a `requireRole(...)` en lugar de hardcodear arrays de roles, de
- * modo que un cambio de política (agregar un rol, mover una capacidad) se hace
- * en un solo lugar y queda consistente en toda la app.
+ * Grupos de permisos por **capacidad**, no por rol. Las rutas API pasan uno de
+ * estos grupos a `withAuth(handler, { roles })` en lugar de hardcodear arrays de
+ * roles, de modo que un cambio de política (agregar un rol, mover una capacidad)
+ * se hace en un solo lugar y queda consistente en toda la app.
  *
  * SUPERADMIN no aparece aquí: es el operador del SaaS y se valida por separado
  * (ver ROL_SUPERADMIN). La gestión de usuarios exige ADMIN exacto y tampoco usa
