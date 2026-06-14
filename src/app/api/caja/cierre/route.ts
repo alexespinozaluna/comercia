@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.CAJA_Y_GASTOS);
-
+export const POST = withAuth(
+  async (req, { user }) => {
     const body = await req.json();
     const id = parseInt(body.id, 10);
     const montoFinal = parseFloat(body.montoFinal);
@@ -18,10 +12,10 @@ export async function POST(req: NextRequest) {
       typeof body.observacion === "string" ? body.observacion.trim() || null : null;
 
     if (!Number.isFinite(id) || id <= 0) {
-      return NextResponse.json({ error: "id inválido" }, { status: 400 });
+      throw new ApiError(400, "id inválido");
     }
     if (!Number.isFinite(montoFinal) || montoFinal < 0) {
-      return NextResponse.json({ error: "MontoFinal inválido" }, { status: 400 });
+      throw new ApiError(400, "MontoFinal inválido");
     }
 
     // fn_cerrar_caja valida tenant + Estado=1 + recalcula esperado/diferencia
@@ -33,10 +27,6 @@ export async function POST(req: NextRequest) {
       observacion,
     );
     return NextResponse.json({ data });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    const status = msg === "Forbidden" ? 403 : 400;
-    console.error("POST /api/caja/cierre error:", err);
-    return NextResponse.json({ error: msg }, { status });
-  }
-}
+  },
+  { roles: PERMISOS.CAJA_Y_GASTOS, exposeErrors: true },
+);

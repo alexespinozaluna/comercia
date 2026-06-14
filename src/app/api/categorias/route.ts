@@ -1,41 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { categoriaService } from "@/services/categoria-service";
 
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    const data = await categoriaService.getAll(user.idTenant);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/categorias error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+export const GET = withAuth(async (_req, { user }) => {
+  const data = await categoriaService.getAll(user.idTenant);
+  return NextResponse.json({ data });
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
-
+export const POST = withAuth(
+  async (req, { user }) => {
     const { Nombre } = await req.json();
     if (!Nombre || !String(Nombre).trim()) {
-      return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
+      throw new ApiError(400, "Nombre requerido");
     }
 
     const data = await categoriaService.create(user.idTenant, String(Nombre), user.id);
     return NextResponse.json({ data });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    const status = msg === "Forbidden" ? 403 : 400;
-    console.error("POST /api/categorias error:", err);
-    return NextResponse.json({ error: msg }, { status });
-  }
-}
+  },
+  { roles: PERMISOS.VENTAS_Y_CATALOGO, exposeErrors: true },
+);

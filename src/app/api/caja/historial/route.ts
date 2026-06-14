@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 
@@ -7,14 +7,8 @@ import { cajaService } from "@/services/caja-service";
  * GET /api/caja/historial?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&usuario=<id>&descuadre=1
  * Solo ADMIN / SUPERVISOR (auditoría de cierres).
  */
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
+export const GET = withAuth(
+  async (req, { user }) => {
     const sp = req.nextUrl.searchParams;
     const desde = sp.get("desde") || undefined;
     const hasta = sp.get("hasta") || undefined;
@@ -34,10 +28,6 @@ export async function GET(req: NextRequest) {
       idNegocio: user.idNegocio,
     });
     return NextResponse.json({ data });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    const status = msg === "Forbidden" ? 403 : 400;
-    console.error("GET /api/caja/historial error:", err);
-    return NextResponse.json({ error: msg }, { status });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION },
+);

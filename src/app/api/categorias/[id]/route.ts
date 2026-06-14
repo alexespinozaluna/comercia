@@ -1,50 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { categoriaService } from "@/services/categoria-service";
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
-
-    const { id } = await params;
+export const PUT = withAuth<{ id: string }>(
+  async (req, { user, params }) => {
+    const { id } = params;
     const { Nombre } = await req.json();
 
     await categoriaService.rename(parseInt(id, 10), user.idTenant, String(Nombre ?? ""), user.id);
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    const status = msg === "Forbidden" ? 403 : 400;
-    console.error("PUT /api/categorias/[id] error:", err);
-    return NextResponse.json({ error: msg }, { status });
-  }
-}
+  },
+  { roles: PERMISOS.VENTAS_Y_CATALOGO, exposeErrors: true },
+);
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
-    const { id } = await params;
+export const DELETE = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const { id } = params;
     await categoriaService.remove(parseInt(id, 10), user.idTenant, user.id);
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    const status = msg === "Forbidden" ? 403 : 400;
-    console.error("DELETE /api/categorias/[id] error:", err);
-    return NextResponse.json({ error: msg }, { status });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION, exposeErrors: true },
+);

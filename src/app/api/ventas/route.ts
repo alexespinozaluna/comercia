@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { documentoService } from "@/services/documento-service";
 import { cajaService } from "@/services/caja-service";
@@ -16,53 +16,34 @@ function truncateField(value: string | null | undefined): string | null {
     : trimmed;
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+export const GET = withAuth(async (req, { user }) => {
+  const { searchParams } = new URL(req.url);
+  const fechaIni = searchParams.get("fechaIni") ?? "";
+  const fechaFin = searchParams.get("fechaFin") ?? "";
+  const bCredito = searchParams.get("bCredito") === "true";
+  const idCliente = parseInt(searchParams.get("idCliente") ?? "0");
+  const id = searchParams.get("id")
+    ? parseInt(searchParams.get("id") ?? "0")
+    : undefined;
 
-    const { searchParams } = new URL(req.url);
-    const fechaIni = searchParams.get("fechaIni") ?? "";
-    const fechaFin = searchParams.get("fechaFin") ?? "";
-    const bCredito = searchParams.get("bCredito") === "true";
-    const idCliente = parseInt(searchParams.get("idCliente") ?? "0");
-    const id = searchParams.get("id")
-      ? parseInt(searchParams.get("id") ?? "0")
-      : undefined;
+  const data = await documentoService.getVentas(
+    fechaIni,
+    fechaFin,
+    bCredito,
+    idCliente,
+    user.idTenant,
+    id,
+    user.idNegocio,
+  );
+  return NextResponse.json({ data });
+});
 
-    const data = await documentoService.getVentas(
-      fechaIni,
-      fechaFin,
-      bCredito,
-      idCliente,
-      user.idTenant,
-      id,
-      user.idNegocio,
-    );
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/ventas error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
-
+export const POST = withAuth(
+  async (req, { user }) => {
     // Validate caja abierta (de la sucursal activa)
     const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
-      return NextResponse.json(
-        { error: "No hay caja abierta" },
-        { status: 400 },
-      );
+      throw new ApiError(400, "No hay caja abierta");
     }
 
     const body = await req.json();
@@ -80,10 +61,7 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (!FechaEmision || Total == null) {
-      return NextResponse.json(
-        { error: "FechaEmision y Total requeridos" },
-        { status: 400 },
-      );
+      throw new ApiError(400, "FechaEmision y Total requeridos");
     }
 
     const doc = {
@@ -102,10 +80,7 @@ export async function POST(req: NextRequest) {
 
     // Validate: if items exist, Descripcion should have been auto-generated
     if (items?.length > 0 && !doc.Descripcion) {
-      return NextResponse.json(
-        { error: "Descripcion es requerida cuando hay items" },
-        { status: 400 },
-      );
+      throw new ApiError(400, "Descripcion es requerida cuando hay items");
     }
 
     const createdDoc = await documentoService.guardarVentaConItems(
@@ -126,8 +101,6 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ data: createdDoc });
-  } catch (err) {
-    console.error("POST /api/ventas error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.VENTAS_Y_CATALOGO },
+);

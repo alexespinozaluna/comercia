@@ -1,30 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { cajaService } from "@/services/caja-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.CAJA_Y_GASTOS);
-
+export const POST = withAuth(
+  async (req, { user }) => {
     // Validar caja abierta (de la sucursal activa)
     const caja = await cajaService.getCajaAbierta(user.idTenant, user.idNegocio);
     if (!caja) {
-      return NextResponse.json({ error: "No hay caja abierta" }, { status: 400 });
+      throw new ApiError(400, "No hay caja abierta");
     }
 
     const body = await req.json();
     const { FechaEmision, Descripcion, Concepto, Total, IdMetodoPago } = body;
 
     if (!FechaEmision || Total == null || Total <= 0) {
-      return NextResponse.json({ error: "FechaEmision y Total requeridos" }, { status: 400 });
+      throw new ApiError(400, "FechaEmision y Total requeridos");
     }
 
     const { data, error } = await getSupabaseServer()
@@ -52,14 +46,9 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
 
-    if (error) {
-      console.error("POST /api/gastos error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ data });
-  } catch (err) {
-    console.error("POST /api/gastos error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.CAJA_Y_GASTOS },
+);

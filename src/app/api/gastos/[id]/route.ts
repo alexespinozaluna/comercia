@@ -1,20 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditUpdate } from "@/lib/audit";
 import { TipoDoc } from "@/lib/tipo-documento";
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.CAJA_Y_GASTOS);
-
-    const { id } = await params;
-    const idDoc = parseInt(id);
+export const PUT = withAuth<{ id: string }>(
+  async (req, { user, params }) => {
+    const idDoc = parseInt(params.id);
     const body = await req.json();
     const { FechaEmision, Descripcion, Concepto, Total, IdMetodoPago } = body;
 
@@ -34,14 +27,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       .eq("IdTipoDocumento", TipoDoc.GASTO)
       .eq("Estado", 1);
 
-    if (error) {
-      console.error("PUT /api/gastos/[id] error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("PUT /api/gastos/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.CAJA_Y_GASTOS },
+);
