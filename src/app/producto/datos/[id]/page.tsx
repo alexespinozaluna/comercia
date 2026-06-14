@@ -15,6 +15,7 @@ import { CategoriaSelect } from "@/components/producto/categoria-select";
 import { SIN_CATEGORIA_ID } from "@/types/database";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useGuardar } from "@/hooks/use-guardar";
 import { SlidersHorizontal } from "lucide-react";
 
@@ -30,6 +31,7 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
   const router = useRouter();
   const id = parseInt(use(params).id);
   const isEdit = id > 0;
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   const [nombre, setNombre] = useState("");
   const [precioCosto, setPrecioCosto] = useState<number | null>(null);
@@ -189,13 +191,15 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Save */}
-      <Button
-        className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
-        onClick={handleSave}
-        disabled={saving}
-      >
-        {saving ? "Guardando..." : "Guardar"}
-      </Button>
+      {!soloLectura && (
+        <Button
+          className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Guardando..." : "Guardar"}
+        </Button>
+      )}
     </div>
   );
 }

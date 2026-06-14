@@ -6,6 +6,7 @@ import { ProductoMovimientoAjuste, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
 import { cantidadString, toInputDate } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useResource } from "@/hooks/use-resource";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -37,6 +38,7 @@ export default function AjustesPage() {
   const router = useRouter();
   const user = useAppStore((s) => s.authUser);
   const allowed = !!user && ALLOWED_ROLES.includes(user.rol);
+  const soloLectura = esSoloLectura(user?.rol);
   const refreshCounter = useAppStore((s) => s.refreshCounter);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -101,14 +103,16 @@ export default function AjustesPage() {
         onBack={() => router.back()}
         breadcrumbs={[{ label: "Stock", href: "/producto" }, { label: "Ajustes" }]}
         actions={
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openSheet("inventario")}>
-              <ArrowUpDown className="h-4 w-4" /> Inventario
-            </Button>
-            <Button size="sm" className="shadow-sm gap-1.5" onClick={() => openSheet("baja")}>
-              <Plus className="h-4 w-4" /> Baja
-            </Button>
-          </div>
+          soloLectura ? undefined : (
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openSheet("inventario")}>
+                <ArrowUpDown className="h-4 w-4" /> Inventario
+              </Button>
+              <Button size="sm" className="shadow-sm gap-1.5" onClick={() => openSheet("baja")}>
+                <Plus className="h-4 w-4" /> Baja
+              </Button>
+            </div>
+          )
         }
       />
 

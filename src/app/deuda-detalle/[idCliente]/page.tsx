@@ -4,6 +4,8 @@ import { use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DeudaDetalle } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useResource } from "@/hooks/use-resource";
 import { numToString, fechaString, parseDateOnly } from "@/lib/format";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -33,6 +35,7 @@ function formatHora(fechaIso: string): string {
 export default function DeudaDetallePage({ params }: { params: Promise<{ idCliente: string }> }) {
   const router = useRouter();
   const idCliente = parseInt(use(params).idCliente);
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   // Carga: pide al backend solo las deudas de este cliente (filtrado en la BD).
   // Antes traíamos todas las deudas del tenant y filtrabamos en JavaScript.
@@ -186,7 +189,8 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
             ))}
           </div>
 
-          {/* Botón Abonar fijo */}
+          {/* Botón Abonar fijo (oculto para SUPERVISOR, solo lectura) */}
+          {!soloLectura && (
           <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 md:left-[220px] z-40 px-4 py-3 bg-white dark:bg-card border-t border-border shadow-[0_-4px_12px_rgba(0,0,0,0.07)]">
             <div className="max-w-lg mx-auto">
               <Button
@@ -200,6 +204,7 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
               </Button>
             </div>
           </div>
+          )}
         </>
       )}
     </div>

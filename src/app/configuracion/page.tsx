@@ -17,6 +17,7 @@ import {
 } from "@/types/locale";
 import { apiGet, apiPut } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +53,7 @@ export default function ConfiguracionPage() {
   const { saving, guardar } = useGuardar();
   const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
   const setFormatoGlobal = useAppStore((s) => s.setFormato);
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   // GET devuelve la lista de sucursales del tenant; editamos la activa.
   const { data: negocio, loading } = useResource(async () => {
@@ -232,13 +234,15 @@ export default function ConfiguracionPage() {
         </div>
       </div>
 
-      <Button
-        className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
-        onClick={handleSave}
-        disabled={saving}
-      >
-        {saving ? "Guardando..." : "Guardar configuración"}
-      </Button>
+      {!soloLectura && (
+        <Button
+          className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Guardando..." : "Guardar configuración"}
+        </Button>
+      )}
     </div>
   );
 }

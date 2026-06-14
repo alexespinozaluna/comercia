@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useGuardar } from "@/hooks/use-guardar";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ function VentaGastoContent() {
   const id = parseInt(searchParams.get("id") ?? "0");
   const urlRef = searchParams.get("UrlRef") ?? "/";
   const isEdit = id > 0;
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   const [fecha, setFecha] = useState(toInputDate());
   const [valor, setValor] = useState(0);
@@ -159,13 +161,15 @@ function VentaGastoContent() {
         )}
       </div>
 
-      <Button
-        className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
-        onClick={handleSave}
-        disabled={saving}
-      >
-        {saving ? "Guardando..." : isEdit ? "Actualizar gasto" : "Guardar gasto"}
-      </Button>
+      {!soloLectura && (
+        <Button
+          className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Guardando..." : isEdit ? "Actualizar gasto" : "Guardar gasto"}
+        </Button>
+      )}
     </div>
   );
 }

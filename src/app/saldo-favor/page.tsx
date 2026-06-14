@@ -31,6 +31,7 @@ import {
 import { ClienteSelectorSheet } from "@/components/ventas/cliente-selector-sheet";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useGuardar } from "@/hooks/use-guardar";
 import { useResource } from "@/hooks/use-resource";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 export default function SaldoFavorPage() {
   const router = useRouter();
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   const { data, loading, reload } = useResource(async () => {
     const [rows, cajaAct, methods] = await Promise.all([
@@ -154,14 +156,16 @@ export default function SaldoFavorPage() {
         title="Saldo a favor"
         onBack={() => router.back()}
         actions={
-          <Button
-            size="sm"
-            className="bg-brand hover:bg-brand-dark text-white gap-1.5 shadow-sm"
-            onClick={() => { resetCreate(); setCreateOpen(true); }}
-          >
-            <Plus className="h-4 w-4" />
-            Crear
-          </Button>
+          soloLectura ? undefined : (
+            <Button
+              size="sm"
+              className="bg-brand hover:bg-brand-dark text-white gap-1.5 shadow-sm"
+              onClick={() => { resetCreate(); setCreateOpen(true); }}
+            >
+              <Plus className="h-4 w-4" />
+              Crear
+            </Button>
+          )
         }
       />
 
@@ -174,7 +178,7 @@ export default function SaldoFavorPage() {
       ) : (
         <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 divide-y divide-border overflow-hidden">
           {lista.map((row) => {
-            const editable = esEditable(row);
+            const editable = esEditable(row) && !soloLectura;
             const usado = row.Total - row.Saldo;
             return (
               <div key={row.id} className="flex items-center gap-2 p-3">

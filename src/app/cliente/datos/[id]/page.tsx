@@ -33,6 +33,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { Trash2, Plus, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useGuardar } from "@/hooks/use-guardar";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const id = parseInt(use(params).id);
   const isEdit = id > 0;
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
   const { saving, guardar } = useGuardar();
 
   const [nombre, setNombre] = useState("");
@@ -284,13 +286,15 @@ export default function ClienteDatosPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Actions */}
-      <Button
-        className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
-        onClick={handleSave}
-        disabled={saving}
-      >
-        {saving ? "Guardando..." : "Guardar"}
-      </Button>
+      {!soloLectura && (
+        <Button
+          className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Guardando..." : "Guardar"}
+        </Button>
+      )}
 
       {isEdit && id > 0 && (
         <AlertDialog>

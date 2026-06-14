@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Caja, CajaArqueo } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useResource } from "@/hooks/use-resource";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -66,6 +67,7 @@ export default function CajaPage() {
   const { saving: actionLoading, guardar } = useGuardar();
   const user = useAppStore((s) => s.authUser);
   const puedeVerHistorial = !!user && ROLES_HISTORIAL.includes(user.rol);
+  const soloLectura = esSoloLectura(user?.rol);
 
   // Caja abierta + su arqueo en vivo (si hay caja).
   const { data, loading, reload } = useResource(async () => {
@@ -194,7 +196,8 @@ export default function CajaPage() {
         </div>
       </div>
 
-      {/* Formulario */}
+      {/* Formulario (oculto en solo lectura: el SUPERVISOR ve estado/arqueo, no opera) */}
+      {!soloLectura && (
       <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-3">
         {caja ? (
           <>
@@ -321,6 +324,7 @@ export default function CajaPage() {
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

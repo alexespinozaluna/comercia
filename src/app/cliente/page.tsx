@@ -4,6 +4,8 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cliente, ClienteDireccion, Documento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useResource } from "@/hooks/use-resource";
 import { extraerIniciales, numToString } from "@/lib/format";
 import { SearchInput } from "@/components/shared/search-input";
@@ -24,6 +26,7 @@ function ClientePageInner() {
   const searchParams = useSearchParams();
   const selectMode = searchParams.get("select") === "true";
   const returnTo = searchParams.get("returnTo") ?? "/venta/nueva";
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   const [search, setSearch] = useState("");
 
@@ -87,7 +90,7 @@ function ClientePageInner() {
         title={selectMode ? "Seleccionar cliente" : "Clientes"}
         backHref={selectMode ? returnTo : undefined}
         actions={
-          !selectMode ? (
+          !selectMode && !soloLectura ? (
             <Button
               size="sm"
               className="bg-brand hover:bg-brand-dark text-white gap-1.5 shadow-sm"

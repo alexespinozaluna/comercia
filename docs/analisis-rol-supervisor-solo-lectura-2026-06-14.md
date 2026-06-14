@@ -9,8 +9,15 @@ editar ni eliminar** — solo consulta.
 > + `ROLES_SOLO_LECTURA` + `allowReadOnly` en sesiones y cambio de sucursal) y
 > visibilidad (helpers `esSoloLectura`/`puedeGestionar`, menú de usuario,
 > selector de sucursal, lista de usuarios read-only). Tests de read-only en
-> `api-handler.test.ts`. **Pendiente (incremental):** ocultar los controles de
-> crear/editar/eliminar en el resto de páginas (el backend ya los bloquea).
+> `api-handler.test.ts`.
+>
+> **Ocultado de controles de escritura (HECHO):** home (Nueva venta/Gasto),
+> saldo-favor (crear/editar/eliminar), cliente (Nuevo), producto (Nuevo/toggle/
+> card), caja (form abrir/cerrar), venta-detalle (editar/eliminar/abono),
+> venta-eliminadas (restaurar), deuda y deuda-detalle (Abonar), producto/ajustes
+> (Baja/Inventario), configuracion (Guardar) y los formularios cliente/datos,
+> producto/datos, venta-gasto, venta-abono (botón Guardar/Confirmar). Patrón:
+> `esSoloLectura(authUser?.rol)`.
 
 ## Punto de partida (estado actual)
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Documento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { esSoloLectura } from "@/lib/permisos";
 import { useResource } from "@/hooks/use-resource";
 import { useAppStore } from "@/stores/app-store";
 import { numToString } from "@/lib/format";
@@ -34,8 +35,9 @@ export default function HomePage() {
   const [search, setSearch] = useState("");
   const [filtros, setFiltros] = useState<VentaFilter>(EMPTY_FILTER);
 
-  const { filterTipo, filterIndex, filterFechaInicio, filterFechaFin, setFilter, refreshCounter } =
+  const { filterTipo, filterIndex, filterFechaInicio, filterFechaFin, setFilter, refreshCounter, authUser } =
     useAppStore();
+  const soloLectura = esSoloLectura(authUser?.rol);
 
   // Restore filter from sessionStorage
   useEffect(() => {
@@ -136,6 +138,9 @@ export default function HomePage() {
           <p className="text-xs text-muted-foreground capitalize mt-0.5">{periodoLabel}</p>
         </div>
         <div className="flex gap-2 shrink-0">
+          {/* SUPERVISOR (solo lectura) no crea ventas ni gastos. */}
+          {!soloLectura && (
+          <>
           {/* Móvil: directo al wizard de 3 pasos. Desktop: elegir entre los
               dos modos de venta. */}
           {isDesktop ? (
@@ -173,6 +178,8 @@ export default function HomePage() {
             <TrendingDown className="h-4 w-4" />
             <span className="hidden sm:inline">Gasto</span>
           </Button>
+          </>
+          )}
         </div>
       </div>
 

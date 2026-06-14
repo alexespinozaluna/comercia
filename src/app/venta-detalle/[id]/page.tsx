@@ -28,6 +28,7 @@ import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, Calenda
 import { toast } from "sonner";
 import { TicketShareSheet } from "@/components/ventas/ticket-share-sheet";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const isDesktop = useIsDesktop();
   const { id } = use(params);
   const [shareOpen, setShareOpen] = useState(false);
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   const { data, loading } = useResource(async () => {
     const [docData, caja] = await Promise.all([
@@ -79,13 +81,16 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const cajaOk = doc.IdCaja == null || (cajaAbiertaId != null && cajaAbiertaId === doc.IdCaja);
   // Saldo a favor (4) y pago con saldo a favor (6) no se editan por el form de venta.
   // Los ajustes (5) se gestionan solo desde Stock → Ajustes, no aquí.
-  const canEdit = doc.TotalAbono === 0 && !isSaldoFavor && !isPagoFavor && !isAjuste && cajaOk;
+  // SUPERVISOR es solo lectura: sin editar/eliminar/abonar.
+  const canEdit = !soloLectura && doc.TotalAbono === 0 && !isSaldoFavor && !isPagoFavor && !isAjuste && cajaOk;
   // El pago con saldo a favor SÍ se puede eliminar (= anular): el trigger
   // restaura la deuda y el crédito. El resto, solo con su caja abierta.
-  const canDelete = isPagoFavor
+  const canDelete = soloLectura
+    ? false
+    : isPagoFavor
     ? true
     : doc.TotalAbono === 0 && !isSaldoFavor && !isAjuste && cajaOk;
-  const canAbono = doc.bCredito && doc.Saldo > 0;
+  const canAbono = !soloLectura && doc.bCredito && doc.Saldo > 0;
 
   return (
     <div className="space-y-2 max-w-lg mx-auto">

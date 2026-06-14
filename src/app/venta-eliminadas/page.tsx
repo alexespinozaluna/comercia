@@ -15,9 +15,11 @@ import { RotateCcw, Receipt, CalendarDays, UserRound, UserCheck } from "lucide-r
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 
 export default function VentaEliminadasPage() {
   const router = useRouter();
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
   const { data, loading, reload } = useResource(() =>
     apiGet<Documento[]>("/api/ventas/eliminadas"),
   );
@@ -99,6 +101,7 @@ export default function VentaEliminadasPage() {
                   </TableCell>
                   <TableCell className="text-sm font-semibold text-right">{numToString(d.Total)}</TableCell>
                   <TableCell className="text-right">
+                    {soloLectura ? null : (
                     <AlertDialog>
                       <AlertDialogTrigger className={cn(
                         "inline-flex items-center justify-center gap-1.5 rounded-md text-xs font-medium transition-colors",
@@ -120,6 +123,7 @@ export default function VentaEliminadasPage() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

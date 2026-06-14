@@ -7,6 +7,7 @@ import { apiGet, apiPut } from "@/lib/api-client";
 import { useResource } from "@/hooks/use-resource";
 import { numToString, cantidadString } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { SearchInput } from "@/components/shared/search-input";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -33,6 +34,7 @@ export default function ProductoPage() {
   const router = useRouter();
   const authUser = useAppStore((s) => s.authUser);
   const isAdmin = authUser?.rol === "ADMIN" || authUser?.rol === "SUPERVISOR";
+  const soloLectura = esSoloLectura(authUser?.rol);
 
   const [search, setSearch] = useState("");
   // null = TODOS; un número = filtrar por esa categoría (0 = Sin categoría)
@@ -91,14 +93,16 @@ export default function ProductoPage() {
       <PageHeader
         title="Inventario"
         actions={
-          <Button
-            size="sm"
-            className="bg-brand hover:bg-brand-dark text-white gap-1.5 shadow-sm"
-            onClick={() => router.push("/producto/datos")}
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo
-          </Button>
+          soloLectura ? undefined : (
+            <Button
+              size="sm"
+              className="bg-brand hover:bg-brand-dark text-white gap-1.5 shadow-sm"
+              onClick={() => router.push("/producto/datos")}
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo
+            </Button>
+          )
         }
       />
 
@@ -186,6 +190,7 @@ export default function ProductoPage() {
                       size="sm"
                       checked={product.bActivoVenta}
                       onCheckedChange={(v) => toggleActivo(product, v)}
+                      disabled={soloLectura}
                     />
                   </div>
                 </div>
@@ -194,15 +199,17 @@ export default function ProductoPage() {
           })}
 
           {/* Nuevo producto card */}
-          <div
-            onClick={() => router.push("/producto/datos/0")}
-            className="bg-white dark:bg-card rounded-md ring-1 ring-dashed ring-border/80 p-3.5 cursor-pointer hover:ring-brand/40 hover:bg-brand-surface/20 transition-all flex flex-col items-center justify-center min-h-[120px] gap-2"
-          >
-            <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center">
-              <Plus className="h-5 w-5 text-brand" />
+          {!soloLectura && (
+            <div
+              onClick={() => router.push("/producto/datos/0")}
+              className="bg-white dark:bg-card rounded-md ring-1 ring-dashed ring-border/80 p-3.5 cursor-pointer hover:ring-brand/40 hover:bg-brand-surface/20 transition-all flex flex-col items-center justify-center min-h-[120px] gap-2"
+            >
+              <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center">
+                <Plus className="h-5 w-5 text-brand" />
+              </div>
+              <span className="text-xs font-semibold text-muted-foreground">Nuevo producto</span>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground">Nuevo producto</span>
-          </div>
+          )}
         </div>
       )}
     </div>

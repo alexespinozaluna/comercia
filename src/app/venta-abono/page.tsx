@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { toast } from "sonner";
 import { useAppStore } from "@/stores/app-store";
+import { esSoloLectura } from "@/lib/permisos";
 import { useGuardar } from "@/hooks/use-guardar";
 import { cn } from "@/lib/utils";
 import { BookOpenText, CreditCard, ChevronDown } from "lucide-react";
@@ -33,6 +34,7 @@ function VentaAbonoContent() {
   const idAbono = parseInt(searchParams.get("idAbono") ?? "0");
   const isEdit = idAbono > 0;
   const pagina = searchParams.get("pagina") ?? (isEdit ? `/venta-detalle/${idAbono}` : "/");
+  const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   const [fecha, setFecha] = useState(toInputDate());
   const [total, setTotal] = useState(0);
@@ -267,7 +269,7 @@ function VentaAbonoContent() {
       )}
 
       {/* Saldo a favor disponible — botón para aplicarlo a la deuda */}
-      {!isEdit && disponibleFavor > 0 && totalDeuda > 0 && (
+      {!soloLectura && !isEdit && disponibleFavor > 0 && totalDeuda > 0 && (
         <div className="rounded-lg ring-1 ring-violet-200/70 dark:ring-violet-900/40 bg-violet-50 dark:bg-violet-950/20 p-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
@@ -355,14 +357,16 @@ function VentaAbonoContent() {
         )}
       </div>
 
-      <Button
-        className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base gap-2"
-        onClick={handleSave}
-        disabled={total <= 0 || total > totalDeuda || saving}
-      >
-        <CreditCard className="h-5 w-5" />
-        {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Confirmar abono"}
-      </Button>
+      {!soloLectura && (
+        <Button
+          className="w-full h-12 bg-brand hover:bg-brand-dark text-white font-bold text-base gap-2"
+          onClick={handleSave}
+          disabled={total <= 0 || total > totalDeuda || saving}
+        >
+          <CreditCard className="h-5 w-5" />
+          {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Confirmar abono"}
+        </Button>
+      )}
     </div>
   );
 }
