@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Producto, Categoria, SIN_CATEGORIA_ID } from "@/types/database";
 import { apiGet, apiPut } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { numToString, cantidadString } from "@/lib/format";
 import { useAppStore } from "@/stores/app-store";
 import { SearchInput } from "@/components/shared/search-input";
@@ -33,38 +34,36 @@ export default function ProductoPage() {
   const authUser = useAppStore((s) => s.authUser);
   const isAdmin = authUser?.rol === "ADMIN" || authUser?.rol === "SUPERVISOR";
 
-  const [products, setProducts] = useState<Producto[]>([]);
-  const [categoriaList, setCategoriaList] = useState<Categoria[]>([]);
-  const [categorias, setCategorias] = useState<Map<number, string>>(new Map());
   const [search, setSearch] = useState("");
   // null = TODOS; un número = filtrar por esa categoría (0 = Sin categoría)
   const [catFilter, setCatFilter] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [data, cats] = await Promise.all([
-          apiGet<Producto[]>("/api/productos"),
-          apiGet<Categoria[]>("/api/categorias"),
-        ]);
-        setProducts(data);
-        setCategoriaList(cats);
-        setCategorias(new Map(cats.map((c) => [c.id, c.Nombre])));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const { data, loading, setData } = useResource(async () => {
+    const [productsData, cats] = await Promise.all([
+      apiGet<Producto[]>("/api/productos"),
+      apiGet<Categoria[]>("/api/categorias"),
+    ]);
+    return {
+      products: productsData,
+      categoriaList: cats,
+      categorias: new Map(cats.map((c) => [c.id, c.Nombre])),
+    };
+  });
+  const products = data?.products ?? [];
+  const categoriaList = data?.categoriaList ?? [];
+  const categorias = data?.categorias ?? new Map<number, string>();
+
+  // Cambia bActivoVenta de un producto en el estado local (update optimista).
+  const setProductoActivo = (idProducto: number, val: boolean) =>
+    setData((d) =>
+      d
+        ? { ...d, products: d.products.map((p) => (p.id === idProducto ? { ...p, bActivoVenta: val } : p)) }
+        : d,
+    );
 
   const toggleActivo = async (product: Producto, next: boolean) => {
     // Optimista: actualiza local y revierte si falla
-    setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, bActivoVenta: next } : p)),
-    );
+    setProductoActivo(product.id, next);
     try {
       await apiPut(`/api/productos/${product.id}`, {
         Nombre: product.Nombre,
@@ -75,9 +74,7 @@ export default function ProductoPage() {
         bActivoVenta: next,
       });
     } catch (err) {
-      setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, bActivoVenta: !next } : p)),
-      );
+      setProductoActivo(product.id, !next);
       toast.error(err instanceof Error ? err.message : "Error al actualizar");
     }
   };

@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MetodoPago, Documento } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { toInputDate } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { Input } from "@/components/ui/input";
@@ -35,34 +36,27 @@ function VentaGastoContent() {
   const [fecha, setFecha] = useState(toInputDate());
   const [valor, setValor] = useState(0);
   const [concepto, setConcepto] = useState("");
-  const [metodoPago, setMetodoPago] = useState<MetodoPago[]>([]);
   const [selectedMetodo, setSelectedMetodo] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const { saving, guardar } = useGuardar();
 
+  const { data, loading } = useResource(async () => {
+    const methods = await apiGet<MetodoPago[]>("/api/metodo-pago");
+    const gasto = isEdit ? await apiGet<Documento | null>(`/api/ventas/${id}`) : null;
+    return { methods, gasto };
+  }, [id]);
+  const metodoPago = data?.methods ?? [];
+
+  // Método por defecto + poblar el formulario al editar.
   useEffect(() => {
-    async function load() {
-      try {
-        const methods = await apiGet<MetodoPago[]>("/api/metodo-pago");
-        setMetodoPago(methods);
-        if (methods.length > 0) setSelectedMetodo(methods[0].id);
-        if (isEdit) {
-          const data = await apiGet<Documento | null>(`/api/ventas/${id}`);
-          if (data) {
-            setFecha(data.FechaEmision?.split("T")[0] ?? toInputDate());
-            setValor(data.Total);
-            setConcepto(data.Concepto ?? data.Descripcion ?? "");
-            setSelectedMetodo(data.IdMetodoPago);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+    if (!data) return;
+    if (data.methods.length > 0) setSelectedMetodo(data.methods[0].id);
+    if (data.gasto) {
+      setFecha(data.gasto.FechaEmision?.split("T")[0] ?? toInputDate());
+      setValor(data.gasto.Total);
+      setConcepto(data.gasto.Concepto ?? data.gasto.Descripcion ?? "");
+      setSelectedMetodo(data.gasto.IdMetodoPago);
     }
-    load();
-  }, [id, isEdit]);
+  }, [data]);
 
   const handleSave = () => guardar(async () => {
     if (valor <= 0) { toast.error("Ingrese un valor"); return; }

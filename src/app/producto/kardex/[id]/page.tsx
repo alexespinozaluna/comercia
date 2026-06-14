@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Producto, ProductoMovimiento, TipoMovimiento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { toInputDate, cantidadString } from "@/lib/format";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -52,11 +53,7 @@ function getMovInfo(tipo: number, tipos: TipoMovimiento[]): MovimientoInfo {
 
 export default function KardexPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [producto, setProducto] = useState<Producto | null>(null);
-  const [movimientos, setMovimientos] = useState<ProductoMovimiento[]>([]);
-  const [tiposMovimiento, setTiposMovimiento] = useState<TipoMovimiento[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [productId, setProductId] = useState<string>("0");
+  const { id: productId } = use(params);
 
   const [fechaInicio, setFechaInicio] = useState(() => {
     const monthAgo = new Date();
@@ -66,34 +63,23 @@ export default function KardexPage({ params }: { params: Promise<{ id: string }>
   const [fechaFin, setFechaFin] = useState(() => toInputDate());
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>("Todos");
 
-  useEffect(() => {
-    params.then((p) => setProductId(p.id));
-  }, [params]);
-
-  const loadKardex = useCallback(async () => {
-    if (productId === "0") return;
-    setLoading(true);
-    try {
-      const [prodData, movData, tiposData] = await Promise.all([
-        apiGet<Producto | null>(`/api/productos/${productId}`),
-        apiGet<ProductoMovimiento[]>(
-          `/api/kardex/${productId}?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
-        ),
-        apiGet<TipoMovimiento[]>("/api/tipo-movimiento"),
-      ]);
-      setProducto(prodData);
-      setMovimientos(movData ?? []);
-      setTiposMovimiento(tiposData ?? []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const { data, loading } = useResource(async () => {
+    const [prodData, movData, tiposData] = await Promise.all([
+      apiGet<Producto | null>(`/api/productos/${productId}`),
+      apiGet<ProductoMovimiento[]>(
+        `/api/kardex/${productId}?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+      ),
+      apiGet<TipoMovimiento[]>("/api/tipo-movimiento"),
+    ]);
+    return {
+      producto: prodData,
+      movimientos: movData ?? [],
+      tiposMovimiento: tiposData ?? [],
+    };
   }, [productId, fechaInicio, fechaFin]);
-
-  useEffect(() => {
-    loadKardex();
-  }, [loadKardex]);
+  const producto = data?.producto ?? null;
+  const movimientos = data?.movimientos ?? [];
+  const tiposMovimiento = data?.tiposMovimiento ?? [];
 
   const filtered = tipoFilter === "Todos"
     ? movimientos
