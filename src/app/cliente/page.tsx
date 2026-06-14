@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Cliente, ClienteDireccion, Documento } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
+import { useResource } from "@/hooks/use-resource";
 import { extraerIniciales, numToString } from "@/lib/format";
 import { SearchInput } from "@/components/shared/search-input";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -24,46 +25,35 @@ function ClientePageInner() {
   const selectMode = searchParams.get("select") === "true";
   const returnTo = searchParams.get("returnTo") ?? "/venta/nueva";
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [saldoMap, setSaldoMap] = useState<Map<number, number>>(new Map());
-  const [favorMap, setFavorMap] = useState<Map<number, number>>(new Map());
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [data, deudas, favores] = await Promise.all([
-          apiGet<Cliente[]>("/api/clientes"),
-          apiGet<Documento[]>("/api/deudas").catch(() => [] as Documento[]),
-          apiGet<{ IdCliente: number | null; Saldo: number }[]>("/api/saldo-favor").catch(
-            () => [] as { IdCliente: number | null; Saldo: number }[],
-          ),
-        ]);
-        setClientes(data);
-        const map = new Map<number, number>();
-        deudas.forEach((d) => {
-          if (d.IdCliente != null && d.Saldo > 0) {
-            map.set(d.IdCliente, (map.get(d.IdCliente) ?? 0) + d.Saldo);
-          }
-        });
-        setSaldoMap(map);
-        // Saldo a favor por cliente (documentos tipo 4 con Saldo > 0)
-        const favorM = new Map<number, number>();
-        favores.forEach((f) => {
-          if (f.IdCliente != null && f.Saldo > 0) {
-            favorM.set(f.IdCliente, (favorM.get(f.IdCliente) ?? 0) + f.Saldo);
-          }
-        });
-        setFavorMap(favorM);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+  const { data, loading } = useResource(async () => {
+    const [clientesData, deudas, favores] = await Promise.all([
+      apiGet<Cliente[]>("/api/clientes"),
+      apiGet<Documento[]>("/api/deudas").catch(() => [] as Documento[]),
+      apiGet<{ IdCliente: number | null; Saldo: number }[]>("/api/saldo-favor").catch(
+        () => [] as { IdCliente: number | null; Saldo: number }[],
+      ),
+    ]);
+    // Deuda total por cliente (documentos con Saldo > 0)
+    const saldoMap = new Map<number, number>();
+    deudas.forEach((d) => {
+      if (d.IdCliente != null && d.Saldo > 0) {
+        saldoMap.set(d.IdCliente, (saldoMap.get(d.IdCliente) ?? 0) + d.Saldo);
       }
-    }
-    load();
-  }, []);
+    });
+    // Saldo a favor por cliente (documentos tipo 4 con Saldo > 0)
+    const favorMap = new Map<number, number>();
+    favores.forEach((f) => {
+      if (f.IdCliente != null && f.Saldo > 0) {
+        favorMap.set(f.IdCliente, (favorMap.get(f.IdCliente) ?? 0) + f.Saldo);
+      }
+    });
+    return { clientes: clientesData, saldoMap, favorMap };
+  });
+  const clientes = data?.clientes ?? [];
+  const saldoMap = data?.saldoMap ?? new Map<number, number>();
+  const favorMap = data?.favorMap ?? new Map<number, number>();
 
   const filtered = search
     ? clientes.filter((c) => {
