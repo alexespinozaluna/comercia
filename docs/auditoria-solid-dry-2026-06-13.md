@@ -111,13 +111,19 @@ export const PERMISOS = {
 } as const;
 ```
 
-## 5. DRY — Patrón fetch/loading/error repetido en el frontend 🚧 EN CURSO (paso 4)
+## 5. DRY — Patrón fetch/loading/error repetido en el frontend ✅ HECHO (paso 4)
 
 > Implementado: `src/hooks/use-resource.ts` (`useResource(fetcher, deps?)` →
-> `{ data, loading, error, reload, setData }`). Migradas como muestra:
-> `saldo-favor` (fetch compuesto + reload), `sesiones`, `venta-eliminadas`,
-> `deuda`. Pendiente: el resto de páginas (incremental, página por página).
-> `superadmin` se deja como está (carga condicional solo-SUPERADMIN + centinela `null`).
+> `{ data, loading, error, reload, setData }`). Migradas 15 páginas: saldo-favor,
+> sesiones, venta-eliminadas, deuda, cliente, caja, reporte-ingresos,
+> deuda-detalle, venta-detalle, home, configuracion, cliente/datos, producto/datos,
+> producto, venta-gasto, producto/kardex. Las páginas con params dinámicos usan
+> `use(params)`; el toggle optimista de `producto` usa `setData`.
+>
+> **Dejadas a propósito** (no encajan sin regresión): páginas con guard de rol en
+> dos fases (`auditoria`, `caja/historial`, `configuracion/usuarios`,
+> `producto/ajustes`, `superadmin`) y `venta-abono` (side-effects de navegación
+> durante la carga).
 
 
 ~22-24 páginas repiten `useState(loading)` + `useEffect(fetch)` + manejo de error. Ya existe
