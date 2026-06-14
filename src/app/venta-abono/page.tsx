@@ -6,6 +6,7 @@ import { Documento, MetodoPago } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { numToString, fechaString, extraerIniciales, toInputDate, parseDateOnly } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { MontoInput } from "@/components/shared/monto-input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -262,16 +263,11 @@ function VentaAbonoContent() {
         {/* Monto */}
         <div>
           <FieldLabel>Monto a abonar *</FieldLabel>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">$</span>
-            <Input
-              type="number"
-              value={total || ""}
-              onChange={(e) => setTotal(parseFloat(e.target.value) || 0)}
-              placeholder="0"
-              className="h-11 rounded-md pl-7 text-[18px] font-bold text-brand-dark"
-            />
-          </div>
+          <MontoInput
+            value={total}
+            onChange={setTotal}
+            className="h-11 rounded-md text-[18px] font-bold text-brand-dark"
+          />
           {total > 0 && (
             <p className="text-sm font-semibold mt-1">{numToString(total)}</p>
           )}

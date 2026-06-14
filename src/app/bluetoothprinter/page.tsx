@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
-import { apiGet } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,7 +11,6 @@ import { toast } from "sonner";
 export default function BluetoothPrinterPage() {
   const { isSupported, isConnected, deviceName, isConnecting, error, connect, disconnect, print } = useBluetoothPrinter();
   const [text, setText] = useState("");
-  const [ticketId, setTicketId] = useState("");
   const [printWidth, setPrintWidth] = useState(384);
 
   const handlePrintText = async () => {
@@ -23,18 +20,6 @@ export default function BluetoothPrinterPage() {
       toast.success("Impresion enviada");
     } catch {
       toast.error("Error al imprimir");
-    }
-  };
-
-  const handlePrintTicket = async () => {
-    const id = parseInt(ticketId);
-    if (!id) { toast.error("Ingrese un ID de venta"); return; }
-    try {
-      const ticketText = await apiGet<string>(`/api/ticket/${id}?width=${printWidth}`);
-      await print(ticketText);
-      toast.success("Ticket impreso");
-    } catch {
-      toast.error("Error al imprimir ticket");
     }
   };
 
@@ -82,17 +67,6 @@ export default function BluetoothPrinterPage() {
             onChange={(e) => setText(e.target.value)}
           />
           <Button onClick={handlePrintText} disabled={!isConnected}>Imprimir Texto</Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-base">Imprimir Ticket</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label>ID de Venta</Label>
-            <Input type="number" value={ticketId} onChange={(e) => setTicketId(e.target.value)} placeholder="Ej: 126" />
-          </div>
-          <Button onClick={handlePrintTicket} disabled={!isConnected}>Imprimir Ticket</Button>
         </CardContent>
       </Card>
     </div>

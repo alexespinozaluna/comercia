@@ -45,7 +45,7 @@ export function CartItemsList({
           onClick={onClear}
           className="text-xs font-medium text-destructive hover:text-destructive/80 transition-colors"
         >
-          Vaciar
+         Vaciar
         </button>
       </div>
 

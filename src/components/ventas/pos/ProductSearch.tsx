@@ -164,7 +164,7 @@ export function ProductSearch({
               <div className="flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4" />
                 <span className="text-sm font-semibold">
-                  Ver canasta · {itemCount} {itemCount === 1 ? "item" : "items"}
+                 {itemCount} Producto{itemCount === 1 ? "" : "s"}
                 </span>
               </div>
               <span className="text-sm font-bold">{numToString(total)}</span>

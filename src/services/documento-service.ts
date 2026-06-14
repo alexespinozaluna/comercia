@@ -27,6 +27,40 @@ function truncateField(value: string | null | undefined): string | null {
 }
 
 /** Build a clean JSONB object from a Documento for RPC calls (strips nested relations and id=0) */
+/** Flags booleanos semánticos por los que se puede filtrar MetodoPago. */
+type MetodoPagoFlags = Partial<Pick<MetodoPago, "bDeuda" | "bEfectivo">>;
+
+/** Punto único de acceso a MetodoPago: métodos activos del tenant, filtrables
+ * por flags (p. ej. { bDeuda: true } o { bEfectivo: true }). */
+async function fetchMetodosPago(
+  tenantId?: number,
+  flags?: MetodoPagoFlags,
+): Promise<MetodoPago[]> {
+  let query = getSupabaseServer().from("MetodoPago").select("*");
+  for (const [col, value] of Object.entries(flags ?? {})) {
+    query = query.eq(col, value as boolean);
+  }
+  if (tenantId != null) {
+    query = query.eq("IdTenant", tenantId).eq("Estado", 1);
+  }
+  const { data, error } = await query;
+  if (error) throw new Error(`Error fetching MetodoPago: ${error.message}`);
+  return (data ?? []) as MetodoPago[];
+}
+
+// Cache del id del método de deuda por tenant (catálogo casi inmutable).
+const metodoDeudaCache = new Map<number, number | null>();
+
+/** Id del método de deuda del tenant (bDeuda), o null si aún no existe. Se
+ * identifica por el flag semántico bDeuda, no por el nombre (renombrable). */
+async function resolveMetodoDeudaId(tenantId: number): Promise<number | null> {
+  if (metodoDeudaCache.has(tenantId)) return metodoDeudaCache.get(tenantId)!;
+  const [metodo] = await fetchMetodosPago(tenantId, { bDeuda: true });
+  const id = metodo?.id ?? null;
+  metodoDeudaCache.set(tenantId, id);
+  return id;
+}
+
 function buildDocumentoJson(
   doc: Partial<Documento> & {
     FechaEmision: string;
@@ -126,7 +160,7 @@ export const documentoService = {
     let query = getSupabaseServer()
       .from(TABLE)
       .select(
-        "*, Cliente(*), DocumentoItem(*), " +
+        "*, Cliente(*), DocumentoItem(*), MetodoPago(Nombre), " +
           "UsuarioCreacion:SistemaUsuario!FK_Documento_UsuarioCreacion(Nombre), " +
           "UsuarioModificacion:SistemaUsuario!FK_Documento_UsuarioModificacion(Nombre)",
       )
@@ -172,6 +206,12 @@ export const documentoService = {
     idNegocio: number | null = null,
   ): Promise<Documento> {
     const docJson = buildDocumentoJson(doc);
+
+    // Venta a crédito → método "Deuda" (no lleva forma de pago real). Si la
+    // migración aún no creó el método, queda null y el reporte cae en "NINGUNO".
+    if (doc.bCredito) {
+      docJson.IdMetodoPago = await resolveMetodoDeudaId(idTenant);
+    }
 
     const isNew = !idDocumento || idDocumento <= 0;
 
@@ -360,20 +400,6 @@ export const documentoService = {
     return (data ?? []) as unknown as Documento[];
   },
 
-  /** Get ticket text via Supabase RPC */
-  async getTicketText(id: number, width: number): Promise<string> {
-    const { data, error } = await getSupabaseServer().rpc(
-      "generate_ticket_text",
-      {
-        venta_id: id,
-        width,
-      },
-    );
-
-    if (error) throw new Error(`Error generating ticket: ${error.message}`);
-    return data as string;
-  },
-
   /** Get client addresses */
   async getClienteDirecciones(
     idCliente: number,
@@ -518,17 +544,10 @@ export const documentoService = {
     return data as { ok: boolean; doc_id: number | null; aplicado: number };
   },
 
-  /** Get payment methods */
+  /** Métodos de pago seleccionables (excluye el de deuda, bDeuda: no es una forma
+   * de pago, solo etiqueta las ventas a crédito en reportes). */
   async getMetodoPago(tenantId?: number): Promise<MetodoPago[]> {
-    let query = getSupabaseServer().from("MetodoPago").select("*");
-
-    if (tenantId != null) {
-      query = query.eq("IdTenant", tenantId).eq("Estado", 1);
-    }
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Error fetching MetodoPago: ${error.message}`);
-    return (data ?? []) as MetodoPago[];
+    return fetchMetodosPago(tenantId, { bDeuda: false });
   },
 
   /** Catálogo global de tipos de documento (no depende de tenant). */

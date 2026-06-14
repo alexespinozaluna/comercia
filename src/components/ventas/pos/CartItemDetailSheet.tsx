@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { numToString, formatN2, parseFormatted } from "@/lib/format";
+import { numToString } from "@/lib/format";
+import { MontoInput } from "@/components/shared/monto-input";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -39,14 +40,14 @@ export function CartItemDetailSheet({
   // Estado local desacoplado del padre: el usuario edita libremente sin que
   // cada tecla dispare un re-render del padre que sobreescriba lo escrito.
   const [qtyDisplay, setQtyDisplay] = useState("1");
-  const [priceDisplay, setPriceDisplay] = useState("");
+  const [precio, setPrecio] = useState(0);
 
   // Inicializar SOLO al cambiar de ítem (su _tempId), nunca en cada render —
   // de lo contrario los campos se resetearían al valor original al editar.
   useEffect(() => {
     if (item) {
       setQtyDisplay(String(item.Cantidad));
-      setPriceDisplay(formatN2(item.PrecioVenta));
+      setPrecio(item.PrecioVenta);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?._tempId]);
@@ -55,7 +56,6 @@ export function CartItemDetailSheet({
 
   // Valores reactivos derivados de lo que el usuario está escribiendo.
   const cantidad = Math.max(1, parseFloat(qtyDisplay) || 1);
-  const precio = parseFormatted(priceDisplay);
   const subtotal = cantidad * precio;
 
   const stepQty = (delta: number) => {
@@ -124,19 +124,12 @@ export function CartItemDetailSheet({
           {/* Precio unitario */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Precio unitario</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
-                $
-              </span>
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={priceDisplay}
-                onChange={(e) => setPriceDisplay(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="h-11 text-lg font-semibold tabular-nums pl-7 text-foreground"
-              />
-            </div>
+            <MontoInput
+              value={precio}
+              onChange={setPrecio}
+              ariaLabel={`Precio de ${item.Descripcion}`}
+              className="h-11 text-lg font-semibold text-foreground"
+            />
           </div>
 
           {/* Subtotal — reactivo en tiempo real, sin necesitar confirmación */}

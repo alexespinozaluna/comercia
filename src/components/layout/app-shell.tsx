@@ -219,6 +219,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/bluetoothprinter")) return "Impresora";
   if (pathname.startsWith("/configuracion")) return "Configuración";
   if (pathname.startsWith("/auditoria")) return "Auditoría";
+  if (pathname.startsWith("/reporte-ingresos")) return "Reporte de ingresos";
   if (pathname.startsWith("/caja")) return "Caja";
   return pathname.slice(1).charAt(0).toUpperCase() + pathname.slice(2);
 }

@@ -154,18 +154,22 @@ export function sbsLeft(value: string, cant: number): string {
   return value.length > cant ? `${value.substring(0, cant)}...` : value;
 }
 
-/** Format a number for an editable text input (es-CL: "1.234,56"). No currency prefix. */
-export function formatN2(value: number): string {
-  return value.toLocaleString(currentLocale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+/** Monto para input editable, según los decimales del negocio (Negocio.Decimales):
+ * 0 → "1.500", 2 → "1.500,00". Sin símbolo de moneda (el prefijo lo pone el
+ * input). Inverso de `parseFormatted`. */
+export function formatMontoInput(value: number | null | undefined): string {
+  return formatNumero(value);
 }
 
-/** Cantidad: hasta 3 decimales, sin ceros sobrantes ("5", "5,5", "5,567"). */
-export function cantidadString(value: number | null | undefined): string {
+/** Cantidad: hasta 3 decimales, sin ceros sobrantes ("5", "5,5", "5,567").
+ * Sin `fmt` usa el locale activo; los renders server-side (ticket) lo pasan
+ * explícito desde el negocio. */
+export function cantidadString(
+  value: number | null | undefined,
+  fmt?: FormatoNegocio,
+): string {
   const safe = value ?? 0;
-  return safe.toLocaleString(currentLocale, {
+  return safe.toLocaleString(fmt?.locale ?? currentLocale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });

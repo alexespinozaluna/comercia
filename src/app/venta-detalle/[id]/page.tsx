@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck, Package } from "lucide-react";
+import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck, Package, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { TicketShareSheet } from "@/components/ventas/ticket-share-sheet";
 import { useAppStore } from "@/stores/app-store";
@@ -152,10 +152,20 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           {/* Forma de pago — antes era un badge en el header */}
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground flex items-center gap-1.5">
-              <CreditCard className="h-3.5 w-3.5" /> Forma pago
+              <CreditCard className="h-3.5 w-3.5" /> Forma de Venta
             </span>
             <StatusBadge variant={doc.bCredito ? "info" : "success"}>{doc.FormaVenta}</StatusBadge>
           </div>
+
+          {/* Método de pago — cuando el documento lo registra */}
+          {doc.MetodoPago?.Nombre && (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-1.5">
+                <Wallet className="h-3.5 w-3.5" /> Método de pago
+              </span>
+              <span className="font-medium">{doc.MetodoPago.Nombre}</span>
+            </div>
+          )}
 
           {/* Montos: pagado → Total; deuda → Abonado (si hay) + Saldo */}
           {doc.bCredito && doc.TotalAbono > 0 && (
@@ -255,17 +265,6 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
               )
             }
             aria-label="Editar documento"
-          >
-            <Pencil className="h-4 w-4" /> Editar
-          </Button>
-        )}
-        {isAbono && cajaOk && doc.DocumentoItem?.length === 1 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-10"
-            onClick={() => router.push(`/venta-abono?idAbono=${doc.id}`)}
-            aria-label="Editar abono"
           >
             <Pencil className="h-4 w-4" /> Editar
           </Button>

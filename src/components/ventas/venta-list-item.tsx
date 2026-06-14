@@ -27,6 +27,9 @@ export function VentaListItem({ venta }: VentaListItemProps) {
   const isCredito = venta.bCredito && !isGasto;
   const nombre = venta.Cliente?.Nombre ?? venta.Concepto ?? venta.Descripcion ?? "Sin nombre";
   const concepto = venta.Concepto ?? venta.Descripcion ?? "";
+  // Método de pago con el que se efectuó (venta/abono/gasto). En crédito el
+  // método es "Deuda" → no se repite, el badge ya lo indica.
+  const metodoPago = !isCredito ? venta.MetodoPago?.Nombre : null;
 
   // Avatar styles by type
   const avatarBg = isGasto
@@ -85,6 +88,9 @@ export function VentaListItem({ venta }: VentaListItemProps) {
           <span className="text-[11px] text-muted-foreground">
             {tiempoRelativo(venta.FechaEmision)}
           </span>
+          {metodoPago && (
+            <span className="text-[11px] text-muted-foreground">· {metodoPago}</span>
+          )}
           {concepto && concepto !== nombre && (
             <span className="text-[11px] text-muted-foreground/60 truncate">
               {sbsLeft(concepto, 80)}

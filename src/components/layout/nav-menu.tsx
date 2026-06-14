@@ -13,6 +13,7 @@ import {
   Trash2,
   ArrowDownRight,
   PiggyBank,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AuthUser } from "@/lib/auth-client";
@@ -33,6 +34,7 @@ const ALL_NAV: NavItem[] = [
   { href: "/producto", label: "Inventario", icon: Package, roles: ["ADMIN", "CAJERO", "VENDEDOR", "SUPERVISOR"], group: "gestion" },
   { href: "/producto/ajustes", label: "Ajustes", icon: ArrowDownRight, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },
   { href: "/caja", label: "Caja", icon: Landmark, roles: ["ADMIN", "CAJERO", "SUPERVISOR"], group: "gestion" },
+  { href: "/reporte-ingresos", label: "Reporte ingresos", icon: BarChart3, roles: ["ADMIN", "CAJERO", "SUPERVISOR"], group: "gestion" },
   { href: "/venta-eliminadas", label: "Papelera", icon: Trash2, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },
   { href: "/auditoria", label: "Auditoría", icon: ClipboardList, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },
   { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["ADMIN", "SUPERVISOR"], group: "gestion" },

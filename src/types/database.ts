@@ -59,6 +59,8 @@ export interface MetodoPago extends BaseEnty {
   Nombre: string;
   Simbolo: string;
   bEfectivo: boolean;
+  /** Método reservado para ventas a crédito ("Deuda"); no es seleccionable como forma de pago. */
+  bDeuda: boolean;
 }
 
 export interface TipoDocumento extends BaseEnty {

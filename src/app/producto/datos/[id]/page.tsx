@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Producto } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { Input } from "@/components/ui/input";
+import { MontoInput } from "@/components/shared/monto-input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/shared/page-header";
@@ -121,18 +122,11 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
         {/* Precio Venta */}
         <div>
           <FieldLabel>Precio de venta *</FieldLabel>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
-              $
-            </span>
-            <Input
-              type="number"
-              value={precioVenta || ""}
-              onChange={(e) => setPrecioVenta(parseFloat(e.target.value) || 0)}
-              placeholder="0"
-              className="h-11 rounded-md pl-7 text-brand-dark font-semibold"
-            />
-          </div>
+          <MontoInput
+            value={precioVenta}
+            onChange={setPrecioVenta}
+            className="h-11 rounded-md text-brand-dark font-semibold"
+          />
         </div>
 
         {/* Categoría */}
@@ -155,18 +149,11 @@ export default function ProductoDatosPage({ params }: { params: Promise<{ id: st
         {/* Precio Costo */}
         <div>
           <FieldLabel>Precio de costo</FieldLabel>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
-              $
-            </span>
-            <Input
-              type="number"
-              value={precioCosto ?? ""}
-              onChange={(e) => setPrecioCosto(parseFloat(e.target.value) || null)}
-              placeholder="0"
-              className="h-11 rounded-md pl-7"
-            />
-          </div>
+          <MontoInput
+            value={precioCosto ?? 0}
+            onChange={(n) => setPrecioCosto(n || null)}
+            className="h-11 rounded-md"
+          />
         </div>
 
         {/* Cantidad */}

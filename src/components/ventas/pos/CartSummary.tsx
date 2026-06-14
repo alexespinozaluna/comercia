@@ -9,6 +9,7 @@ import { CartItemEditSheet } from "./CartItemEditSheet";
 import { CartItemsList } from "./cart/CartItemsList";
 import { FormaVentaToggle } from "./cart/FormaVentaToggle";
 import { FormaPagoChips } from "./cart/FormaPagoChips";
+import { FormaPagoDeuda } from "./cart/FormaPagoDeuda";
 import { FechaSection } from "./cart/FechaSection";
 import { NotasSection } from "./cart/NotasSection";
 import { CartBottomBar } from "./cart/CartBottomBar";
@@ -102,8 +103,10 @@ export function CartSummary({
 
         <FormaVentaToggle isCredit={isCredit} onChange={onIsCreditChange} />
 
-        {/* Forma de pago: solo aplica a ventas pagadas; en deuda no se muestra. */}
-        {!isCredit && (
+        {/* Forma de pago: en venta pagada se elige; en deuda queda fija en "Deuda". */}
+        {isCredit ? (
+          <FormaPagoDeuda />
+        ) : (
           <FormaPagoChips
             metodos={metodosPago}
             selectedId={selectedIdMetodoPago}

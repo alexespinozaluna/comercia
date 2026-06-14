@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { numToString, formatN2, parseFormatted } from "@/lib/format";
-import { Input } from "@/components/ui/input";
+import { numToString } from "@/lib/format";
+import { MontoInput } from "@/components/shared/monto-input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,17 +32,16 @@ export function CartItemEditSheet({
   onOpenChange,
   onUpdatePrice,
 }: CartItemEditSheetProps) {
-  const [valor, setValor] = useState("");
+  const [precio, setPrecio] = useState(0);
 
   // Inicializar al abrir o al cambiar de ítem, nunca en cada render.
   useEffect(() => {
-    if (item) setValor(formatN2(item.PrecioVenta));
+    if (item) setPrecio(item.PrecioVenta);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?._tempId, open]);
 
   if (!item) return null;
 
-  const precio = parseFormatted(valor);
   const subtotal = item.Cantidad * precio;
 
   const handleSubmit = () => {
@@ -69,20 +68,13 @@ export function CartItemEditSheet({
         >
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Precio unitario</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
-                $
-              </span>
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={valor}
-                onChange={(e) => setValor(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                autoFocus
-                className="h-11 text-lg font-semibold tabular-nums pl-7 text-foreground"
-              />
-            </div>
+            <MontoInput
+              value={precio}
+              onChange={setPrecio}
+              autoFocus
+              ariaLabel={`Precio de ${item.Descripcion}`}
+              className="h-11 text-lg font-semibold text-foreground"
+            />
           </div>
 
           {/* Subtotal — referencia reactiva */}

@@ -6,6 +6,7 @@ import { Cliente, MetodoPago, SaldoFavorRow, Caja } from "@/types/database";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api-client";
 import { numToString, extraerIniciales, fechaString, toInputDate, parseDateOnly } from "@/lib/format";
 import { Input } from "@/components/ui/input";
+import { MontoInput } from "@/components/shared/monto-input";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -265,10 +266,7 @@ export default function SaldoFavorPage() {
 
             <div>
               <FieldLabel>Monto a favor *</FieldLabel>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">$</span>
-                <Input type="number" value={monto || ""} onChange={(e) => setMonto(parseFloat(e.target.value) || 0)} placeholder="0" className="h-11 rounded-md pl-7 text-[18px] font-bold text-brand-dark" />
-              </div>
+              <MontoInput value={monto} onChange={setMonto} className="h-11 rounded-md text-[18px] font-bold text-brand-dark" />
               {monto > 0 && (
                 <p className="text-sm font-semibold mt-1 text-success">{numToString(monto)}</p>
               )}
@@ -329,10 +327,7 @@ export default function SaldoFavorPage() {
           <div className="px-4 pb-4 space-y-3">
             <div>
               <FieldLabel>Monto *</FieldLabel>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">$</span>
-                <Input type="number" value={editMonto || ""} onChange={(e) => setEditMonto(parseFloat(e.target.value) || 0)} className="h-11 rounded-md pl-7 text-[18px] font-bold text-brand-dark" />
-              </div>
+              <MontoInput value={editMonto} onChange={setEditMonto} className="h-11 rounded-md text-[18px] font-bold text-brand-dark" />
               {editMonto > 0 && (
                 <p className="text-sm font-semibold mt-1 text-success">{numToString(editMonto)}</p>
               )}

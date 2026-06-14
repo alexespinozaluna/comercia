@@ -46,7 +46,7 @@ export function PasoConfirmar({
           <ChevronLeft className="h-5 w-5" />
           Volver
         </button>
-        <h2 className="text-[17px] font-bold">Confirmar pedido</h2>
+        <h2 className="text-[17px] font-bold">Confirmar Pedido</h2>
       </div>
 
       <CartItemsList

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ClientSelector } from "@/components/ventas/pos/ClientSelector";
 import { FormaVentaToggle } from "@/components/ventas/pos/cart/FormaVentaToggle";
 import { FormaPagoChips } from "@/components/ventas/pos/cart/FormaPagoChips";
+import { FormaPagoDeuda } from "@/components/ventas/pos/cart/FormaPagoDeuda";
 import { FechaSection } from "@/components/ventas/pos/cart/FechaSection";
 import { NotasSection } from "@/components/ventas/pos/cart/NotasSection";
 
@@ -120,7 +121,9 @@ export function PasoCrear({
 
         <FechaSection fecha={fecha} onChange={onFechaChange} />
 
-        {!isCredit && (
+        {isCredit ? (
+          <FormaPagoDeuda />
+        ) : (
           <FormaPagoChips
             metodos={metodosPago}
             selectedId={selectedIdMetodoPago}

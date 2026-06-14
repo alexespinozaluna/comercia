@@ -7,6 +7,7 @@ import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import { toInputDate } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { Input } from "@/components/ui/input";
+import { MontoInput } from "@/components/shared/monto-input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/shared/page-header";
@@ -121,16 +122,11 @@ function VentaGastoContent() {
         {/* Monto */}
         <div>
           <FieldLabel>Monto *</FieldLabel>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">$</span>
-            <Input
-              type="number"
-              value={valor || ""}
-              onChange={(e) => setValor(parseFloat(e.target.value) || 0)}
-              placeholder="0"
-              className="h-11 rounded-md pl-7 font-semibold"
-            />
-          </div>
+          <MontoInput
+            value={valor}
+            onChange={setValor}
+            className="h-11 rounded-md font-semibold"
+          />
         </div>
 
         {/* Fecha */}

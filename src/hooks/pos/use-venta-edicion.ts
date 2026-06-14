@@ -71,7 +71,10 @@ export function useVentaEdicion({
 
         onFecha(venta.FechaEmision?.split("T")[0] ?? toInputDate());
         onIsCredit(venta.bCredito);
-        metodo.setSelectedId(venta.IdMetodoPago);
+        // En crédito la forma de pago es "Deuda" (método oculto, no seleccionable):
+        // no se hidrata para no arrastrar su id como selección inválida si el
+        // usuario cambia a contado. El backend la re-asigna al guardar.
+        metodo.setSelectedId(venta.bCredito ? null : venta.IdMetodoPago);
         concepto.hydrate(venta.Concepto);
 
         // El cliente común (id 0) no se muestra seleccionado: el selector

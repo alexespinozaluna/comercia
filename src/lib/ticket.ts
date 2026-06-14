@@ -1,5 +1,12 @@
-import { numToString, cantidadString, fechaCortaHora } from "@/lib/format";
+import { numToString, cantidadString, fechaCortaHora, type FormatoNegocio } from "@/lib/format";
 import { labelFormaVenta } from "@/lib/terminologia";
+import {
+  DEFAULT_DECIMALES,
+  DEFAULT_LOCALE,
+  esDecimalesValido,
+  esLocaleValido,
+  simboloEfectivo,
+} from "@/types/locale";
 import type { DocumentoDisplay, Negocio } from "@/types/database";
 
 // Anchos de impresora térmica (puntos a 203 dpi): 58mm ≈ 384, 80mm ≈ 576.
@@ -21,6 +28,15 @@ export function renderTicketCanvas({ doc, negocio, widthMm = 80 }: TicketOpts): 
       ? { w: 384, pad: 14, base: 16, h1: 24, total: 22 }
       : { w: 576, pad: 22, base: 22, h1: 34, total: 30 };
   const lh = Math.round(cfg.base * 1.45);
+
+  // Formato explícito del negocio del documento: el ticket no debe depender del
+  // estado global de `format.ts` (sería frágil para links públicos / otro negocio).
+  const locale = esLocaleValido(negocio?.Locale) ? negocio!.Locale : DEFAULT_LOCALE;
+  const fmt: FormatoNegocio = {
+    locale,
+    decimales: esDecimalesValido(negocio?.Decimales) ? negocio!.Decimales : DEFAULT_DECIMALES,
+    simbolo: simboloEfectivo(negocio?.SimboloMoneda, locale),
+  };
 
   const items = doc.DocumentoItem ?? [];
   const canvas = document.createElement("canvas");
@@ -123,9 +139,9 @@ export function renderTicketCanvas({ doc, negocio, widthMm = 80 }: TicketOpts): 
       y += lh;
     }
     ctx.textAlign = "left";
-    ctx.fillText(`${cantidadString(it.Cantidad)} x ${numToString(it.PrecioVenta)}`, left, y);
+    ctx.fillText(`${cantidadString(it.Cantidad, fmt)} x ${numToString(it.PrecioVenta, undefined, fmt)}`, left, y);
     ctx.textAlign = "right";
-    ctx.fillText(numToString(it.Total), right, y);
+    ctx.fillText(numToString(it.Total, undefined, fmt), right, y);
     y += lh;
   }
   sep();
@@ -135,7 +151,7 @@ export function renderTicketCanvas({ doc, negocio, widthMm = 80 }: TicketOpts): 
   ctx.textAlign = "left";
   ctx.fillText("TOTAL", left, y);
   ctx.textAlign = "right";
-  ctx.fillText(numToString(doc.Total), right, y);
+  ctx.fillText(numToString(doc.Total, undefined, fmt), right, y);
   y += Math.round(cfg.total * 1.6);
 
   // ── Pie ──────────────────────────────────────────────────────

@@ -32,6 +32,7 @@ No test projects exist.
 - **Save buttons MUST use `useGuardar`** (`src/hooks/use-guardar.ts`) - wraps the async save with a re-entry guard (anti double-submit) and exposes `saving` for `disabled`/label. Never hand-roll a `useState` saving flag.
 - **Master-detail writes are transactional via Postgres RPCs** (e.g. `guardar_venta_con_items`, `guardar_cliente_con_direcciones`, `guardar_producto_con_kardex`) - PostgREST can't span transactions across calls, so multi-table saves go in a plpgsql function; API routes stay thin (auth + validation + `.rpc()`)
 - **Entity naming**: PascalCase matching Supabase column names (e.g., `IdCliente`, `bCredito`)
+- **DRY / reuse first**: do NOT duplicate near-identical logic. Factor shared behavior into a single generic function/method/component and pass what varies as parameters (e.g. `fetchMetodosPago(tenantId, flags)` backs both the selectable list and the deuda lookup). Identify domain concepts by semantic flags/columns (`bEfectivo`, `bDeuda`), never by display text (`Nombre`), which is renameable. Write the minimum code needed; prefer extending an existing helper over adding a parallel one.
 
 ### Directory Structure
 - `src/app/` - Next.js App Router pages

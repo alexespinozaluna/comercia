@@ -9,6 +9,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MontoInput } from "@/components/shared/monto-input";
 import { toast } from "sonner";
 import { numToString } from "@/lib/format";
 import { format } from "date-fns";
@@ -61,8 +62,8 @@ export default function CajaPage() {
   const [caja, setCaja] = useState<Caja | null>(null);
   const [arqueo, setArqueo] = useState<CajaArqueo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [montoInicial, setMontoInicial] = useState("");
-  const [montoFinal, setMontoFinal] = useState("");
+  const [montoInicial, setMontoInicial] = useState(0);
+  const [montoFinal, setMontoFinal] = useState(0);
   const [observacion, setObservacion] = useState("");
   const { saving: actionLoading, guardar } = useGuardar();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -100,13 +101,13 @@ export default function CajaPage() {
 
   // Diferencia en vivo según lo que tecleó el cajero
   const diferencia = useMemo(() => {
-    const m = parseFloat(montoFinal);
-    if (!arqueo || !Number.isFinite(m)) return null;
-    return +(m - arqueo.MontoEsperado).toFixed(2);
+    // 0 = aún sin contar (el input vacío emite 0); no mostrar diferencia todavía.
+    if (!arqueo || montoFinal === 0) return null;
+    return +(montoFinal - arqueo.MontoEsperado).toFixed(2);
   }, [montoFinal, arqueo]);
 
   const handleAbrir = () => guardar(async () => {
-    const monto = parseFloat(montoInicial);
+    const monto = montoInicial;
     if (!Number.isFinite(monto) || monto < 0) {
       toast.error("Ingrese un monto inicial válido");
       return;
@@ -114,7 +115,7 @@ export default function CajaPage() {
     try {
       await apiPost("/api/caja/apertura", { montoInicial: monto });
       toast.success("Caja abierta");
-      setMontoInicial("");
+      setMontoInicial(0);
       await load();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error");
@@ -123,7 +124,7 @@ export default function CajaPage() {
 
   const handleCerrar = async () => {
     if (!caja) return;
-    const monto = parseFloat(montoFinal);
+    const monto = montoFinal;
     if (!Number.isFinite(monto) || monto < 0) {
       toast.error("Ingrese un monto final válido");
       return;
@@ -147,7 +148,7 @@ export default function CajaPage() {
           observacion: observacion || null,
         });
         toast.success("Caja cerrada");
-        setMontoFinal("");
+        setMontoFinal(0);
         setObservacion("");
         await load();
       } catch (err: unknown) {
@@ -259,17 +260,12 @@ export default function CajaPage() {
 
             <div>
               <FieldLabel>Monto contado</FieldLabel>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">$</span>
-                <Input
-                  id="monto-final"
-                  type="number"
-                  placeholder="0"
-                  value={montoFinal}
-                  onChange={(e) => setMontoFinal(e.target.value)}
-                  className="h-11 rounded-md pl-7"
-                />
-              </div>
+              <MontoInput
+                id="monto-final"
+                value={montoFinal}
+                onChange={setMontoFinal}
+                className="h-11 rounded-md"
+              />
             </div>
 
             {/* Diferencia en vivo */}
@@ -328,17 +324,12 @@ export default function CajaPage() {
             </div>
             <div>
               <FieldLabel>Monto inicial</FieldLabel>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">$</span>
-                <Input
-                  id="monto-inicial"
-                  type="number"
-                  placeholder="0"
-                  value={montoInicial}
-                  onChange={(e) => setMontoInicial(e.target.value)}
-                  className="h-11 rounded-md pl-7"
-                />
-              </div>
+              <MontoInput
+                id="monto-inicial"
+                value={montoInicial}
+                onChange={setMontoInicial}
+                className="h-11 rounded-md"
+              />
             </div>
             <Button
               className="w-full h-11 gap-2 bg-brand hover:bg-brand-dark text-white font-bold"
