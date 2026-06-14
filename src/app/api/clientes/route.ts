@@ -1,38 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { clienteService } from "@/services/cliente-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate } from "@/lib/audit";
 import { ClienteDireccion } from "@/types/database";
 
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+export const GET = withAuth(async (_req, { user }) => {
+  const data = await clienteService.getAllWithDirecciones(user.idTenant);
+  return NextResponse.json({ data });
+});
 
-    const data = await clienteService.getAllWithDirecciones(user.idTenant);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/clientes error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.CUALQUIER_OPERADOR);
-
+export const POST = withAuth(
+  async (req, { user }) => {
     const body = await req.json();
     const { Nombre, NroTelefono, TipoDocumento, NroDocumento, Comentario, ClienteDireccion: direcciones } = body;
     if (!Nombre) {
-      return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
+      throw new ApiError(400, "Nombre requerido");
     }
 
     // Cliente + direcciones en una sola transacción (RPC).
@@ -56,14 +40,9 @@ export async function POST(req: NextRequest) {
       p_id_tenant: user.idTenant,
     });
 
-    if (error) {
-      console.error("POST /api/clientes rpc error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ data });
-  } catch (err) {
-    console.error("POST /api/clientes error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.CUALQUIER_OPERADOR },
+);

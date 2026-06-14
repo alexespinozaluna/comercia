@@ -1,42 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { clienteService } from "@/services/cliente-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditCreate, auditUpdate } from "@/lib/audit";
 import { ClienteDireccion } from "@/types/database";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+export const GET = withAuth<{ id: string }>(async (_req, { user, params }) => {
+  const data = await clienteService.getByIdWithDirecciones(parseInt(params.id), user.idTenant);
+  return NextResponse.json({ data });
+});
 
-    const { id } = await params;
-    const data = await clienteService.getByIdWithDirecciones(parseInt(id), user.idTenant);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/clientes/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
-
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.CUALQUIER_OPERADOR);
-
-    const { id } = await params;
-    const idCliente = parseInt(id);
+export const PUT = withAuth<{ id: string }>(
+  async (req, { user, params }) => {
+    const idCliente = parseInt(params.id);
     const body = await req.json();
     const { Nombre, NroTelefono, TipoDocumento, NroDocumento, Comentario, ClienteDireccion: direcciones } = body;
 
     if (!Nombre) {
-      return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
+      throw new ApiError(400, "Nombre requerido");
     }
 
     // Cliente + diff de direcciones en una sola transacción (RPC).
@@ -71,33 +53,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       p_id_tenant: user.idTenant,
     });
 
-    if (error) {
-      console.error("PUT /api/clientes/[id] rpc error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     const result = data as { ok?: boolean; error?: string } | null;
     if (result && result.ok === false) {
-      return NextResponse.json({ error: result.error ?? "Cliente no encontrado" }, { status: 404 });
+      throw new ApiError(404, result.error ?? "Cliente no encontrado");
     }
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("PUT /api/clientes/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.CUALQUIER_OPERADOR },
+);
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
-    const { id } = await params;
-    const idCliente = parseInt(id);
+export const DELETE = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const idCliente = parseInt(params.id);
 
     // Verificar que no tenga documentos activos
     const { data: docs, error: docErr } = await getSupabaseServer()
@@ -108,16 +78,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .eq("Estado", 1)
       .limit(1);
 
-    if (docErr) {
-      console.error("DELETE /api/clientes/[id] doc check error:", docErr);
-      return NextResponse.json({ error: docErr.message }, { status: 500 });
-    }
+    if (docErr) throw new ApiError(500, docErr.message);
 
     if (docs && docs.length > 0) {
-      return NextResponse.json(
-        { error: "No se puede eliminar: el cliente tiene documentos activos" },
-        { status: 400 }
-      );
+      throw new ApiError(400, "No se puede eliminar: el cliente tiene documentos activos");
     }
 
     // Soft delete direcciones primero
@@ -138,14 +102,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .eq("id", idCliente)
       .eq("IdTenant", user.idTenant);
 
-    if (error) {
-      console.error("DELETE /api/clientes/[id] error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("DELETE /api/clientes/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION },
+);

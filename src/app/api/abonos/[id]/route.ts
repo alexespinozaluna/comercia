@@ -1,30 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { documentoService } from "@/services/documento-service";
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.COBRANZA);
-
-    const { id } = await params;
-    const idAbono = parseInt(id);
+export const PUT = withAuth<{ id: string }>(
+  async (req, { user, params }) => {
+    const idAbono = parseInt(params.id);
     if (!idAbono || idAbono <= 0) {
-      return NextResponse.json({ error: "id inválido" }, { status: 400 });
+      throw new ApiError(400, "id inválido");
     }
 
     const body = await req.json();
     const { FechaEmision, Concepto, Total, IdMetodoPago } = body;
 
     if (!FechaEmision) {
-      return NextResponse.json({ error: "FechaEmision requerida" }, { status: 400 });
+      throw new ApiError(400, "FechaEmision requerida");
     }
     if (Total == null || Total <= 0) {
-      return NextResponse.json({ error: "El monto debe ser mayor a cero" }, { status: 400 });
+      throw new ApiError(400, "El monto debe ser mayor a cero");
     }
 
     const result = await documentoService.modificarAbono(
@@ -38,33 +31,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
 
     return NextResponse.json({ data: result });
-  } catch (err) {
-    // Surface RPC business errors (p.ej. "El monto ingresado es mayor a la deuda")
-    const msg = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  // exposeErrors: surface RPC business errors (p.ej. "El monto ingresado es mayor a la deuda")
+  { roles: PERMISOS.COBRANZA, exposeErrors: true },
+);
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.COBRANZA);
-
-    const { id } = await params;
-    const idAbono = parseInt(id);
+export const DELETE = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const idAbono = parseInt(params.id);
     if (!idAbono || idAbono <= 0) {
-      return NextResponse.json({ error: "id inválido" }, { status: 400 });
+      throw new ApiError(400, "id inválido");
     }
 
     // Borrado físico: la cascada del FK y el trigger restauran el Saldo de la venta
     await documentoService.eliminarAbono(idAbono, user.idTenant);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  { roles: PERMISOS.COBRANZA, exposeErrors: true },
+);

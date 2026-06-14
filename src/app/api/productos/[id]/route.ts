@@ -1,35 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { productoService } from "@/services/producto-service";
 import { getSupabaseServer } from "@/lib/supabase-server";
 import { auditUpdate } from "@/lib/audit";
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+export const GET = withAuth<{ id: string }>(async (_req, { user, params }) => {
+  const data = await productoService.getById(parseInt(params.id), user.idTenant, user.idNegocio);
+  return NextResponse.json({ data });
+});
 
-    const { id } = await params;
-    const data = await productoService.getById(parseInt(id), user.idTenant, user.idNegocio);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/productos/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
-
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.VENTAS_Y_CATALOGO);
-
-    const { id } = await params;
+export const PUT = withAuth<{ id: string }>(
+  async (req, { user, params }) => {
     const body = await req.json();
     const { Nombre, PrecioCosto, PrecioVenta, FechaVencimiento, IdCategoria, bActivoVenta } = body;
 
@@ -46,32 +28,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { error } = await getSupabaseServer()
       .from("Producto")
       .update(auditUpdate(user.id, update))
-      .eq("id", parseInt(id))
+      .eq("id", parseInt(params.id))
       .eq("IdTenant", user.idTenant)
       .eq("Estado", 1);
 
-    if (error) {
-      console.error("PUT /api/productos/[id] error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("PUT /api/productos/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.VENTAS_Y_CATALOGO },
+);
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
-    const { id } = await params;
-    const productId = parseInt(id);
+export const DELETE = withAuth<{ id: string }>(
+  async (_req, { user, params }) => {
+    const productId = parseInt(params.id);
 
     // Verificar que no tenga movimientos en Kardex
     const { data: movimientos, error: movErr } = await getSupabaseServer()
@@ -81,16 +51,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .eq("IdTenant", user.idTenant)
       .limit(1);
 
-    if (movErr) {
-      console.error("DELETE /api/productos/[id] kardex check error:", movErr);
-      return NextResponse.json({ error: movErr.message }, { status: 500 });
-    }
+    if (movErr) throw new ApiError(500, movErr.message);
 
     if (movimientos && movimientos.length > 0) {
-      return NextResponse.json(
-        { error: "No se puede eliminar: el producto tiene movimientos de stock" },
-        { status: 400 }
-      );
+      throw new ApiError(400, "No se puede eliminar: el producto tiene movimientos de stock");
     }
 
     // Soft delete
@@ -100,14 +64,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       .eq("id", productId)
       .eq("IdTenant", user.idTenant);
 
-    if (error) {
-      console.error("DELETE /api/productos/[id] error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw new ApiError(500, error.message);
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("DELETE /api/productos/[id] error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION },
+);

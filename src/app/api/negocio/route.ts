@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserFromRequest, requireRole } from "@/lib/api-auth";
+import { NextResponse } from "next/server";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { PERMISOS } from "@/lib/permisos";
 import { negocioService } from "@/services/negocio-service";
 import {
@@ -12,46 +12,28 @@ import {
 
 // GET: lista de negocios (sucursales) del tenant. Accesible a cualquier
 // usuario autenticado (el selector de sucursal lo necesita).
-export async function GET(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    const data = await negocioService.listByTenant(user.idTenant);
-    return NextResponse.json({ data });
-  } catch (err) {
-    console.error("GET /api/negocio error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
-  }
-}
+export const GET = withAuth(async (_req, { user }) => {
+  const data = await negocioService.listByTenant(user.idTenant);
+  return NextResponse.json({ data });
+});
 
 // PUT: edita los datos de un negocio del tenant (ADMIN/SUPERVISOR).
-export async function PUT(req: NextRequest) {
-  try {
-    const user = await getCurrentUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-    requireRole(user, PERMISOS.ADMINISTRACION);
-
+export const PUT = withAuth(
+  async (req, { user }) => {
     const body = await req.json();
     const { id, Nombre, Direccion, Telefono, Logo, Locale, Decimales, SimboloMoneda } = body;
     if (!id) {
-      return NextResponse.json({ error: "id requerido" }, { status: 400 });
+      throw new ApiError(400, "id requerido");
     }
     if (Locale != null && !esLocaleValido(Locale)) {
-      return NextResponse.json({ error: "Locale inválido" }, { status: 400 });
+      throw new ApiError(400, "Locale inválido");
     }
     if (Decimales != null && !esDecimalesValido(Decimales)) {
-      return NextResponse.json({ error: "Decimales inválido (0 o 2)" }, { status: 400 });
+      throw new ApiError(400, "Decimales inválido (0 o 2)");
     }
     const simbolo = typeof SimboloMoneda === "string" ? SimboloMoneda.trim() : "";
     if (simbolo.length > SIMBOLO_MAX_LEN) {
-      return NextResponse.json(
-        { error: `SimboloMoneda excede ${SIMBOLO_MAX_LEN} caracteres` },
-        { status: 400 },
-      );
+      throw new ApiError(400, `SimboloMoneda excede ${SIMBOLO_MAX_LEN} caracteres`);
     }
     const ok = await negocioService.update(
       id,
@@ -68,8 +50,6 @@ export async function PUT(req: NextRequest) {
       user.id,
     );
     return NextResponse.json({ ok });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
-}
+  },
+  { roles: PERMISOS.ADMINISTRACION, exposeErrors: true },
+);
