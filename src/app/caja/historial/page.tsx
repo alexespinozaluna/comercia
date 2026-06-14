@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Caja, CajaArqueo, CajaHistorialItem } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { AuthUser, getCurrentUser } from "@/lib/auth-client";
+import { useAppStore } from "@/stores/app-store";
+import { useResource } from "@/hooks/use-resource";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -80,54 +81,27 @@ function isoDaysAgo(n: number): string {
 export default function CajaHistorialPage() {
   const router = useRouter();
 
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const user = useAppStore((s) => s.authUser);
+  const allowed = !!user && ALLOWED_ROLES.includes(user.rol);
 
   const [desde, setDesde] = useState(isoDaysAgo(30));
   const [hasta, setHasta] = useState(todayIso());
   const [usuarioFilter, setUsuarioFilter] = useState<string>("0"); // "0" = todos
   const [soloDescuadre, setSoloDescuadre] = useState(false);
 
-  const [rows, setRows] = useState<CajaHistorialItem[]>([]);
   const [detail, setDetail] = useState<{ caja: CajaHistorialItem; arqueo: CajaArqueo } | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  useEffect(() => {
-    getCurrentUser().then((u) => {
-      setUser(u);
-      if (!u || !ALLOWED_ROLES.includes(u.rol)) {
-        setLoading(false);
-      }
-    });
-  }, []);
-
-  const load = useMemo(
-    () => async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (desde) params.set("desde", desde);
-        if (hasta) params.set("hasta", hasta);
-        if (usuarioFilter !== "0") params.set("usuario", usuarioFilter);
-        if (soloDescuadre) params.set("descuadre", "1");
-        const data = await apiGet<CajaHistorialItem[]>(
-          `/api/caja/historial?${params.toString()}`,
-        );
-        setRows(data);
-      } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Error al cargar");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [desde, hasta, usuarioFilter, soloDescuadre],
-  );
-
-  useEffect(() => {
-    if (user && ALLOWED_ROLES.includes(user.rol)) {
-      load();
-    }
-  }, [user, load]);
+  const { data, loading } = useResource(async () => {
+    if (!allowed) return [] as CajaHistorialItem[];
+    const params = new URLSearchParams();
+    if (desde) params.set("desde", desde);
+    if (hasta) params.set("hasta", hasta);
+    if (usuarioFilter !== "0") params.set("usuario", usuarioFilter);
+    if (soloDescuadre) params.set("descuadre", "1");
+    return apiGet<CajaHistorialItem[]>(`/api/caja/historial?${params.toString()}`);
+  }, [allowed, desde, hasta, usuarioFilter, soloDescuadre]);
+  const rows = useMemo(() => data ?? [], [data]);
 
   // Lista de cajeros distintos (de las filas cargadas) para el filtro
   const cajeros = useMemo(() => {
@@ -245,7 +219,7 @@ export default function CajaHistorialPage() {
       </div>
 
       {/* Lista */}
-      {loading ? (
+      {user == null || loading ? (
         <LoadingState variant="skeleton-detail" count={5} />
       ) : rows.length === 0 ? (
         <EmptyState title="Sin cierres en el rango" description="Ajusta los filtros." />

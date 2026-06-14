@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DocumentoAudit, DocumentoItemAudit } from "@/types/database";
 import { apiGet } from "@/lib/api-client";
-import { AuthUser, getCurrentUser } from "@/lib/auth-client";
+import { useAppStore } from "@/stores/app-store";
+import { useResource } from "@/hooks/use-resource";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "sonner";
 import { Search, FileText, Clock, User, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -60,49 +60,29 @@ function DiffView({ oldData, newData }: { oldData: Record<string, unknown> | nul
 }
 
 export default function AuditoriaPage() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [docs, setDocs] = useState<DocumentoAudit[]>([]);
-  const [items, setItems] = useState<DocumentoItemAudit[]>([]);
+  const user = useAppStore((s) => s.authUser);
+  const allowed = !!user && ALLOWED_ROLES.includes(user.rol);
   const [tab, setTab] = useState<"doc" | "item">("doc");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [operacion, setOperacion] = useState("");
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    getCurrentUser().then((u) => {
-      setUser(u);
-      if (!u || !ALLOWED_ROLES.includes(u.rol)) {
-        setLoading(false);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!user || !ALLOWED_ROLES.includes(user.rol)) return;
-    async function load() {
-      try {
-        const params = new URLSearchParams();
-        if (fechaInicio) params.set("fechaInicio", fechaInicio);
-        if (fechaFin) params.set("fechaFin", fechaFin);
-        if (operacion) params.set("operacion", operacion);
-        const query = params.toString() ? `?${params.toString()}` : "";
-        const [d, i] = await Promise.all([
-          apiGet<DocumentoAudit[]>(`/api/auditoria/documentos${query}`),
-          apiGet<DocumentoItemAudit[]>(`/api/auditoria/items${query}`),
-        ]);
-        setDocs(d);
-        setItems(i);
-      } catch (err) {
-        console.error(err);
-        toast.error("Error al cargar auditoria");
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [user, fechaInicio, fechaFin, operacion]);
+  const { data: auditData, loading } = useResource(async () => {
+    if (!allowed) return { docs: [] as DocumentoAudit[], items: [] as DocumentoItemAudit[] };
+    const params = new URLSearchParams();
+    if (fechaInicio) params.set("fechaInicio", fechaInicio);
+    if (fechaFin) params.set("fechaFin", fechaFin);
+    if (operacion) params.set("operacion", operacion);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const [d, i] = await Promise.all([
+      apiGet<DocumentoAudit[]>(`/api/auditoria/documentos${query}`),
+      apiGet<DocumentoItemAudit[]>(`/api/auditoria/items${query}`),
+    ]);
+    return { docs: d, items: i };
+  }, [allowed, fechaInicio, fechaFin, operacion]);
+  const docs = auditData?.docs ?? [];
+  const items = auditData?.items ?? [];
 
   const filteredDocs = search
     ? docs.filter((d) =>
@@ -134,7 +114,7 @@ export default function AuditoriaPage() {
     );
   }
 
-  if (loading) {
+  if (user == null || loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />

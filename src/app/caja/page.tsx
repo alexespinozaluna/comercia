@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Caja, CajaArqueo } from "@/types/database";
 import { apiGet, apiPost } from "@/lib/api-client";
-import { AuthUser, getCurrentUser } from "@/lib/auth-client";
+import { useAppStore } from "@/stores/app-store";
 import { useResource } from "@/hooks/use-resource";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
@@ -64,11 +64,7 @@ export default function CajaPage() {
   const [montoFinal, setMontoFinal] = useState(0);
   const [observacion, setObservacion] = useState("");
   const { saving: actionLoading, guardar } = useGuardar();
-  const [user, setUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
-    getCurrentUser().then(setUser);
-  }, []);
+  const user = useAppStore((s) => s.authUser);
   const puedeVerHistorial = !!user && ROLES_HISTORIAL.includes(user.rol);
 
   // Caja abierta + su arqueo en vivo (si hay caja).

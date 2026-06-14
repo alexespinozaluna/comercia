@@ -6,6 +6,7 @@ import { Negocio } from "@/types/database";
 import { apiGet, apiDelete } from "@/lib/api-client";
 import type { UsuarioSinPassword } from "@/types/usuario";
 import { useAppStore } from "@/stores/app-store";
+import { useResource } from "@/hooks/use-resource";
 import { extraerIniciales } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -28,9 +29,6 @@ import { cn } from "@/lib/utils";
 export default function UsuariosPage() {
   const router = useRouter();
   const authUser = useAppStore((s) => s.authUser);
-  const [usuarios, setUsuarios] = useState<UsuarioSinPassword[]>([]);
-  const [negocios, setNegocios] = useState<Negocio[]>([]);
-  const [loading, setLoading] = useState(true);
   const [toDesactivar, setToDesactivar] = useState<UsuarioSinPassword | null>(
     null,
   );
@@ -43,26 +41,18 @@ export default function UsuariosPage() {
     }
   }, [authUser, router]);
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [u, n] = await Promise.all([
-        apiGet<UsuarioSinPassword[]>("/api/usuarios"),
-        apiGet<Negocio[]>("/api/negocio").catch(() => [] as Negocio[]),
-      ]);
-      setUsuarios(u);
-      setNegocios(n);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al cargar usuarios");
-    } finally {
-      setLoading(false);
+  const { data, loading, reload } = useResource(async () => {
+    if (authUser?.rol !== "ADMIN") {
+      return { usuarios: [] as UsuarioSinPassword[], negocios: [] as Negocio[] };
     }
-  };
-
-  useEffect(() => {
-    if (authUser?.rol === "ADMIN") load();
+    const [u, n] = await Promise.all([
+      apiGet<UsuarioSinPassword[]>("/api/usuarios"),
+      apiGet<Negocio[]>("/api/negocio").catch(() => [] as Negocio[]),
+    ]);
+    return { usuarios: u, negocios: n };
   }, [authUser?.rol]);
+  const usuarios = data?.usuarios ?? [];
+  const negocios = data?.negocios ?? [];
 
   const nombreNegocio = (id: number | null) =>
     id == null ? "Todas las sucursales" : negocios.find((n) => n.id === id)?.Nombre ?? `#${id}`;
@@ -74,7 +64,7 @@ export default function UsuariosPage() {
       await apiDelete(`/api/usuarios/${toDesactivar.id}`);
       toast.success("Usuario desactivado");
       setToDesactivar(null);
-      await load();
+      await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -104,7 +94,7 @@ export default function UsuariosPage() {
         }
       />
 
-      {loading ? (
+      {authUser == null || loading ? (
         <LoadingState variant="skeleton-list" count={4} />
       ) : usuarios.length === 0 ? (
         <EmptyState

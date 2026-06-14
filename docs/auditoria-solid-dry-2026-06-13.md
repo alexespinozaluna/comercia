@@ -120,10 +120,15 @@ export const PERMISOS = {
 > producto, venta-gasto, producto/kardex. Las páginas con params dinámicos usan
 > `use(params)`; el toggle optimista de `producto` usa `setData`.
 >
-> **Dejadas a propósito** (no encajan sin regresión): páginas con guard de rol en
-> dos fases (`auditoria`, `caja/historial`, `configuracion/usuarios`,
-> `producto/ajustes`, `superadmin`) y `venta-abono` (side-effects de navegación
-> durante la carga).
+> **Guard unificado contra el store:** `auditoria`, `caja/historial`,
+> `producto/ajustes`, `configuracion/usuarios` (+`[id]`) y `caja/page` dejaron de
+> llamar `getCurrentUser()` async; ahora leen `authUser` del store (síncrono) y
+> usan `useResource` con el render gateado por `authUser == null || loading` (sin
+> parpadeo). `getCurrentUser()` ya solo lo usa el app-shell.
+>
+> **Único pendiente:** `venta-abono` (su carga hace `router.replace`/`toast` y
+> ramas condicionales; requiere separar fetch de side-effects). `superadmin` usa
+> centinela `null` propio y se deja como está.
 
 
 ~22-24 páginas repiten `useState(loading)` + `useEffect(fetch)` + manejo de error. Ya existe

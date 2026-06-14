@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Negocio } from "@/types/database";
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 import type { UsuarioSinPassword } from "@/types/usuario";
 import { ROLES_VALIDOS } from "@/types/usuario";
 import { useAppStore } from "@/stores/app-store";
+import { useResource } from "@/hooks/use-resource";
 import { PageHeader } from "@/components/shared/page-header";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -39,9 +40,9 @@ export default function UsuarioDatosPage({
   const router = useRouter();
   const authUser = useAppStore((s) => s.authUser);
 
-  const [id, setId] = useState<number | null>(null);
-  const [isEdit, setIsEdit] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const rawId = use(params).id;
+  const isEdit = rawId !== "nuevo";
+  const id = isEdit ? parseInt(rawId, 10) : null;
   const { saving, guardar } = useGuardar();
 
   const [codigo, setCodigo] = useState("");
@@ -51,49 +52,37 @@ export default function UsuarioDatosPage({
   const [idNegocio, setIdNegocio] = useState<number | null>(null);
   const [estado, setEstado] = useState<number>(1);
 
-  const [negocios, setNegocios] = useState<Negocio[]>([]);
-
   // Guard: solo ADMIN.
   useEffect(() => {
     if (authUser && authUser.rol !== "ADMIN") router.replace("/");
   }, [authUser, router]);
 
+  const { data, loading } = useResource(async () => {
+    if (authUser?.rol !== "ADMIN") {
+      return { negocios: [] as Negocio[], usuario: null as UsuarioSinPassword | null };
+    }
+    const negociosList = await apiGet<Negocio[]>("/api/negocio").catch(() => [] as Negocio[]);
+    const usuario =
+      isEdit && id != null ? await apiGet<UsuarioSinPassword>(`/api/usuarios/${id}`) : null;
+    return { negocios: negociosList, usuario };
+  }, [authUser?.rol, id]);
+  const negocios = data?.negocios ?? [];
+
+  // Poblar el formulario: en edición con los datos del usuario; en alta,
+  // pre-selecciona la primera sucursal activa para no-ADMIN.
   useEffect(() => {
-    if (authUser?.rol !== "ADMIN") return;
-    params.then(async (p) => {
-      const editing = p.id !== "nuevo";
-      const parsedId = editing ? parseInt(p.id, 10) : null;
-      setIsEdit(editing);
-      setId(parsedId);
-
-      try {
-        const negociosList = await apiGet<Negocio[]>("/api/negocio").catch(
-          () => [] as Negocio[],
-        );
-        setNegocios(negociosList);
-
-        if (editing && parsedId != null) {
-          const u = await apiGet<UsuarioSinPassword>(
-            `/api/usuarios/${parsedId}`,
-          );
-          setCodigo(u.Codigo);
-          setNombre(u.Nombre);
-          setRol(u.Rol);
-          setIdNegocio(u.IdNegocio);
-          setEstado(u.Estado);
-        } else {
-          // Default: primera sucursal activa al crear no-ADMIN.
-          const activa = negociosList.find((n) => n.Estado === 1) ?? null;
-          setIdNegocio(activa?.id ?? null);
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Error al cargar datos");
-      } finally {
-        setLoading(false);
-      }
-    });
-  }, [params, authUser?.rol]);
+    if (!data) return;
+    if (data.usuario) {
+      setCodigo(data.usuario.Codigo);
+      setNombre(data.usuario.Nombre);
+      setRol(data.usuario.Rol);
+      setIdNegocio(data.usuario.IdNegocio);
+      setEstado(data.usuario.Estado);
+    } else if (!isEdit) {
+      const activa = data.negocios.find((n) => n.Estado === 1) ?? null;
+      setIdNegocio(activa?.id ?? null);
+    }
+  }, [data, isEdit]);
 
   const onRolChange = (nuevo: string | null) => {
     if (!nuevo) return;
@@ -157,7 +146,7 @@ export default function UsuarioDatosPage({
     );
   }
 
-  if (loading) return <LoadingState variant="skeleton-form" count={5} />;
+  if (authUser == null || loading) return <LoadingState variant="skeleton-form" count={5} />;
 
   const negociosActivos = negocios.filter((n) => n.Estado === 1);
   const isSelf = isEdit && authUser?.id === id;
