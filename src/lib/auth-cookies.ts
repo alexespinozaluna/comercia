@@ -18,7 +18,12 @@ export function setAccessCookie(res: NextResponse, jwt: string): void {
     value: jwt,
     httpOnly: true,
     secure: isProd,
-    sameSite: "strict",
+    // Lax (no Strict): en la PWA instalada (standalone) la cadena de navegación
+    // se trata como cross-site, y una cookie Strict NO viaja en el redirect
+    // /api/auth/refresh → / tras renovar. Eso dejaba al middleware sin access
+    // token en cada vuelta → bucle infinito (ERR_TOO_MANY_REDIRECTS). Con Lax la
+    // cookie sí se envía en navegaciones GET top-level y el ciclo se rompe.
+    sameSite: "lax",
     maxAge: ACCESS_MAX_AGE,
     path: "/",
   });
@@ -49,7 +54,7 @@ export function clearAuthCookies(res: NextResponse): void {
     value: "",
     httpOnly: true,
     secure: isProd,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 0,
     path: "/",
   });
