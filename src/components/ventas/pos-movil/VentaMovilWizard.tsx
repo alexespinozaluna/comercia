@@ -9,7 +9,7 @@ import { toInputDate, nowIso } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { msgDeudaRequiereCliente } from "@/lib/terminologia";
 import { useAppStore } from "@/stores/app-store";
-import { useBasket, sufijoDescuento } from "@/hooks/pos/use-basket";
+import { useBasket } from "@/hooks/pos/use-basket";
 import { useDescuento } from "@/hooks/pos/use-descuento";
 import { useMetodoPago } from "@/hooks/pos/use-metodo-pago";
 import {
@@ -64,9 +64,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
   // el selector arranca vacío (también al editar una venta del cliente común).
   const cliente = useClienteSeleccionado({ loadDefault: true });
   const caja = useCajaGuard();
-  // Descripción autogenerada + sufijo de descuento ("..., Descto -5.00").
-  const autoDescripcion = basket.autoDescripcion + sufijoDescuento(descuento.montoDescuento);
-  const concepto = useConcepto(autoDescripcion);
+  const concepto = useConcepto(basket.autoDescripcion);
   const { saving, guardar } = useGuardar();
 
   const [fecha, setFecha] = useState(toInputDate());
@@ -164,7 +162,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
           IdTenant: 0,
           FechaCreacion: nowIso(),
           FechaEmision: fecha,
-          Descripcion: autoDescripcion || null,
+          Descripcion: basket.autoDescripcion || null,
           Concepto: concepto.value || null,
           // Importe = bruto (Σ items); Total = neto (bruto − descuento).
           Importe: basket.total,
@@ -283,7 +281,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
           onRemoveClient={cliente.remove}
           onDireccionChange={cliente.setDireccionId}
           concepto={concepto.value}
-          autoDescripcion={autoDescripcion}
+          autoDescripcion={basket.autoDescripcion}
           onConceptoChange={concepto.handleChange}
           onClearConcepto={concepto.clear}
           cajaAbierta={caja.isOpen}

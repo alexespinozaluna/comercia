@@ -9,7 +9,7 @@ import { TipoDoc } from "@/lib/tipo-documento";
 import { msgDeudaRequiereCliente } from "@/lib/terminologia";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
-import { useBasket, sufijoDescuento } from "./pos/use-basket";
+import { useBasket } from "./pos/use-basket";
 import { useDescuento } from "./pos/use-descuento";
 import { useClienteSeleccionado, DEFAULT_CLIENT_ID } from "./pos/use-cliente-seleccionado";
 import { useMetodoPago } from "./pos/use-metodo-pago";
@@ -45,9 +45,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
   const metodo = useMetodoPago();
   const cajaGuard = useCajaGuard();
   const productos = useProductos();
-  // Descripción autogenerada + sufijo de descuento ("..., Descto -5.00").
-  const autoDescripcion = basket.autoDescripcion + sufijoDescuento(descuento.montoDescuento);
-  const concepto = useConcepto(autoDescripcion);
+  const concepto = useConcepto(basket.autoDescripcion);
 
   // Carga + elegibilidad + hidratación al editar (compartido con el wizard móvil)
   const edicion = useVentaEdicion({
@@ -112,7 +110,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         IdTenant: 0,
         FechaCreacion: new Date().toISOString(),
         FechaEmision: fecha,
-        Descripcion: autoDescripcion || null,
+        Descripcion: basket.autoDescripcion || null,
         Concepto: concepto.value || null,
         // Importe = bruto (Σ items); Total = neto (bruto − descuento).
         Importe: basket.total,
@@ -159,7 +157,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
   }, [
     basket.items,
     basket.total,
-    autoDescripcion,
+    basket.autoDescripcion,
     descuento.montoDescuento,
     descuento.total,
     isCredit,
@@ -185,7 +183,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     basket: basket.items,
     subtotal: basket.total,
     total: descuento.total, // neto (lo que muestran las barras y el botón guardar)
-    descripcion: autoDescripcion,
+    descripcion: basket.autoDescripcion,
     // Descuento
     descuentoModo: descuento.modo,
     setDescuentoModo: descuento.setModo,

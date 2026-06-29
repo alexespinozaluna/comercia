@@ -8,7 +8,6 @@ import { useAppStore } from "@/stores/app-store";
 import { esSoloLectura } from "@/lib/permisos";
 import { useResource } from "@/hooks/use-resource";
 import { numToString, formatNumero, fechaString, parseDateOnly } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -115,29 +114,31 @@ export default function DeudaDetallePage({ params }: { params: Promise<{ idClien
         />
       ) : (
         <>
-          {/* Cards Deuda + Abono (+ Ahorro si hubo descuentos) */}
-          <div className={cn("grid gap-2", totalDescuento > 0 ? "grid-cols-3" : "grid-cols-2")}>
+          {/* Cards Deuda + Abono */}
+          <div className="grid grid-cols-2 gap-2">
             <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3">
               <p className="text-xs text-destructive font-semibold">Deuda</p>
-              <p className="font-bold text-2xl text-destructive tabular-nums truncate">
+              <p className="font-bold text-lg text-destructive tabular-nums truncate">
                 {numToString(totalSaldo)}
               </p>
             </div>
             <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3">
               <p className="text-xs text-success font-semibold">Abono</p>
-              <p className="font-bold text-2xl text-success tabular-nums truncate">
+              <p className="font-bold text-lg text-success tabular-nums truncate">
                 {numToString(totalAbonado)}
               </p>
             </div>
-            {totalDescuento > 0 && (
-              <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3">
-                <p className="text-xs text-success font-semibold">Ahorro</p>
-                <p className="font-bold text-2xl text-success tabular-nums truncate">
-                  −{numToString(totalDescuento)}
-                </p>
-              </div>
-            )}
           </div>
+
+          {/* Descto. — fila completa: el monto nunca se recorta */}
+          {totalDescuento > 0 && (
+            <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-success font-semibold">Descto.</p>
+              <p className="font-bold text-lg text-success tabular-nums">
+                −{numToString(totalDescuento)}
+              </p>
+            </div>
+          )}
 
           {/* Grupos por dirección */}
           <div className="space-y-3">

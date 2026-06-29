@@ -22,12 +22,6 @@ function crearConcepto(items: BasketItemLocal[]): string {
   return items.map((b) => `${b.Cantidad} ${b.Descripcion} ${formatNumero(b.PrecioVenta)}`).join(", ");
 }
 
-/** Sufijo de descuento para la descripción/concepto autogenerados: ", Descto -5.00"
- *  (vacío si no hay descuento). Sin símbolo de moneda, como el resto del concepto. */
-export function sufijoDescuento(montoDescuento: number): string {
-  return montoDescuento > 0 ? `, Descto -${formatNumero(montoDescuento)}` : "";
-}
-
 export function useBasket() {
   const [items, setItems] = useState<BasketItemLocal[]>([]);
   const counterRef = useRef(0);

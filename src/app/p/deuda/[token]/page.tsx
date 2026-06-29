@@ -127,7 +127,7 @@ export default async function DeudaPublicaPage({
           </p>
           {totalDescuento > 0 && (
             <p className="text-green-600 text-[11px] font-semibold tabular-nums">
-              Ahorro −{numToString(totalDescuento, undefined, fmt)}
+              Descto. −{numToString(totalDescuento, undefined, fmt)}
             </p>
           )}
         </div>
