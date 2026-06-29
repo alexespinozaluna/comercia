@@ -3,13 +3,23 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
+import { DescuentoModo } from "@/hooks/pos/use-descuento";
 import { CartItemsList } from "@/components/ventas/pos/cart/CartItemsList";
 import { CartItemEditSheet } from "@/components/ventas/pos/CartItemEditSheet";
+import { DescuentoSection } from "@/components/ventas/pos/cart/DescuentoSection";
 import { StickyTotalBar } from "./StickyTotalBar";
 
 interface PasoConfirmarProps {
   items: BasketItemLocal[];
+  /** Bruto (Σ items). */
+  subtotal: number;
+  /** Neto (subtotal − descuento). */
   total: number;
+  montoDescuento: number;
+  descuentoModo: DescuentoModo;
+  descuentoValor: number;
+  onDescuentoModoChange: (modo: DescuentoModo) => void;
+  onDescuentoValorChange: (valor: number) => void;
   onUpdateQuantity: (tempId: string, delta: number) => void;
   onSetQuantity: (tempId: string, value: number) => void;
   onUpdatePrice: (tempId: string, price: number) => void;
@@ -22,7 +32,13 @@ interface PasoConfirmarProps {
 /** Paso 2 del wizard móvil: revisar/editar el pedido antes de los datos. */
 export function PasoConfirmar({
   items,
+  subtotal,
   total,
+  montoDescuento,
+  descuentoModo,
+  descuentoValor,
+  onDescuentoModoChange,
+  onDescuentoValorChange,
   onUpdateQuantity,
   onSetQuantity,
   onUpdatePrice,
@@ -57,6 +73,18 @@ export function PasoConfirmar({
         onEditPrice={setEditItem}
         onClear={onClear}
       />
+
+      <div className="rounded-lg ring-1 ring-border/50 bg-white dark:bg-card p-3">
+        <DescuentoSection
+          subtotal={subtotal}
+          montoDescuento={montoDescuento}
+          total={total}
+          modo={descuentoModo}
+          valor={descuentoValor}
+          onModoChange={onDescuentoModoChange}
+          onValorChange={onDescuentoValorChange}
+        />
+      </div>
 
       {/* Espacio para que la barra fija no tape el último item */}
       <div className="h-28" />

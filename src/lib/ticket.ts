@@ -146,6 +146,12 @@ export function renderTicketCanvas({ doc, negocio, widthMm = 80 }: TicketOpts): 
   }
   sep();
 
+  // ── Subtotal / Descuento (solo si hubo descuento) ────────────
+  if (doc.Descuento > 0) {
+    lineLR("Subtotal:", numToString(doc.Importe, undefined, fmt));
+    lineLR("Descuento:", `-${numToString(doc.Descuento, undefined, fmt)}`);
+  }
+
   // ── Total ────────────────────────────────────────────────────
   font(cfg.total, true);
   ctx.textAlign = "left";

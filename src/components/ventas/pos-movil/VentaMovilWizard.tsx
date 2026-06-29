@@ -9,7 +9,8 @@ import { toInputDate, nowIso } from "@/lib/format";
 import { TipoDoc } from "@/lib/tipo-documento";
 import { msgDeudaRequiereCliente } from "@/lib/terminologia";
 import { useAppStore } from "@/stores/app-store";
-import { useBasket } from "@/hooks/pos/use-basket";
+import { useBasket, sufijoDescuento } from "@/hooks/pos/use-basket";
+import { useDescuento } from "@/hooks/pos/use-descuento";
 import { useMetodoPago } from "@/hooks/pos/use-metodo-pago";
 import {
   useClienteSeleccionado,
@@ -56,12 +57,16 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
 
   const basket = useBasket();
+  // Descuento global sobre el bruto de la canasta (subtotal = basket.total).
+  const descuento = useDescuento(basket.total);
   const metodo = useMetodoPago();
   // loadDefault solo guarda el cliente común como fallback de guardado;
   // el selector arranca vacío (también al editar una venta del cliente común).
   const cliente = useClienteSeleccionado({ loadDefault: true });
   const caja = useCajaGuard();
-  const concepto = useConcepto(basket.autoDescripcion);
+  // Descripción autogenerada + sufijo de descuento ("..., Descto -5.00").
+  const autoDescripcion = basket.autoDescripcion + sufijoDescuento(descuento.montoDescuento);
+  const concepto = useConcepto(autoDescripcion);
   const { saving, guardar } = useGuardar();
 
   const [fecha, setFecha] = useState(toInputDate());
@@ -76,6 +81,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
     concepto,
     onFecha: setFecha,
     onIsCredit: setIsCredit,
+    onDescuento: descuento.hydrate,
   });
 
   useEffect(() => {
@@ -158,9 +164,12 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
           IdTenant: 0,
           FechaCreacion: nowIso(),
           FechaEmision: fecha,
-          Descripcion: basket.autoDescripcion || null,
+          Descripcion: autoDescripcion || null,
           Concepto: concepto.value || null,
-          Total: basket.total,
+          // Importe = bruto (Σ items); Total = neto (bruto − descuento).
+          Importe: basket.total,
+          Descuento: descuento.montoDescuento,
+          Total: descuento.total,
           bCredito: isCredit,
           // Sin cliente seleccionado → se asigna el común y su dirección.
           IdCliente: cliente.idEfectivo,
@@ -180,7 +189,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
           Cliente: undefined,
           TotalAbono: 0,
           IdTipoDocumento: TipoDoc.VENTA,
-          Saldo: isCredit ? basket.total : 0,
+          Saldo: isCredit ? descuento.total : 0,
           // En deuda no aplica forma de pago.
           IdMetodoPago: isCredit ? null : metodo.selectedId,
           IdCaja: null, // backend lo setea al crear
@@ -236,7 +245,13 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
       {step === "confirmar" && (
         <PasoConfirmar
           items={basket.items}
-          total={basket.total}
+          subtotal={basket.total}
+          total={descuento.total}
+          montoDescuento={descuento.montoDescuento}
+          descuentoModo={descuento.modo}
+          descuentoValor={descuento.valor}
+          onDescuentoModoChange={descuento.setModo}
+          onDescuentoValorChange={descuento.setValor}
           onUpdateQuantity={basket.updateQuantity}
           onSetQuantity={basket.setQuantity}
           onUpdatePrice={basket.updatePrice}
@@ -250,7 +265,9 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
       {step === "crear" && (
         <PasoCrear
           items={basket.items}
-          total={basket.total}
+          subtotal={basket.total}
+          montoDescuento={descuento.montoDescuento}
+          total={descuento.total}
           fecha={fecha}
           onFechaChange={setFecha}
           isCredit={isCredit}
@@ -266,7 +283,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
           onRemoveClient={cliente.remove}
           onDireccionChange={cliente.setDireccionId}
           concepto={concepto.value}
-          autoDescripcion={basket.autoDescripcion}
+          autoDescripcion={autoDescripcion}
           onConceptoChange={concepto.handleChange}
           onClearConcepto={concepto.clear}
           cajaAbierta={caja.isOpen}

@@ -93,6 +93,11 @@ export interface Documento extends BaseEnty {
   FechaEmision: string;
   Descripcion: string | null;
   Concepto: string | null;
+  /** Bruto = Σ(item.Total). Sin descuento, == Total. */
+  Importe: number;
+  /** Monto del descuento global (≥ 0). 0 = sin descuento. */
+  Descuento: number;
+  /** Neto = Importe − Descuento (lo que paga el cliente / deuda). */
   Total: number;
   bCredito: boolean;
   IdCliente: number | null;
@@ -171,6 +176,9 @@ export interface DeudaDetalle {
   NroTelefono: string | null;
   NroDocumento: string | null;
   NomUsuarioCreacion: string | null;
+  /** Bruto (Σ items) y descuento global de la venta. */
+  Importe: number;
+  Descuento: number;
 }
 
 // Resultado de fn_deuda_resumen(p_id_tenant) — agrupado por cliente

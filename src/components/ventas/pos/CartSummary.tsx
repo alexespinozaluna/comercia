@@ -5,11 +5,13 @@ import { Lock } from "lucide-react";
 import { useGuardar } from "@/hooks/use-guardar";
 import { MetodoPago } from "@/types/database";
 import { BasketItemLocal } from "@/hooks/pos/use-basket";
+import { DescuentoModo } from "@/hooks/pos/use-descuento";
 import { CartItemEditSheet } from "./CartItemEditSheet";
 import { CartItemsList } from "./cart/CartItemsList";
 import { FormaVentaToggle } from "./cart/FormaVentaToggle";
 import { FormaPagoChips } from "./cart/FormaPagoChips";
 import { FormaPagoDeuda } from "./cart/FormaPagoDeuda";
+import { DescuentoSection } from "./cart/DescuentoSection";
 import { FechaSection } from "./cart/FechaSection";
 import { NotasSection } from "./cart/NotasSection";
 import { CartBottomBar } from "./cart/CartBottomBar";
@@ -17,7 +19,15 @@ import { SectionLabel } from "./cart/SectionLabel";
 
 interface CartSummaryProps {
   basket: BasketItemLocal[];
+  /** Bruto (Σ items). */
+  subtotal: number;
+  /** Neto (subtotal − descuento). */
   total: number;
+  montoDescuento: number;
+  descuentoModo: DescuentoModo;
+  descuentoValor: number;
+  onDescuentoModoChange: (modo: DescuentoModo) => void;
+  onDescuentoValorChange: (valor: number) => void;
   fecha: string;
   isCredit: boolean;
   cajaAbierta: boolean | null;
@@ -47,7 +57,13 @@ interface CartSummaryProps {
  */
 export function CartSummary({
   basket,
+  subtotal,
   total,
+  montoDescuento,
+  descuentoModo,
+  descuentoValor,
+  onDescuentoModoChange,
+  onDescuentoValorChange,
   fecha,
   isCredit,
   cajaAbierta,
@@ -113,6 +129,16 @@ export function CartSummary({
             onChange={onIdMetodoPagoChange}
           />
         )}
+
+        <DescuentoSection
+          subtotal={subtotal}
+          montoDescuento={montoDescuento}
+          total={total}
+          modo={descuentoModo}
+          valor={descuentoValor}
+          onModoChange={onDescuentoModoChange}
+          onValorChange={onDescuentoValorChange}
+        />
 
         {/* Cliente — siempre visible (no depende de forma de venta) */}
         <div className="space-y-2">

@@ -9,7 +9,8 @@ import { TipoDoc } from "@/lib/tipo-documento";
 import { msgDeudaRequiereCliente } from "@/lib/terminologia";
 import { useAppStore } from "@/stores/app-store";
 import { toast } from "sonner";
-import { useBasket } from "./pos/use-basket";
+import { useBasket, sufijoDescuento } from "./pos/use-basket";
+import { useDescuento } from "./pos/use-descuento";
 import { useClienteSeleccionado, DEFAULT_CLIENT_ID } from "./pos/use-cliente-seleccionado";
 import { useMetodoPago } from "./pos/use-metodo-pago";
 import { useCajaGuard } from "./pos/use-caja-guard";
@@ -36,13 +37,17 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
 
   // Sub-hooks
   const basket = useBasket();
+  // Descuento global sobre el bruto de la canasta (subtotal = basket.total).
+  const descuento = useDescuento(basket.total);
   // loadDefault solo guarda el cliente común como fallback de guardado;
   // el selector arranca vacío (también al editar una venta del cliente común).
   const cliente = useClienteSeleccionado({ loadDefault: true });
   const metodo = useMetodoPago();
   const cajaGuard = useCajaGuard();
   const productos = useProductos();
-  const concepto = useConcepto(basket.autoDescripcion);
+  // Descripción autogenerada + sufijo de descuento ("..., Descto -5.00").
+  const autoDescripcion = basket.autoDescripcion + sufijoDescuento(descuento.montoDescuento);
+  const concepto = useConcepto(autoDescripcion);
 
   // Carga + elegibilidad + hidratación al editar (compartido con el wizard móvil)
   const edicion = useVentaEdicion({
@@ -53,6 +58,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     concepto,
     onFecha: setFecha,
     onIsCredit: setIsCredit,
+    onDescuento: descuento.hydrate,
   });
 
   // Resolve route params
@@ -106,9 +112,12 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         IdTenant: 0,
         FechaCreacion: new Date().toISOString(),
         FechaEmision: fecha,
-        Descripcion: basket.autoDescripcion || null,
+        Descripcion: autoDescripcion || null,
         Concepto: concepto.value || null,
-        Total: basket.total,
+        // Importe = bruto (Σ items); Total = neto (bruto − descuento).
+        Importe: basket.total,
+        Descuento: descuento.montoDescuento,
+        Total: descuento.total,
         bCredito: isCredit,
         // Sin cliente seleccionado → se asigna el común y su dirección.
         IdCliente: cliente.idEfectivo,
@@ -128,7 +137,7 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
         Cliente: undefined,
         TotalAbono: 0,
         IdTipoDocumento: TipoDoc.VENTA,
-        Saldo: isCredit ? basket.total : 0,
+        Saldo: isCredit ? descuento.total : 0,
         // En deuda no aplica forma de pago (no se muestra ni se exige).
         IdMetodoPago: isCredit ? null : metodo.selectedId,
         IdCaja: null, // backend lo setea al crear
@@ -150,7 +159,9 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
   }, [
     basket.items,
     basket.total,
-    basket.autoDescripcion,
+    autoDescripcion,
+    descuento.montoDescuento,
+    descuento.total,
     isCredit,
     cliente.id,
     cliente.idEfectivo,
@@ -172,8 +183,15 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     redirecting: edicion.redirecting,
     // Basket
     basket: basket.items,
-    total: basket.total,
-    descripcion: basket.autoDescripcion,
+    subtotal: basket.total,
+    total: descuento.total, // neto (lo que muestran las barras y el botón guardar)
+    descripcion: autoDescripcion,
+    // Descuento
+    descuentoModo: descuento.modo,
+    setDescuentoModo: descuento.setModo,
+    descuentoValor: descuento.valor,
+    setDescuentoValor: descuento.setValor,
+    montoDescuento: descuento.montoDescuento,
     addToBasket: basket.add,
     updateQuantity: basket.updateQuantity,
     setQuantity: basket.setQuantity,

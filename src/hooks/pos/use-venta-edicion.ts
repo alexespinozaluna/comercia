@@ -20,6 +20,8 @@ interface UseVentaEdicionParams {
   concepto: { hydrate: (value: string | null) => void };
   onFecha: (fecha: string) => void;
   onIsCredit: (isCredit: boolean) => void;
+  /** Hidrata el descuento global guardado (monto). */
+  onDescuento?: (monto: number) => void;
 }
 
 /**
@@ -37,6 +39,7 @@ export function useVentaEdicion({
   concepto,
   onFecha,
   onIsCredit,
+  onDescuento,
 }: UseVentaEdicionParams) {
   const router = useRouter();
   const [done, setDone] = useState(false);
@@ -71,6 +74,7 @@ export function useVentaEdicion({
 
         onFecha(venta.FechaEmision?.split("T")[0] ?? toInputDate());
         onIsCredit(venta.bCredito);
+        onDescuento?.(venta.Descuento ?? 0);
         // En crédito la forma de pago es "Deuda" (método oculto, no seleccionable):
         // no se hidrata para no arrastrar su id como selección inválida si el
         // usuario cambia a contado. El backend la re-asigna al guardar.

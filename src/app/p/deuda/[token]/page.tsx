@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { DeudaDetalle, Negocio } from "@/types/database";
-import { numToString, fechaString, extraerIniciales, parseDateOnly } from "@/lib/format";
+import { numToString, formatNumero, fechaString, extraerIniciales, parseDateOnly } from "@/lib/format";
 import { simboloEfectivo, DEFAULT_LOCALE } from "@/types/locale";
 
 /** Formato explícito del negocio dueño del link (server: sin setters). */
@@ -95,6 +95,7 @@ export default async function DeudaPublicaPage({
   }
 
   const totalDeuda = deudas.reduce((s, d) => s + Number(d.Saldo), 0);
+  const totalDescuento = deudas.reduce((s, d) => s + Number(d.Descuento ?? 0), 0);
   const cliente = deudas[0];
   const fmt = fmtDeNegocio(negocio);
 
@@ -124,6 +125,11 @@ export default async function DeudaPublicaPage({
           <p className="text-red-600 font-extrabold text-lg tabular-nums">
             {numToString(totalDeuda, undefined, fmt)}
           </p>
+          {totalDescuento > 0 && (
+            <p className="text-green-600 text-[11px] font-semibold tabular-nums">
+              Ahorro −{numToString(totalDescuento, undefined, fmt)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -167,6 +173,11 @@ export default async function DeudaPublicaPage({
                     {Number(d.TotalAbono) > 0 && (
                       <div className="text-xs text-muted-foreground line-through tabular-nums">
                         {numToString(Number(d.Total), undefined, fmt)}
+                      </div>
+                    )}
+                    {Number(d.Descuento) > 0 && (
+                      <div className="text-[11px] text-muted-foreground tabular-nums">
+                        Imp {formatNumero(Number(d.Importe), undefined, fmt)} · Desc −{formatNumero(Number(d.Descuento), undefined, fmt)}
                       </div>
                     )}
                   </div>

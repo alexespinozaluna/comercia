@@ -51,6 +51,8 @@ export const POST = withAuth(
       FechaEmision,
       Descripcion,
       Concepto,
+      Importe,
+      Descuento,
       Total,
       bCredito,
       IdCliente,
@@ -64,10 +66,20 @@ export const POST = withAuth(
       throw new ApiError(400, "FechaEmision y Total requeridos");
     }
 
+    // Descuento global (≥ 0, ≤ Importe). El RPC recalcula el bruto desde los
+    // items y vuelve a validar; esto es un guard temprano y amigable.
+    const importe = Importe ?? Total;
+    const descuento = Descuento ?? 0;
+    if (descuento < 0 || descuento > importe + 0.01) {
+      throw new ApiError(400, "Descuento inválido");
+    }
+
     const doc = {
       FechaEmision,
       Descripcion: truncateField(Descripcion),
       Concepto: truncateField(Concepto),
+      Importe: importe,
+      Descuento: descuento,
       Total,
       bCredito: !!bCredito,
       IdCliente: IdCliente && IdCliente !== 0 ? IdCliente : null,

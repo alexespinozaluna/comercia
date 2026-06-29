@@ -42,7 +42,13 @@ export function PosShell({ paramsPromise }: PosShellProps) {
   const cartContent = (
     <CartSummary
       basket={pos.basket}
+      subtotal={pos.subtotal}
       total={pos.total}
+      montoDescuento={pos.montoDescuento}
+      descuentoModo={pos.descuentoModo}
+      descuentoValor={pos.descuentoValor}
+      onDescuentoModoChange={pos.setDescuentoModo}
+      onDescuentoValorChange={pos.setDescuentoValor}
       fecha={pos.fecha}
       isCredit={pos.isCredit}
       cajaAbierta={pos.cajaAbierta}

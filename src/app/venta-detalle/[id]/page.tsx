@@ -219,8 +219,26 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
               </div>
             ))}
           </div>
+          {/* Subtotal / Descuento — solo si hubo descuento */}
+          {doc.Descuento > 0 && (
+            <div className="px-4 pt-3 space-y-1 text-sm border-t border-border bg-muted/20">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Subtotal</span>
+                <span className="tabular-nums">{numToString(doc.Importe)}</span>
+              </div>
+              <div className="flex justify-between text-success">
+                <span>Descuento</span>
+                <span className="tabular-nums">−{numToString(doc.Descuento)}</span>
+              </div>
+            </div>
+          )}
           {/* Total row */}
-          <div className="flex justify-between items-center px-4 py-3 border-t border-border bg-muted/20">
+          <div
+            className={cn(
+              "flex justify-between items-center px-4 py-3 bg-muted/20",
+              doc.Descuento > 0 ? "pt-1" : "border-t border-border",
+            )}
+          >
             <span className="text-sm font-semibold">Total</span>
             <span className={cn("text-base font-extrabold", isGasto ? "text-destructive" : "text-success")}>
               {numToString(doc.Total)}

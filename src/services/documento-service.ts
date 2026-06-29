@@ -72,6 +72,10 @@ function buildDocumentoJson(
     FechaEmision: doc.FechaEmision,
     Descripcion: truncateField(doc.Descripcion),
     Concepto: truncateField(doc.Concepto),
+    // Importe (bruto) lo recalcula el RPC desde los items; se incluye para el
+    // audit. Descuento (≥ 0) sí lo lee el RPC para validar y persistir.
+    Importe: doc.Importe ?? doc.Total,
+    Descuento: doc.Descuento ?? 0,
     Total: doc.Total,
     bCredito: doc.bCredito,
     IdCliente: doc.IdCliente && doc.IdCliente !== 0 ? doc.IdCliente : null,

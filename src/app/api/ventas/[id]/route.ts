@@ -26,12 +26,20 @@ export const PUT = withAuth<{ id: string }>(
     const idDoc = parseInt(params.id);
 
     const body = await req.json();
-    const { FechaEmision, Descripcion, Concepto, Total, bCredito, IdCliente, IdClienteDireccion, DireccionEntrega, IdMetodoPago, DocumentoItem: items, originalItemIds } = body;
+    const { FechaEmision, Descripcion, Concepto, Importe, Descuento, Total, bCredito, IdCliente, IdClienteDireccion, DireccionEntrega, IdMetodoPago, DocumentoItem: items, originalItemIds } = body;
+
+    const importe = Importe ?? Total;
+    const descuento = Descuento ?? 0;
+    if (descuento < 0 || descuento > importe + 0.01) {
+      throw new ApiError(400, "Descuento inválido");
+    }
 
     const doc = {
       FechaEmision,
       Descripcion: truncateField(Descripcion),
       Concepto: truncateField(Concepto),
+      Importe: importe,
+      Descuento: descuento,
       Total,
       bCredito: !!bCredito,
       IdCliente: IdCliente && IdCliente !== 0 ? IdCliente : null,
