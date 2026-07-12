@@ -75,6 +75,17 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return data.data as T;
 }
 
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const res = await request(path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) await parseError(res);
+  const data = await res.json();
+  return data.data as T;
+}
+
 export async function apiDelete(path: string): Promise<void> {
   const res = await request(path, { method: "DELETE" });
   if (!res.ok) await parseError(res);

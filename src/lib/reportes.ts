@@ -18,10 +18,12 @@ export interface TotalesIngresos {
   balance: number;
   /** Total de ventas (tipo 1): crédito + contado. */
   ventas: number;
-  /** Ingresos en efectivo: ventas pagadas (no crédito) + captura de saldo a favor. */
+  /** Ingresos en efectivo: ventas de contado (no crédito). Excluye saldo a favor. */
   efectivo: number;
   /** Total de abonos (tipo 2). */
   abono: number;
+  /** Total de gastos (tipo 3). */
+  gastos: number;
 }
 
 export interface ReporteIngresos {
@@ -44,22 +46,21 @@ function nuevoGrupo(metodo: string): GrupoMetodo {
  */
 export function agruparIngresosPorMetodo(docs: Documento[]): ReporteIngresos {
   const map = new Map<string, GrupoMetodo>();
-  const totales: TotalesIngresos = { balance: 0, ventas: 0, efectivo: 0, abono: 0 };
+  const totales: TotalesIngresos = { balance: 0, ventas: 0, efectivo: 0, abono: 0, gastos: 0 };
   let gastos = 0;
 
   for (const d of docs) {
     const esVenta = d.IdTipoDocumento === TipoDoc.VENTA;
     const esAbono = d.IdTipoDocumento === TipoDoc.ABONO;
 
-    // Totales (estilo home): efectivo = ventas/saldo-favor no crédito;
-    // abono = tipo 2; gastos = egresos; ventas = tipo 1.
+    // Totales: efectivo = ventas de contado; abono = tipo 2; gastos = egresos;
+    // ventas = tipo 1. El saldo a favor (tipo 4) NO es venta ni ingreso del
+    // reporte → se excluye.
     if (esEgreso(d.IdTipoDocumento)) {
       gastos += d.Total;
     } else if (esVenta) {
       totales.ventas += d.Total;
       if (!d.bCredito) totales.efectivo += d.Total;
-    } else if (d.IdTipoDocumento === TipoDoc.SALDO_FAVOR && !d.bCredito) {
-      totales.efectivo += d.Total;
     } else if (esAbono) {
       totales.abono += d.Total;
     }
@@ -78,6 +79,7 @@ export function agruparIngresosPorMetodo(docs: Documento[]): ReporteIngresos {
     }
   }
 
+  totales.gastos = gastos;
   totales.balance = totales.efectivo + totales.abono - gastos;
 
   // Orden: por total (venta + abonos) desc, "NINGUNO" siempre al final.
@@ -85,6 +87,88 @@ export function agruparIngresosPorMetodo(docs: Documento[]): ReporteIngresos {
     if (a.metodo === SIN_METODO) return 1;
     if (b.metodo === SIN_METODO) return -1;
     return b.venta + b.abonos - (a.venta + a.abonos);
+  });
+
+  return { grupos, totales };
+}
+
+/** Grupo del reporte de ventas por usuario (quien registró el documento). */
+export interface GrupoUsuario {
+  idUsuario: number | null;
+  usuario: string;
+  /** Cantidad de ventas (tipo 1). */
+  countVentas: number;
+  /** Total de ventas (tipo 1): crédito + contado. */
+  ventas: number;
+  /** Ingresos en efectivo: ventas de contado (no crédito). Excluye saldo a favor. */
+  efectivo: number;
+  /** Total de abonos (tipo 2). */
+  abonos: number;
+  /** Total de gastos (tipo 3). */
+  gastos: number;
+  /** efectivo + abonos − gastos. */
+  balance: number;
+}
+
+export interface ReporteVentasUsuario {
+  grupos: GrupoUsuario[];
+  totales: TotalesIngresos;
+}
+
+export const SIN_USUARIO = "Sin usuario";
+
+function nuevoGrupoUsuario(idUsuario: number | null, usuario: string): GrupoUsuario {
+  return { idUsuario, usuario, countVentas: 0, ventas: 0, efectivo: 0, abonos: 0, gastos: 0, balance: 0 };
+}
+
+/**
+ * Reporte de ventas por usuario en una sola pasada, misma clasificación que
+ * `agruparIngresosPorMetodo` (por flags de tipo-documento, no por texto) pero
+ * agrupando por `IdUsuarioCreacion` — quien registró el movimiento. Cada grupo
+ * lleva ventas/efectivo/abonos/gastos/balance; `totales` es el global del rango.
+ * Excluye ajustes (tipo 5) — ya filtrados por getVentas.
+ */
+export function agruparIngresosPorUsuario(docs: Documento[]): ReporteVentasUsuario {
+  const map = new Map<number | string, GrupoUsuario>();
+  const totales: TotalesIngresos = { balance: 0, ventas: 0, efectivo: 0, abono: 0, gastos: 0 };
+
+  for (const d of docs) {
+    const esVenta = d.IdTipoDocumento === TipoDoc.VENTA;
+    const esAbonoDoc = d.IdTipoDocumento === TipoDoc.ABONO;
+
+    const key = d.IdUsuarioCreacion ?? SIN_USUARIO;
+    const nombre = d.UsuarioCreacion?.Nombre?.trim() || SIN_USUARIO;
+    const g = map.get(key) ?? nuevoGrupoUsuario(d.IdUsuarioCreacion ?? null, nombre);
+
+    if (esEgreso(d.IdTipoDocumento)) {
+      g.gastos += d.Total;
+      totales.gastos += d.Total;
+    } else if (esVenta) {
+      g.ventas += d.Total;
+      g.countVentas += 1;
+      totales.ventas += d.Total;
+      if (!d.bCredito) {
+        g.efectivo += d.Total;
+        totales.efectivo += d.Total;
+      }
+    } else if (esAbonoDoc) {
+      g.abonos += d.Total;
+      totales.abono += d.Total;
+    }
+
+    map.set(key, g);
+  }
+
+  for (const g of map.values()) {
+    g.balance = g.efectivo + g.abonos - g.gastos;
+  }
+  totales.balance = totales.efectivo + totales.abono - totales.gastos;
+
+  // Orden: por balance desc; "Sin usuario" siempre al final.
+  const grupos = Array.from(map.values()).sort((a, b) => {
+    if (a.usuario === SIN_USUARIO) return 1;
+    if (b.usuario === SIN_USUARIO) return -1;
+    return b.balance - a.balance;
   });
 
   return { grupos, totales };

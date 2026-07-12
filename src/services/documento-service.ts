@@ -275,10 +275,14 @@ export const documentoService = {
    * Register a payment (abono) over debts — atomic, FIFO distribution server-side.
    *
    * `tipo` 1 → pay a single sale (`id` = IdDocumento); 2 → pay all of a client's
-   * debts (`id` = IdCliente). The RPC covers debts oldest-first, validates the
-   * amount against the real pending balance, and creates one Documento + one item
-   * per debt (IdDocumentoRef) inside a single transaction. The DB trigger then
-   * recomputes each sale's Saldo/TotalAbono.
+   * debts (`id` = IdCliente). Uses the RPC `registrar_abono_multi_item`: covers
+   * debts oldest-first, validates the amount against the real pending balance,
+   * and creates ONE Documento (the payment) with one DocumentoItem per debt
+   * (IdDocumentoRef) inside a single transaction. The DB trigger then recomputes
+   * each sale's Saldo/TotalAbono. `abonos` returns the single payment's id (array
+   * kept for the caja link). A payment over several debts (multi-item) is
+   * delete-only, not editable. The legacy `registrar_abono` (one Documento per
+   * debt, 1:1) is left intact in the DB for rollback but no longer called.
    */
   async registrarAbono(
     tipo: number,
@@ -291,7 +295,7 @@ export const documentoService = {
     idUsuario: number,
     idNegocio: number | null = null,
   ): Promise<{ ok: boolean; abonos: number[]; no_distribuido: number }> {
-    const { data, error } = await getSupabaseServer().rpc("registrar_abono", {
+    const { data, error } = await getSupabaseServer().rpc("registrar_abono_multi_item", {
       p_tipo: tipo,
       p_id: id,
       p_monto: monto,
@@ -629,5 +633,66 @@ export const documentoService = {
       .eq("IdTenant", tenantId)
       .eq("Estado", 1);
     if (error) throw new Error(`Error vinculando IdCaja: ${error.message}`);
+  },
+
+  /**
+   * Corrige el método de pago de un documento (cuando se marcó el equivocado).
+   * Update de UN solo campo (IdMetodoPago), auditado; no toca items ni saldos.
+   *
+   * Reglas (server-side):
+   *   * El método destino debe existir, ser del tenant y NO ser "Deuda"
+   *     (bDeuda) — la deuda es un placeholder de ventas a crédito, no una
+   *     forma de pago seleccionable.
+   *   * El documento debe ser elegible: NO crédito y tipo ∉ {Ajuste,
+   *     Abono con saldo a favor} — esos no llevan método real.
+   *   * Solo mientras la caja del documento siga abierta (idCajaAbierta):
+   *     cambiar el método re-categoriza el arqueo/reporte por método.
+   */
+  async actualizarMetodoPago(
+    id: number,
+    idMetodoPago: number,
+    tenantId: number,
+    idUsuario: number,
+    negocioId: number | null = null,
+    idCajaAbierta: number | null = null,
+  ): Promise<void> {
+    // 1. Método destino válido (del tenant, activo, no Deuda)
+    const metodos = await fetchMetodosPago(tenantId, { bDeuda: false });
+    if (!metodos.some((m) => m.id === idMetodoPago)) {
+      throw new Error("Método de pago inválido");
+    }
+
+    // 2. Documento elegible + caja aún abierta
+    const { data: doc, error: fetchErr } = await getSupabaseServer()
+      .from(TABLE)
+      .select("IdTipoDocumento, bCredito, IdCaja")
+      .eq("id", id)
+      .eq("IdTenant", tenantId)
+      .eq("Estado", 1)
+      .single();
+    if (fetchErr || !doc) throw new Error("Documento no encontrado");
+    const d = doc as { IdTipoDocumento: number; bCredito: boolean; IdCaja: number | null };
+
+    const elegible =
+      !d.bCredito &&
+      d.IdTipoDocumento !== TipoDoc.AJUSTE &&
+      d.IdTipoDocumento !== TipoDoc.ABONO_FAVOR;
+    if (!elegible) {
+      throw new Error("Este documento no permite corregir el método de pago");
+    }
+    if (d.IdCaja != null && idCajaAbierta != null && d.IdCaja !== idCajaAbierta) {
+      throw new Error("La caja del documento ya no está abierta");
+    }
+
+    // 3. Update de un solo campo, auditado, aislado por tenant/sucursal
+    let query = getSupabaseServer()
+      .from(TABLE)
+      .update(auditUpdate(idUsuario, { IdMetodoPago: idMetodoPago }))
+      .eq("id", id)
+      .eq("IdTenant", tenantId)
+      .eq("Estado", 1);
+    if (negocioId != null) query = query.eq("IdNegocio", negocioId);
+    const { error } = await query;
+    if (error) throw new Error(`Error actualizando método de pago: ${error.message}`);
   },
 };

@@ -6,7 +6,7 @@ import { Documento, toDisplayDocumento, DocumentoDisplay } from "@/types/databas
 import { apiGet, apiDelete } from "@/lib/api-client";
 import { useResource } from "@/hooks/use-resource";
 import { numToString, fechaCortaHora, cantidadString } from "@/lib/format";
-import { TipoDoc, esEgreso, esAbono } from "@/lib/tipo-documento";
+import { TipoDoc, esEgreso, esAbono, NOMBRE_TIPO_DOC } from "@/lib/tipo-documento";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -24,9 +24,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck, Package, Wallet } from "lucide-react";
+import { Share2, Printer, Pencil, CreditCard, Trash2, MapPin, UserRound, CalendarDays, UserCheck, Package, Wallet, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { TicketShareSheet } from "@/components/ventas/ticket-share-sheet";
+import { MetodoPagoCorrectorSheet } from "@/components/ventas/metodo-pago-corrector-sheet";
 import { useAppStore } from "@/stores/app-store";
 import { esSoloLectura } from "@/lib/permisos";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
@@ -37,9 +38,10 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   const isDesktop = useIsDesktop();
   const { id } = use(params);
   const [shareOpen, setShareOpen] = useState(false);
+  const [metodoOpen, setMetodoOpen] = useState(false);
   const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
-  const { data, loading } = useResource(async () => {
+  const { data, loading, reload } = useResource(async () => {
     const [docData, caja] = await Promise.all([
       apiGet<Documento | null>(`/api/ventas/${id}`),
       apiGet<{ id: number } | null>("/api/caja").catch(() => null),
@@ -83,6 +85,10 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
   // Los ajustes (5) se gestionan solo desde Stock → Ajustes, no aquí.
   // SUPERVISOR es solo lectura: sin editar/eliminar/abonar.
   const canEdit = !soloLectura && doc.TotalAbono === 0 && !isSaldoFavor && !isPagoFavor && !isAjuste && cajaOk;
+  // Abono (tipo 2): solo se edita si cubre UNA sola deuda (1 item). El abono
+  // multi-detalle (varias deudas) no se edita — solo se elimina. La edición va
+  // por el form /venta-abono (idAbono), no por el form de venta.
+  const canEditAbono = !soloLectura && isAbono && (doc.DocumentoItem?.length ?? 0) === 1 && cajaOk;
   // El pago con saldo a favor SÍ se puede eliminar (= anular): el trigger
   // restaura la deuda y el crédito. El resto, solo con su caja abierta.
   const canDelete = soloLectura
@@ -91,11 +97,14 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
     ? true
     : doc.TotalAbono === 0 && !isSaldoFavor && !isAjuste && cajaOk;
   const canAbono = !soloLectura && doc.bCredito && doc.Saldo > 0;
+  // Corregir método de pago: docs con método real (no crédito, no tipo 5/6),
+  // solo con su caja abierta. La validación se repite en el backend.
+  const canCorregirMetodo = !soloLectura && !doc.bCredito && !isPagoFavor && !isAjuste && cajaOk;
 
   return (
     <div className="space-y-2 max-w-lg mx-auto">
       <PageHeader
-        title={`Venta #${doc.NroVenta}`}
+        title={`${NOMBRE_TIPO_DOC[doc.IdTipoDocumento] ?? "Documento"} #${doc.NroVenta}`}
         onBack={() => router.back()}
       />
 
@@ -103,7 +112,7 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-3">
         {/* Header: solo el concepto/descripción */}
         <p className="text-sm font-semibold truncate">
-          {doc.Concepto ?? doc.Descripcion ?? `Venta #${doc.NroVenta}`}
+          {doc.Concepto ?? doc.Descripcion ?? `${NOMBRE_TIPO_DOC[doc.IdTipoDocumento] ?? "Documento"} #${doc.NroVenta}`}
         </p>
 
         <Separator />
@@ -156,13 +165,25 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <StatusBadge variant={doc.bCredito ? "info" : "success"}>{doc.FormaVenta}</StatusBadge>
           </div>
 
-          {/* Método de pago — cuando el documento lo registra */}
-          {doc.MetodoPago?.Nombre && (
+          {/* Método de pago — cuando el documento lo registra; corregible si aplica */}
+          {(doc.MetodoPago?.Nombre || canCorregirMetodo) && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Wallet className="h-3.5 w-3.5" /> Método de pago
               </span>
-              <span className="font-medium">{doc.MetodoPago.Nombre}</span>
+              <span className="font-medium flex items-center gap-2">
+                {doc.MetodoPago?.Nombre ?? "Sin método"}
+                {canCorregirMetodo && (
+                  <button
+                    type="button"
+                    onClick={() => setMetodoOpen(true)}
+                    aria-label="Corregir método de pago"
+                    className="text-brand hover:text-brand-dark transition-colors"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </span>
             </div>
           )}
 
@@ -193,31 +214,57 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       {/* Items */}
       {doc.DocumentoItem && doc.DocumentoItem.length > 0 && (
         <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 overflow-hidden">
-          {/* Header */}
+          {/* Header — en abonos, cada ítem referencia una venta cubierta */}
           <div className="px-4 py-2 border-b border-border bg-muted/40">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Productos</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {isAbono ? "Deudas cubiertas" : "Productos"}
+            </span>
           </div>
           {/* Rows */}
           <div className="divide-y divide-border">
-            {doc.DocumentoItem.map((item) => (
-              <div key={item.id} className="flex items-start gap-3 px-4 py-2.5">
-                {/* Avatar */}
-                <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center shrink-0">
-                  <Package className="h-5 w-5 text-brand" />
-                </div>
-                {/* Detalle */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-2">
-                    <span className="flex-1 text-sm font-medium text-foreground">{item.Descripcion}</span>
-                    <span className="text-sm font-semibold tabular-nums shrink-0">{numToString(item.Total)}</span>
+            {doc.DocumentoItem.map((item) => {
+              // En un abono, el ítem apunta a la venta pagada (IdDocumentoRef):
+              // la fila navega a su detalle y omite el ruido de und/precio.
+              const refId = item.IdDocumentoRef ?? 0;
+              const clickable = isAbono && refId > 0;
+              const detalle = (
+                <>
+                  {/* Avatar */}
+                  <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center shrink-0">
+                    <Package className="h-5 w-5 text-brand" />
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground flex items-center gap-3">
-                    <span className="tabular-nums">{cantidadString(item.Cantidad)} und</span>
-                    <span>Precio U. <span className="tabular-nums">{numToString(item.PrecioVenta)}</span></span>
+                  {/* Detalle */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2">
+                      <span className="flex-1 text-sm font-medium text-foreground">{item.Descripcion}</span>
+                      <span className="text-sm font-semibold tabular-nums shrink-0">{numToString(item.Total)}</span>
+                    </div>
+                    {!isAbono && (
+                      <div className="mt-0.5 text-xs text-muted-foreground flex items-center gap-3">
+                        <span className="tabular-nums">{cantidadString(item.Cantidad)} und</span>
+                        <span>Precio U. <span className="tabular-nums">{numToString(item.PrecioVenta)}</span></span>
+                      </div>
+                    )}
                   </div>
+                  {clickable && <ChevronRight className="h-4 w-4 text-muted-foreground self-center shrink-0" />}
+                </>
+              );
+              return clickable ? (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => router.push(`/venta-detalle/${refId}`)}
+                  className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-accent/30 transition-colors"
+                  aria-label={`Ver detalle de la venta referenciada`}
+                >
+                  {detalle}
+                </button>
+              ) : (
+                <div key={item.id} className="flex items-start gap-3 px-4 py-2.5">
+                  {detalle}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {/* Subtotal / Descuento — solo si hubo descuento */}
           {doc.Descuento > 0 && (
@@ -286,6 +333,17 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
             <Pencil className="h-4 w-4" /> Editar
           </Button>
         )}
+        {canEditAbono && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-10"
+            onClick={() => router.push(`/venta-abono?idAbono=${doc.id}`)}
+            aria-label="Editar abono"
+          >
+            <Pencil className="h-4 w-4" /> Editar
+          </Button>
+        )}
         {canAbono && (
           <Button
             size="sm"
@@ -323,6 +381,13 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       </div>
 
       <TicketShareSheet doc={doc} open={shareOpen} onOpenChange={setShareOpen} />
+      <MetodoPagoCorrectorSheet
+        docId={doc.id}
+        currentMetodoId={doc.IdMetodoPago}
+        open={metodoOpen}
+        onOpenChange={setMetodoOpen}
+        onCorrected={reload}
+      />
     </div>
   );
 }
