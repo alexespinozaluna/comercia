@@ -87,6 +87,35 @@ function buildDocumentoJson(
   };
 }
 
+/**
+ * Reshape de una fila de la vista `v_documento` (columnas planas Nom*) al
+ * shape anidado que ya consume el frontend: Cliente / MetodoPago /
+ * UsuarioCreacion / UsuarioModificacion como objetos `{ Nombre }`. Así la
+ * vista reemplaza el embed de PostgREST sin tocar la UI. (Solo se expone
+ * `Nombre`, que es lo único que la app lee de esos joins.)
+ */
+function reshapeVDocumento(row: Record<string, unknown>): Documento {
+  const {
+    NomCliente,
+    NomMetodoPago,
+    NomUsuarioCreacion,
+    NomUsuarioModificacion,
+    ...doc
+  } = row as Record<string, unknown> & {
+    NomCliente: string | null;
+    NomMetodoPago: string | null;
+    NomUsuarioCreacion: string | null;
+    NomUsuarioModificacion: string | null;
+  };
+  return {
+    ...doc,
+    Cliente: NomCliente != null ? { Nombre: NomCliente } : null,
+    MetodoPago: NomMetodoPago != null ? { Nombre: NomMetodoPago } : null,
+    UsuarioCreacion: NomUsuarioCreacion != null ? { Nombre: NomUsuarioCreacion } : null,
+    UsuarioModificacion: NomUsuarioModificacion != null ? { Nombre: NomUsuarioModificacion } : null,
+  } as unknown as Documento;
+}
+
 /** Build a clean JSONB array from DocumentoItem[] for RPC calls */
 function buildItemsJson(items: DocumentoItem[]): Record<string, unknown>[] {
   return items.map((item) => ({
@@ -111,12 +140,12 @@ export const documentoService = {
     id?: number,
     negocioId?: number | null,
   ): Promise<Documento[]> {
+    // Lee la vista v_documento (joins ya resueltos como columnas Nom*) y
+    // reshapea al shape anidado del frontend. Los filtros van sobre columnas
+    // de Documento, todas presentes en la vista.
     let query = getSupabaseServer()
-      .from(TABLE)
-      .select(
-        "*, Cliente(*), MetodoPago(Nombre), " +
-          "UsuarioCreacion:SistemaUsuario!FK_Documento_UsuarioCreacion(Nombre)",
-      )
+      .from("v_documento")
+      .select("*")
       .order("FechaEmision", { ascending: false })
       .order("id", { ascending: false });
 
@@ -152,7 +181,7 @@ export const documentoService = {
 
     const { data, error } = await query;
     if (error) throw new Error(`Error fetching ventas: ${error.message}`);
-    return (data ?? []) as unknown as Documento[];
+    return ((data ?? []) as Record<string, unknown>[]).map(reshapeVDocumento);
   },
 
   /** Get a single document with items, client and creator/modifier names. */

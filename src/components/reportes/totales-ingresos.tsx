@@ -32,7 +32,12 @@ export function TotalesIngresosCards({ totales, showGastos = false }: TotalesIng
   const cards = showGastos ? [...CARDS, GASTOS_CARD] : CARDS;
 
   return (
-    <div className={cn("grid grid-cols-2 gap-2", showGastos ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-2",
+        showGastos ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-4",
+      )}
+    >
       {cards.map(({ key, title, icon: Icon, iconBg, iconColor, valueColor }) => (
         <div key={key} className="bg-white dark:bg-card rounded-md p-1.5 sm:p-2.5 ring-1 ring-border/50 shadow-sm">
           <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1.5">
