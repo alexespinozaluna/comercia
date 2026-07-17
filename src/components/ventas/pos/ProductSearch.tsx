@@ -4,7 +4,7 @@ import { Producto, Categoria } from "@/types/database";
 import { SearchInput } from "@/components/shared/search-input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CategoriaFilter } from "@/components/producto/categoria-filter";
-import { Plus, Package, ShoppingCart } from "lucide-react";
+import { Plus, Package, PenLine, ShoppingCart } from "lucide-react";
 import { numToString, cantidadString } from "@/lib/format";
 import { BasketItemLocal } from "@/hooks/use-pos-transaction";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ interface ProductSearchProps {
   basket: BasketItemLocal[];
   onAddProduct: (product: Producto) => void;
   onQuickCreate: () => void;
+  /** Abre el sheet de ítem libre (venta sin producto de catálogo). */
+  onFreeItem: () => void;
   total: number;
   itemCount: number;
   onViewCart: () => void;
@@ -35,6 +37,7 @@ export function ProductSearch({
   basket,
   onAddProduct,
   onQuickCreate,
+  onFreeItem,
   total,
   itemCount,
   onViewCart,
@@ -139,6 +142,17 @@ export function ProductSearch({
               <Plus className="h-4 w-4 text-muted-foreground" />
             </div>
             <span className="text-xs font-medium text-muted-foreground">Nuevo producto</span>
+          </div>
+
+          {/* Ítem libre card — venta sin producto de catálogo */}
+          <div
+            onClick={onFreeItem}
+            className="bg-white dark:bg-card rounded-md ring-1 ring-dashed ring-border/80 p-3 cursor-pointer hover:ring-brand/40 hover:bg-brand-surface/30 transition-all flex flex-col items-center justify-center min-h-[88px] gap-1.5"
+          >
+            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+              <PenLine className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <span className="text-xs font-medium text-muted-foreground">Ítem libre</span>
           </div>
         </div>
       )}

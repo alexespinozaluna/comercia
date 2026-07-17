@@ -77,7 +77,8 @@ export interface TipoDocumento extends BaseEnty {
 
 export interface DocumentoItem {
   id: number;
-  IdProducto: number;
+  /** null = ítem libre (sin producto de catálogo; no toca stock/kardex). */
+  IdProducto: number | null;
   Descripcion: string;
   Cantidad: number;
   PrecioVenta: number;

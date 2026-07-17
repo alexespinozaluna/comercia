@@ -23,6 +23,8 @@ interface PasoConfirmarProps {
   onUpdateQuantity: (tempId: string, delta: number) => void;
   onSetQuantity: (tempId: string, value: number) => void;
   onUpdatePrice: (tempId: string, price: number) => void;
+  /** Edición de descripción de ítems libres (IdProducto null). */
+  onUpdateDescripcion?: (tempId: string, descripcion: string) => void;
   onRemoveItem: (tempId: string) => void;
   onClear: () => void;
   onBack: () => void;
@@ -42,6 +44,7 @@ export function PasoConfirmar({
   onUpdateQuantity,
   onSetQuantity,
   onUpdatePrice,
+  onUpdateDescripcion,
   onRemoveItem,
   onClear,
   onBack,
@@ -96,6 +99,7 @@ export function PasoConfirmar({
           if (!open) setEditItem(null);
         }}
         onUpdatePrice={onUpdatePrice}
+        onUpdateDescripcion={onUpdateDescripcion}
       />
 
       <StickyTotalBar label="Continuar" total={total} onClick={onNext} />

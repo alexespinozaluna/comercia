@@ -43,6 +43,8 @@ interface CartSummaryProps {
   onUpdateQuantity: (tempId: string, delta: number) => void;
   onSetQuantity: (tempId: string, value: number) => void;
   onUpdatePrice: (tempId: string, price: number) => void;
+  /** Edición de descripción de ítems libres (IdProducto null). */
+  onUpdateDescripcion?: (tempId: string, descripcion: string) => void;
   onRemoveItem: (tempId: string) => void;
   onConceptoChange: (value: string) => void;
   onClearConcepto: () => void;
@@ -79,6 +81,7 @@ export function CartSummary({
   onUpdateQuantity,
   onSetQuantity,
   onUpdatePrice,
+  onUpdateDescripcion,
   onRemoveItem,
   onConceptoChange,
   onClearConcepto,
@@ -176,6 +179,7 @@ export function CartSummary({
         open={detailOpen}
         onOpenChange={setDetailOpen}
         onUpdatePrice={onUpdatePrice}
+        onUpdateDescripcion={onUpdateDescripcion}
       />
     </>
   );

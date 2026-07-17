@@ -6,6 +6,7 @@ import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProductSearch } from "@/components/ventas/pos/ProductSearch";
 import { ProductQuickCreate } from "@/components/ventas/pos/ProductQuickCreate";
+import { FreeItemSheet } from "@/components/ventas/pos/FreeItemSheet";
 import { CartSummary } from "@/components/ventas/pos/CartSummary";
 import { ClientSelector } from "@/components/ventas/pos/ClientSelector";
 import {
@@ -27,6 +28,7 @@ const NEW_SALE_PARAMS: Promise<{ id: string }> = Promise.resolve({ id: "0" });
 export function PosShell({ paramsPromise }: PosShellProps) {
   const [cartOpen, setCartOpen] = useState(false);
   const [productSheetOpen, setProductSheetOpen] = useState(false);
+  const [freeItemOpen, setFreeItemOpen] = useState(false);
   const isDesktop = useIsDesktop();
 
   const pos = usePosTransaction(paramsPromise ?? NEW_SALE_PARAMS);
@@ -64,6 +66,7 @@ export function PosShell({ paramsPromise }: PosShellProps) {
       onUpdateQuantity={pos.updateQuantity}
       onSetQuantity={pos.setQuantity}
       onUpdatePrice={pos.updatePrice}
+      onUpdateDescripcion={pos.updateDescripcion}
       onRemoveItem={pos.removeFromBasket}
       onConceptoChange={pos.handleConceptoChange}
       onClearConcepto={pos.clearConceptoManual}
@@ -100,6 +103,7 @@ export function PosShell({ paramsPromise }: PosShellProps) {
             basket={pos.basket}
             onAddProduct={pos.addToBasket}
             onQuickCreate={() => setProductSheetOpen(true)}
+            onFreeItem={() => setFreeItemOpen(true)}
             total={pos.total}
             itemCount={pos.basket.length}
             onViewCart={() => setCartOpen(true)}
@@ -140,6 +144,12 @@ export function PosShell({ paramsPromise }: PosShellProps) {
         open={productSheetOpen}
         onOpenChange={setProductSheetOpen}
         onProductCreated={pos.addProductToList}
+      />
+
+      <FreeItemSheet
+        open={freeItemOpen}
+        onOpenChange={setFreeItemOpen}
+        onAdd={pos.addFreeItem}
       />
     </>
   );

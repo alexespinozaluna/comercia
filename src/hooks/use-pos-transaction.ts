@@ -191,9 +191,11 @@ export function usePosTransaction(params: Promise<{ id: string }>) {
     setDescuentoValor: descuento.setValor,
     montoDescuento: descuento.montoDescuento,
     addToBasket: basket.add,
+    addFreeItem: basket.addLibre,
     updateQuantity: basket.updateQuantity,
     setQuantity: basket.setQuantity,
     updatePrice: basket.updatePrice,
+    updateDescripcion: basket.updateDescripcion,
     removeFromBasket: basket.remove,
     // Productos
     products: productos.items,

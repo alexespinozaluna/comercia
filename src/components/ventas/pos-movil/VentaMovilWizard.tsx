@@ -22,6 +22,7 @@ import { useVentaEdicion } from "@/hooks/pos/use-venta-edicion";
 import { useGuardar } from "@/hooks/use-guardar";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProductQuickCreate } from "@/components/ventas/pos/ProductQuickCreate";
+import { FreeItemSheet } from "@/components/ventas/pos/FreeItemSheet";
 import { PasoSeleccionar } from "./PasoSeleccionar";
 import { PasoConfirmar } from "./PasoConfirmar";
 import { PasoCrear } from "./PasoCrear";
@@ -55,6 +56,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
   const [catFilter, setCatFilter] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [freeItemOpen, setFreeItemOpen] = useState(false);
 
   const basket = useBasket();
   // Descuento global sobre el bruto de la canasta (subtotal = basket.total).
@@ -236,6 +238,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
           total={basket.total}
           onAddProduct={basket.add}
           onQuickCreate={() => setQuickCreateOpen(true)}
+          onFreeItem={() => setFreeItemOpen(true)}
           onNext={() => setStep("confirmar")}
         />
       )}
@@ -253,6 +256,7 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
           onUpdateQuantity={basket.updateQuantity}
           onSetQuantity={basket.setQuantity}
           onUpdatePrice={basket.updatePrice}
+          onUpdateDescripcion={basket.updateDescripcion}
           onRemoveItem={basket.remove}
           onClear={() => basket.hydrate([])}
           onBack={() => setStep("seleccionar")}
@@ -297,6 +301,12 @@ export function VentaMovilWizard({ idVenta = 0 }: VentaMovilWizardProps) {
         open={quickCreateOpen}
         onOpenChange={setQuickCreateOpen}
         onProductCreated={(p) => setProductos((prev) => [...prev, p])}
+      />
+
+      <FreeItemSheet
+        open={freeItemOpen}
+        onOpenChange={setFreeItemOpen}
+        onAdd={basket.addLibre}
       />
     </div>
   );

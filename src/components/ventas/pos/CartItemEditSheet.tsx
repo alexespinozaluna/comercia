@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { numToString } from "@/lib/format";
 import { MontoInput } from "@/components/shared/monto-input";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,33 +20,45 @@ interface CartItemEditSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdatePrice: (tempId: string, price: number) => void;
+  /** Solo aplica a ítems libres (IdProducto null): permite editar la descripción. */
+  onUpdateDescripcion?: (tempId: string, descripcion: string) => void;
 }
 
 /**
  * Editor del precio unitario del ítem de canasta. La cantidad se edita
  * inline en CartItemsList (CantidadInput); el precio se mantiene en sheet
  * por el formato de moneda y para evitar ediciones accidentales.
+ * En ítems libres (IdProducto null) también se edita la descripción.
  */
 export function CartItemEditSheet({
   item,
   open,
   onOpenChange,
   onUpdatePrice,
+  onUpdateDescripcion,
 }: CartItemEditSheetProps) {
   const [precio, setPrecio] = useState(0);
+  const [descripcion, setDescripcion] = useState("");
 
   // Inicializar al abrir o al cambiar de ítem, nunca en cada render.
   useEffect(() => {
-    if (item) setPrecio(item.PrecioVenta);
+    if (item) {
+      setPrecio(item.PrecioVenta);
+      setDescripcion(item.Descripcion);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?._tempId, open]);
 
   if (!item) return null;
 
+  const esLibre = item.IdProducto == null;
   const subtotal = item.Cantidad * precio;
 
   const handleSubmit = () => {
     onUpdatePrice(item._tempId, precio > 0 ? precio : item.PrecioVenta);
+    if (esLibre && onUpdateDescripcion && descripcion.trim()) {
+      onUpdateDescripcion(item._tempId, descripcion.trim());
+    }
     onOpenChange(false);
   };
 
@@ -54,7 +67,9 @@ export function CartItemEditSheet({
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <SheetHeader className="pb-2">
           <SheetTitle className="text-base font-bold">{item.Descripcion}</SheetTitle>
-          <SheetDescription className="text-xs">Modifica el precio unitario</SheetDescription>
+          <SheetDescription className="text-xs">
+            {esLibre ? "Modifica la descripción y el precio" : "Modifica el precio unitario"}
+          </SheetDescription>
         </SheetHeader>
 
         <div
@@ -66,6 +81,18 @@ export function CartItemEditSheet({
             }
           }}
         >
+          {esLibre && onUpdateDescripcion && (
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Descripción</Label>
+              <Input
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Descripción del ítem"
+                className="h-11"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Precio unitario</Label>
             <MontoInput
@@ -89,7 +116,7 @@ export function CartItemEditSheet({
             className="w-full h-11 bg-brand hover:bg-brand-dark text-white font-semibold"
             onClick={handleSubmit}
           >
-            Actualizar precio
+            {esLibre ? "Actualizar ítem" : "Actualizar precio"}
           </Button>
         </div>
       </SheetContent>

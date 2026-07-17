@@ -15,6 +15,8 @@ interface PasoSeleccionarProps {
   total: number;
   onAddProduct: (product: Producto) => void;
   onQuickCreate: () => void;
+  /** Abre el sheet de ítem libre (venta sin producto de catálogo). */
+  onFreeItem: () => void;
   onNext: () => void;
 }
 
@@ -34,6 +36,7 @@ export function PasoSeleccionar({
   total,
   onAddProduct,
   onQuickCreate,
+  onFreeItem,
   onNext,
 }: PasoSeleccionarProps) {
   return (
@@ -48,6 +51,7 @@ export function PasoSeleccionar({
         basket={basket}
         onAddProduct={onAddProduct}
         onQuickCreate={onQuickCreate}
+        onFreeItem={onFreeItem}
         total={total}
         itemCount={basket.length}
         onViewCart={onNext}

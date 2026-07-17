@@ -10,11 +10,19 @@ export interface BasketItemLocal {
    *  Imprescindible para que el diff de modificación (toUpdate vs toAdd) reconozca
    *  los items existentes y NO los reinserte (evita duplicar movimientos de stock). */
   id?: number;
-  IdProducto: number;
+  /** null = ítem libre (venta sin producto de catálogo; no toca stock/kardex). */
+  IdProducto: number | null;
   Descripcion: string;
   Cantidad: number;
   PrecioVenta: number;
   MontoAbono: number;
+}
+
+/** Datos de un ítem libre (descripción/cantidad/precio a mano, sin catálogo). */
+export interface ItemLibre {
+  Descripcion: string;
+  Cantidad: number;
+  PrecioVenta: number;
 }
 
 /** Build a concepto/descripcion string from basket items: "{Cantidad} {Descripcion} {PrecioVenta}" (sin símbolo de moneda). */
@@ -29,6 +37,21 @@ export function useBasket() {
   const generateTempId = useCallback((productId: number) => {
     return `new-${counterRef.current++}-${productId}`;
   }, []);
+
+  /** Agrega un ítem libre: SIEMPRE crea una línea nueva (nunca fusiona). */
+  const addLibre = useCallback((item: ItemLibre) => {
+    setItems((prev) => [
+      ...prev,
+      {
+        _tempId: generateTempId(0),
+        IdProducto: null,
+        Descripcion: item.Descripcion,
+        Cantidad: item.Cantidad,
+        PrecioVenta: item.PrecioVenta,
+        MontoAbono: 0,
+      },
+    ]);
+  }, [generateTempId]);
 
   const add = useCallback((product: Producto) => {
     setItems((prev) => {
@@ -74,6 +97,13 @@ export function useBasket() {
     );
   }, []);
 
+  /** Cambia la descripción de una línea (solo aplica a ítems libres). */
+  const updateDescripcion = useCallback((tempId: string, descripcion: string) => {
+    setItems((prev) =>
+      prev.map((b) => (b._tempId === tempId ? { ...b, Descripcion: descripcion } : b))
+    );
+  }, []);
+
   const remove = useCallback((tempId: string) => {
     setItems((prev) => prev.filter((b) => b._tempId !== tempId));
   }, []);
@@ -94,10 +124,12 @@ export function useBasket() {
     total,
     autoDescripcion,
     add,
+    addLibre,
     remove,
     updateQuantity,
     setQuantity,
     updatePrice,
+    updateDescripcion,
     hydrate,
   };
 }
