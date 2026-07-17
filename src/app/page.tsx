@@ -76,7 +76,7 @@ export default function HomePage() {
   // los totales (es transferencia interna; el dinero ya se contó al capturarlo).
   const ingresos = ventas.filter((v) => !esEgreso(v.IdTipoDocumento));
   const gastos = ventas.filter((v) => esEgreso(v.IdTipoDocumento));
-   // Búsqueda sobre los movimientos del rango (no afecta totales del Balance)
+  // Búsqueda sobre los movimientos del rango
   const term = search.toLowerCase();
   const filteredIngresos = search
     ? ingresos.filter(
@@ -94,25 +94,28 @@ export default function HomePage() {
       )
     : gastos;
 
-  // Filtros (Método pago / Usuario / Cliente): refinan SOLO la lista mostrada;
-  // los totales del Balance se siguen calculando sobre filtered* (sin filtros).
+  // Filtros (Método pago / Usuario / Cliente): refinan la lista mostrada Y los
+  // totales de los cards, para que el Balance refleje lo que se está viendo.
   const displayIngresos = filteredIngresos.filter((v) => pasaFiltro(v, filtros));
   const displayGastos = filteredGastos.filter((v) => pasaFiltro(v, filtros));
 
-  // Efectivo = venta pagada (tipo 1) + captura de saldo a favor (tipo 4).
-  // NO incluye abonos (tipo 2, tienen su propia card) ni el consumo de saldo a
-  // favor (tipo 6, transferencia interna ya contada al capturar).
-  const totalEfectivo = filteredIngresos
+  // Ventas cobradas = venta pagada (tipo 1) + captura de saldo a favor (tipo 4).
+  // NO incluye el consumo de saldo a favor (tipo 6, transferencia interna ya
+  // contada al capturar).
+  const totalCobrado = displayIngresos
     .filter((v) => !v.bCredito && (v.IdTipoDocumento === TipoDoc.VENTA || v.IdTipoDocumento === TipoDoc.SALDO_FAVOR))
     .reduce((sum, v) => sum + v.Total, 0);
   // Abono = documentos de abono (tipo 2). Excluye por construcción el tipo 6.
-  const totalAbono = filteredIngresos
+  const totalAbono = displayIngresos
     .filter((v) => v.IdTipoDocumento === TipoDoc.ABONO)
     .reduce((sum, v) => sum + v.Total, 0);
-  const totalGastos = filteredGastos.reduce((sum, v) => sum + v.Total, 0);
-  const balance = totalEfectivo + totalAbono - totalGastos;
-  const totalCredito = filteredIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.Saldo, 0);
-  const ventasOnly = filteredIngresos.filter((v) => v.IdTipoDocumento === TipoDoc.VENTA);
+  // Ingresos = todo el dinero que entró en el periodo, con cualquier método de
+  // pago: ventas cobradas + abonos (dinero de deudas anteriores) + saldo a favor.
+  const totalIngresos = totalCobrado + totalAbono;
+  const totalGastos = displayGastos.reduce((sum, v) => sum + v.Total, 0);
+  const balance = totalIngresos - totalGastos;
+  const totalCredito = displayIngresos.filter((v) => v.bCredito).reduce((sum, v) => sum + v.Saldo, 0);
+  const ventasOnly = displayIngresos.filter((v) => v.IdTipoDocumento === TipoDoc.VENTA);
   const ventasCount = ventasOnly.length;
   const ventasTotal = ventasOnly.reduce((sum, v) => sum + v.Total, 0); 
 
@@ -195,7 +198,7 @@ export default function HomePage() {
       {/* Balance cards */}
       <BalanceCards
         balance={balance}
-        efectivo={totalEfectivo}
+        ingresos={totalIngresos}
         abono={totalAbono}
         gastos={totalGastos}
         cobrosPendientes={totalCredito}
@@ -203,7 +206,7 @@ export default function HomePage() {
         ventasTotal={ventasTotal}
       />
 
-      {/* Búsqueda + filtros — refinan los items de cada tab, sin afectar los totales del Balance */}
+      {/* Búsqueda + filtros — refinan los items de cada tab Y los totales de los cards */}
       <div className="flex items-center gap-2">
         <SearchInput
           className="flex-1"
@@ -228,7 +231,7 @@ export default function HomePage() {
               <Receipt className="h-3.5 w-3.5" />
               Ingresos
               <span className="text-muted-foreground font-normal">
-                ({numToString(totalEfectivo + totalAbono)})
+                ({numToString(totalIngresos)})
               </span>
             </TabsTrigger>
             <TabsTrigger

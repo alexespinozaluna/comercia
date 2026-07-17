@@ -1,7 +1,7 @@
 import { numToString } from "@/lib/format";
 import {
   Wallet,
-  DollarSign,
+  TrendingUp,
   CreditCard,
   TrendingDown,
   Clock,
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 interface BalanceCardsProps {
   balance: number;
-  efectivo: number;
+  ingresos: number;
   abono: number;
   gastos: number;
   cobrosPendientes: number;
@@ -19,6 +19,9 @@ interface BalanceCardsProps {
   ventasTotal: number;
 }
 
+// Fila 1 — la cuenta del día: Balance = Ingresos − Gastos (verificable a ojo).
+// Fila 2 — el detalle: Ventas (facturado), Pendiente (fiado), Abono (desglose
+// de Ingresos que viene de deudas anteriores).
 const CARDS = [
   {
     key: "balance",
@@ -29,20 +32,28 @@ const CARDS = [
     valueColor: "text-brand-dark",
   },
   {
+    key: "ingresos",
+    title: "Ingresos",
+    icon: TrendingUp,
+    iconBg: "bg-emerald-500/10",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    valueColor: "text-emerald-700 dark:text-emerald-400",
+  },
+  {
+    key: "gastos",
+    title: "Gastos",
+    icon: TrendingDown,
+    iconBg: "bg-destructive/10",
+    iconColor: "text-destructive",
+    valueColor: "text-destructive",
+  },
+  {
     key: "ventas",
     title: "Ventas",
     icon: ShoppingBag,
     iconBg: "bg-success/10",
     iconColor: "text-success",
     valueColor: "text-success",
-  },
-  {
-    key: "efectivo",
-    title: "Efectivo",
-    icon: DollarSign,
-    iconBg: "bg-emerald-500/10",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
-    valueColor: "text-emerald-700 dark:text-emerald-400",
   },
   {
     key: "pendiente",
@@ -61,19 +72,11 @@ const CARDS = [
     iconColor: "text-info",
     valueColor: "text-info",
   },
-  {
-    key: "gastos",
-    title: "Gastos",
-    icon: TrendingDown,
-    iconBg: "bg-destructive/10",
-    iconColor: "text-destructive",
-    valueColor: "text-destructive",
-  },
 ] as const;
 
 export function BalanceCards({
   balance,
-  efectivo,
+  ingresos,
   abono,
   gastos,
   cobrosPendientes,
@@ -83,7 +86,7 @@ export function BalanceCards({
   const values: Record<string, number> = {
     balance,
     ventas: ventasTotal,
-    efectivo,
+    ingresos,
     pendiente: cobrosPendientes,
     abono,
     gastos,
