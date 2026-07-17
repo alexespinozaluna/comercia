@@ -201,7 +201,7 @@ export default function ProductoPage() {
           {/* Nuevo producto card */}
           {!soloLectura && (
             <div
-              onClick={() => router.push("/producto/datos/0")}
+              onClick={() => router.push("/producto/datos")}
               className="bg-white dark:bg-card rounded-md ring-1 ring-dashed ring-border/80 p-3.5 cursor-pointer hover:ring-brand/40 hover:bg-brand-surface/20 transition-all flex flex-col items-center justify-center min-h-[120px] gap-2"
             >
               <div className="h-10 w-10 rounded-full bg-brand-surface flex items-center justify-center">

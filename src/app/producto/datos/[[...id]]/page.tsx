@@ -27,10 +27,11 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ProductoDatosPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProductoDatosPage({ params }: { params: Promise<{ id?: string[] }> }) {
   const router = useRouter();
-  const id = parseInt(use(params).id);
-  const isEdit = id > 0;
+  const idParam = use(params).id?.[0];
+  const isEdit = idParam != null;
+  const id = isEdit ? parseInt(idParam) : 0;
   const soloLectura = esSoloLectura(useAppStore((s) => s.authUser)?.rol);
 
   const [nombre, setNombre] = useState("");

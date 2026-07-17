@@ -348,7 +348,8 @@ fechaString(new Date(doc.FechaEmision))  // "22/05/26"
 | `/cliente` | Lista de clientes (`?select=true` activa modo selección) |
 | `/cliente/datos/[id]` | Crear/editar cliente |
 | `/producto` | Grid de inventario |
-| `/producto/datos/[id]` | Crear/editar producto |
+| `/producto/datos` | Crear producto (nuevo) |
+| `/producto/datos/[id]` | Editar producto existente (`id` real, incluye 0) |
 | `/producto/kardex/[id]` | Historial de stock de un producto |
 | `/producto/ajustes` | Ajustes manuales de stock |
 | `/caja` | Control de caja |
