@@ -28,3 +28,18 @@ longitud en `PUT /api/negocio`. Solo roles de administración.
 ## Refactor asociado
 `fetchNegocio(idNegocio)` (`src/lib/negocio-client.ts`) reemplaza el fetch+find
 duplicado de `/api/negocio` en `ticket-share-sheet` y `venta-detalle`.
+
+## Link de deuda multi-sucursal
+El link `/p/deuda/[token]` es **por cliente** y abarca las deudas de todas las
+sucursales. Antes mostraba siempre la primera sucursal del tenant; ahora:
+- `/api/deudas/publica/[token]` devuelve `sucursales`: las sucursales a las que
+  pertenecen las deudas (`v_deuda_detalle.IdNegocio`; null → principal), con
+  solo campos públicos. `negocio` (encabezado/formato) = esa sucursal si es una
+  sola, si no la principal.
+- `cuentasPorSucursal(deudas, sucursales)` agrupa el saldo por sucursal y omite
+  las que no tienen cuentas cargadas.
+- Una sola sucursal → una tarjeta (igual que antes). Varias → una tarjeta por
+  sucursal con subtítulo "Sucursal · monto".
+- Se calcula al abrir el link: no requiere migración y corrige links ya compartidos.
+- Descartado: guardar la sucursal en `LinkPublico.Metadata` (el link se reutiliza
+  y el cliente puede deber en varias sucursales).

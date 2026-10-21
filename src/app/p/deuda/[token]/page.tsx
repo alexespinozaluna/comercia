@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { DeudaDetalle, Negocio } from "@/types/database";
 import { numToString, formatNumero, fechaString, extraerIniciales, parseDateOnly } from "@/lib/format";
 import { simboloEfectivo, DEFAULT_LOCALE } from "@/types/locale";
-import { datosTransferencia } from "@/lib/datos-transferencia";
+import { cuentasPorSucursal } from "@/lib/datos-transferencia";
 import { DatosTransferenciaCard } from "@/components/shared/datos-transferencia-card";
 
 /** Formato explícito del negocio dueño del link (server: sin setters). */
@@ -23,6 +23,8 @@ export const dynamic = "force-dynamic";
 interface DeudaPublicaData {
   deudas: DeudaDetalle[];
   negocio: Negocio | null;
+  // Sucursales a las que pertenecen las deudas (con sus cuentas).
+  sucursales: Negocio[];
 }
 
 const SIN_DIRECCION = "Sin dirección";
@@ -85,7 +87,7 @@ export default async function DeudaPublicaPage({
   if (!res.ok) notFound();
 
   const { data } = await res.json();
-  const { deudas, negocio } = (data ?? {}) as DeudaPublicaData;
+  const { deudas, negocio, sucursales } = (data ?? {}) as DeudaPublicaData;
   if (!deudas?.length) notFound();
 
   // Agrupar por dirección de entrega.
@@ -100,6 +102,7 @@ export default async function DeudaPublicaPage({
   const totalDescuento = deudas.reduce((s, d) => s + Number(d.Descuento ?? 0), 0);
   const cliente = deudas[0];
   const fmt = fmtDeNegocio(negocio);
+  const cuentas = cuentasPorSucursal(deudas, sucursales ?? []);
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
@@ -190,7 +193,18 @@ export default async function DeudaPublicaPage({
         );
       })}
 
-      <DatosTransferenciaCard texto={datosTransferencia(negocio)} />
+      {/* Cuentas por sucursal: si debe en varias, cada una con lo que se le debe */}
+      {cuentas.map((c) => (
+        <DatosTransferenciaCard
+          key={c.idNegocio}
+          texto={c.texto}
+          subtitulo={
+            cuentas.length > 1
+              ? `${c.nombre ?? "Sucursal"} · ${numToString(c.saldo, undefined, fmt)}`
+              : undefined
+          }
+        />
+      ))}
 
       {/* Footer */}
       <p className="text-center text-xs text-muted-foreground pb-4">

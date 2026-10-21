@@ -3,8 +3,9 @@
 import { Landmark, Copy } from "lucide-react";
 import { toast } from "sonner";
 
-/** Cuentas del negocio para pagar por transferencia (ventas a crédito). */
-export function DatosTransferenciaCard({ texto }: { texto: string }) {
+/** Cuentas del negocio para pagar por transferencia (ventas a crédito).
+ * `subtitulo`: p. ej. sucursal y monto, cuando hay cuentas de varias sucursales. */
+export function DatosTransferenciaCard({ texto, subtitulo }: { texto: string; subtitulo?: string }) {
   if (!texto) return null;
 
   const copiar = async () => {
@@ -31,6 +32,9 @@ export function DatosTransferenciaCard({ texto }: { texto: string }) {
           <Copy className="h-3.5 w-3.5" /> Copiar
         </button>
       </div>
+      {subtitulo && (
+        <p className="px-3 pt-2.5 text-xs font-semibold text-muted-foreground">{subtitulo}</p>
+      )}
       <p className="px-3 py-2.5 text-sm whitespace-pre-line break-words select-all">{texto}</p>
     </div>
   );

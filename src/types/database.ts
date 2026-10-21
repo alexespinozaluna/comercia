@@ -172,6 +172,8 @@ export interface DeudaDetalle {
   TotalAbono: number;
   bCredito: boolean;
   IdTipoDocumento: number;
+  // Sucursal de la venta (null en filas previas a multi-sucursal).
+  IdNegocio: number | null;
   IdUsuarioCreacion: number | null;
   NomCliente: string | null;
   NroTelefono: string | null;
