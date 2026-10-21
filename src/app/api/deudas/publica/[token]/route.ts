@@ -25,7 +25,17 @@ export async function GET(
       negocioService.getDefaultForTenant(link.IdTenant),
     ]);
 
-    return NextResponse.json({ data: { deudas, negocio } });
+    // Endpoint anónimo: solo los campos que usa la página pública (sin
+    // IdTenant, auditoría, etc.).
+    const negocioPublico = negocio && {
+      Nombre: negocio.Nombre,
+      Locale: negocio.Locale,
+      Decimales: negocio.Decimales,
+      SimboloMoneda: negocio.SimboloMoneda,
+      DatosTransferencia: negocio.DatosTransferencia,
+    };
+
+    return NextResponse.json({ data: { deudas, negocio: negocioPublico } });
   } catch (err) {
     console.error("GET /api/deudas/publica error:", err);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });

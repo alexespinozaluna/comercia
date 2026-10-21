@@ -32,6 +32,9 @@ import { useAppStore } from "@/stores/app-store";
 import { esSoloLectura } from "@/lib/permisos";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { cn } from "@/lib/utils";
+import { fetchNegocio } from "@/lib/negocio-client";
+import { datosTransferencia, mostrarDatosTransferencia } from "@/lib/datos-transferencia";
+import { DatosTransferenciaCard } from "@/components/shared/datos-transferencia-card";
 
 export default function VentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -46,9 +49,15 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       apiGet<Documento | null>(`/api/ventas/${id}`),
       apiGet<{ id: number } | null>("/api/caja").catch(() => null),
     ]);
+    // Venta a crédito con saldo: se cargan las cuentas del negocio para transferir.
+    const negocio =
+      docData && mostrarDatosTransferencia(docData)
+        ? await fetchNegocio(docData.IdNegocio).catch(() => null)
+        : null;
     return {
       doc: docData ? toDisplayDocumento(docData) : null,
       cajaAbiertaId: caja?.id ?? null,
+      transferencia: datosTransferencia(negocio),
     };
   }, [id]);
   const doc: DocumentoDisplay | null = data?.doc ?? null;
@@ -210,6 +219,8 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           )}
         </div>
       </div>
+
+      <DatosTransferenciaCard texto={data?.transferencia ?? ""} />
 
       {/* Items */}
       {doc.DocumentoItem && doc.DocumentoItem.length > 0 && (

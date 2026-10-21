@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { DeudaDetalle, Negocio } from "@/types/database";
 import { numToString, formatNumero, fechaString, extraerIniciales, parseDateOnly } from "@/lib/format";
 import { simboloEfectivo, DEFAULT_LOCALE } from "@/types/locale";
+import { datosTransferencia } from "@/lib/datos-transferencia";
+import { DatosTransferenciaCard } from "@/components/shared/datos-transferencia-card";
 
 /** Formato explícito del negocio dueño del link (server: sin setters). */
 function fmtDeNegocio(negocio: Negocio | null) {
@@ -187,6 +189,8 @@ export default async function DeudaPublicaPage({
           </div>
         );
       })}
+
+      <DatosTransferenciaCard texto={datosTransferencia(negocio)} />
 
       {/* Footer */}
       <p className="text-center text-xs text-muted-foreground pb-4">

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DocumentoDisplay, Negocio } from "@/types/database";
-import { apiGet } from "@/lib/api-client";
+import { fetchNegocio } from "@/lib/negocio-client";
 import { renderTicketCanvas, ticketToBlob, type TicketWidth } from "@/lib/ticket";
 import {
   Sheet,
@@ -28,15 +28,11 @@ export function TicketShareSheet({ doc, open, onOpenChange }: TicketShareSheetPr
   const [busy, setBusy] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  // Cargar el negocio del documento: /api/negocio devuelve la lista de
-  // sucursales del tenant; se elige la que coincide con doc.IdNegocio.
+  // Cargar el negocio del documento (sucursal doc.IdNegocio).
   useEffect(() => {
     if (!open || !doc) return;
-    apiGet<Negocio[]>("/api/negocio")
-      .then((list) => {
-        const arr = Array.isArray(list) ? list : [];
-        setNegocio(arr.find((n) => n.id === doc.IdNegocio) ?? arr[0] ?? null);
-      })
+    fetchNegocio(doc.IdNegocio)
+      .then(setNegocio)
       .catch(() => setNegocio(null));
   }, [open, doc]);
 

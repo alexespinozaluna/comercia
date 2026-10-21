@@ -8,6 +8,7 @@ import {
   simboloEfectivo,
 } from "@/types/locale";
 import type { DocumentoDisplay, Negocio } from "@/types/database";
+import { datosTransferencia, mostrarDatosTransferencia } from "@/lib/datos-transferencia";
 
 // Anchos de impresora térmica (puntos a 203 dpi): 58mm ≈ 384, 80mm ≈ 576.
 export type TicketWidth = 58 | 80;
@@ -39,10 +40,13 @@ export function renderTicketCanvas({ doc, negocio, widthMm = 80 }: TicketOpts): 
   };
 
   const items = doc.DocumentoItem ?? [];
+  // Venta a crédito con saldo: cuentas del negocio para pagar por transferencia.
+  const transferencia = mostrarDatosTransferencia(doc) ? datosTransferencia(negocio) : "";
+  const transferLines = transferencia ? transferencia.split(/\r?\n/) : [];
   const canvas = document.createElement("canvas");
   canvas.width = cfg.w;
   // Alto generoso; al final se recorta a lo realmente usado.
-  canvas.height = 800 + items.length * lh * 3;
+  canvas.height = 800 + (items.length * 3 + transferLines.length * 2) * lh;
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -159,6 +163,25 @@ export function renderTicketCanvas({ doc, negocio, widthMm = 80 }: TicketOpts): 
   ctx.textAlign = "right";
   ctx.fillText(numToString(doc.Total, undefined, fmt), right, y);
   y += Math.round(cfg.total * 1.6);
+
+  // ── Datos para transferencia (crédito con saldo) ─────────────
+  if (transferLines.length) {
+    sep();
+    font(cfg.base, true);
+    ctx.textAlign = "left";
+    ctx.fillText("DATOS PARA TRANSFERENCIA", left, y);
+    y += lh;
+    font(cfg.base);
+    for (const raw of transferLines) {
+      // Línea vacía = separador entre cuentas.
+      if (!raw.trim()) { y += Math.round(lh / 2); continue; }
+      for (const l of wrap(raw, innerW)) {
+        ctx.fillText(l, left, y);
+        y += lh;
+      }
+    }
+    sep();
+  }
 
   // ── Pie ──────────────────────────────────────────────────────
   center("Gracias por su compra", cfg.base);

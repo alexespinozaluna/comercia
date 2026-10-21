@@ -9,6 +9,7 @@ import {
   DEFAULT_DECIMALES,
   SIMBOLO_MAX_LEN,
 } from "@/types/locale";
+import { DATOS_TRANSFERENCIA_MAX_LEN } from "@/lib/datos-transferencia";
 
 // GET: lista de negocios (sucursales) del tenant. Accesible a cualquier
 // usuario autenticado (el selector de sucursal lo necesita).
@@ -21,7 +22,7 @@ export const GET = withAuth(async (_req, { user }) => {
 export const PUT = withAuth(
   async (req, { user }) => {
     const body = await req.json();
-    const { id, Nombre, Direccion, Telefono, Logo, Locale, Decimales, SimboloMoneda } = body;
+    const { id, Nombre, Direccion, Telefono, Logo, Locale, Decimales, SimboloMoneda, DatosTransferencia } = body;
     if (!id) {
       throw new ApiError(400, "id requerido");
     }
@@ -35,6 +36,10 @@ export const PUT = withAuth(
     if (simbolo.length > SIMBOLO_MAX_LEN) {
       throw new ApiError(400, `SimboloMoneda excede ${SIMBOLO_MAX_LEN} caracteres`);
     }
+    const transferencia = typeof DatosTransferencia === "string" ? DatosTransferencia.trim() : "";
+    if (transferencia.length > DATOS_TRANSFERENCIA_MAX_LEN) {
+      throw new ApiError(400, `DatosTransferencia excede ${DATOS_TRANSFERENCIA_MAX_LEN} caracteres`);
+    }
     const ok = await negocioService.update(
       id,
       user.idTenant,
@@ -46,6 +51,7 @@ export const PUT = withAuth(
         Locale: Locale ?? DEFAULT_LOCALE,
         Decimales: Decimales ?? DEFAULT_DECIMALES,
         SimboloMoneda: simbolo,
+        DatosTransferencia: transferencia,
       },
       user.id,
     );

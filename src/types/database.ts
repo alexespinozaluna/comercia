@@ -206,6 +206,9 @@ export interface Negocio extends BaseEnty {
   Decimales: number;
   // Símbolo de moneda; vacío = derivar del Locale (moneda nacional).
   SimboloMoneda: string;
+  // Cuenta(s) para transferencia (texto libre, multilínea); se muestra en
+  // ventas a crédito con saldo. Vacío = no se muestra.
+  DatosTransferencia: string;
   Estado: number;
 }
 

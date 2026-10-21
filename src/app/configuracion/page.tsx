@@ -19,6 +19,8 @@ import { apiGet, apiPut } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
 import { esSoloLectura } from "@/lib/permisos";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { DATOS_TRANSFERENCIA_MAX_LEN } from "@/lib/datos-transferencia";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -32,7 +34,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
 import { useGuardar } from "@/hooks/use-guardar";
-import { Building2, Phone, MapPin, ImageIcon, Globe, Hash, Coins } from "lucide-react";
+import { Building2, Phone, MapPin, ImageIcon, Globe, Hash, Coins, Landmark } from "lucide-react";
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -50,6 +52,7 @@ export default function ConfiguracionPage() {
   const [locale, setLocaleField] = useState<string>(DEFAULT_LOCALE);
   const [decimales, setDecimalesField] = useState<number>(DEFAULT_DECIMALES);
   const [simboloMoneda, setSimboloMoneda] = useState("");
+  const [datosTransferencia, setDatosTransferencia] = useState("");
   const { saving, guardar } = useGuardar();
   const idNegocioActivo = useAppStore((s) => s.authUser?.idNegocio);
   const setFormatoGlobal = useAppStore((s) => s.setFormato);
@@ -71,6 +74,7 @@ export default function ConfiguracionPage() {
     setLocaleField(esLocaleValido(negocio.Locale) ? negocio.Locale : DEFAULT_LOCALE);
     setDecimalesField(esDecimalesValido(negocio.Decimales) ? negocio.Decimales : DEFAULT_DECIMALES);
     setSimboloMoneda(negocio.SimboloMoneda ?? "");
+    setDatosTransferencia(negocio.DatosTransferencia ?? "");
   }, [negocio]);
 
   const handleSave = () => guardar(async () => {
@@ -85,6 +89,7 @@ export default function ConfiguracionPage() {
         Locale: locale,
         Decimales: decimales,
         SimboloMoneda: simboloMoneda.trim(),
+        DatosTransferencia: datosTransferencia.trim(),
       });
       // Aplica el nuevo formato de inmediato (sin esperar recarga).
       setFormatoGlobal(locale, decimales, simboloEfectivo(simboloMoneda, locale));
@@ -232,6 +237,25 @@ export default function ConfiguracionPage() {
             Vacío = moneda nacional del país seleccionado ({simboloEfectivo("", locale)}).
           </p>
         </div>
+      </div>
+
+      {/* Card — cuentas para transferencia (ventas a crédito) */}
+      <div className="bg-white dark:bg-card rounded-lg ring-1 ring-border/50 p-3 space-y-2">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Landmark className="h-3.5 w-3.5" /> Datos para transferencia
+        </h2>
+        <Textarea
+          value={datosTransferencia}
+          onChange={(e) => setDatosTransferencia(e.target.value)}
+          placeholder={"Nombre: …\nRUT: …\nBanco: …\nTipo: Cuenta Corriente\nNúmero Cuenta: …\nCorreo: …"}
+          maxLength={DATOS_TRANSFERENCIA_MAX_LEN}
+          rows={7}
+          className="rounded-md font-mono text-sm"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          Se muestra en las ventas a crédito con saldo (detalle, ticket y link de deuda).
+          Puedes poner varias cuentas separadas por una línea en blanco. Vacío = no se muestra.
+        </p>
       </div>
 
       {!soloLectura && (
