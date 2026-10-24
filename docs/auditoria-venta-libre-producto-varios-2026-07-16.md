@@ -111,3 +111,12 @@ reutiliza como C mientras haya un solo tenant activo).
 - Todas dicen "Varios" (G1) → tickets/conceptos inservibles.
 - Precio 0 pasa silencioso (G4) → ventas en 0.
 - Un ADMIN puede borrar/desactivar la fila id=0 (G5) → la función desaparece sin aviso.
+
+## Fix 2026-10-24: "Ítem libre" invisible sin productos
+Las cards "Nuevo producto" e "Ítem libre" vivían dentro de la rama "hay
+productos" del grid de `ProductSearch`. Con 0 productos (tenant nuevo, p. ej.
+CONTRO_GASTOS, o una búsqueda sin resultados) solo se mostraba el EmptyState y
+no había forma de vender un ítem libre ni de crear el primer producto desde el
+POS. No era un tema de permisos por tenant: la venta libre no tiene gate.
+Ahora el EmptyState se muestra encima y el grid con ambas cards se renderiza
+siempre (POS clásico y wizard móvil comparten `ProductSearch`).
